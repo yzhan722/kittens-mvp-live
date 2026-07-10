@@ -1,5 +1,5 @@
-import { dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../_db.js";
-import { clampUid, intOr } from "../../_uid.js";
+import { dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
+import { clampUid, intOr } from "../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;

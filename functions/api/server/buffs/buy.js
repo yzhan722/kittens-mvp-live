@@ -1,6 +1,6 @@
-import { buffLevel, clampBuffKey, decayedRemaining, ensureBuffRows, SERVER_BUFF_BUY_MAX_MINUTES } from "../../../_buffs.js";
-import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../../_db.js";
-import { clampName, clampUid, intOr } from "../../../_uid.js";
+import { buffLevel, clampBuffKey, decayedRemaining, ensureBuffRows, SERVER_BUFF_BUY_MAX_MINUTES } from "../../_buffs.js";
+import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../_db.js";
+import { clampName, clampUid, intOr } from "../../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;

@@ -1,6 +1,6 @@
-import { requireUser } from "../../_auth.js";
-import { dbFirst, dbRun, getDb, handleOptions, json, nowMs } from "../../_db.js";
-import { clampUid } from "../../_uid.js";
+import { requireUser } from "../_auth.js";
+import { dbFirst, dbRun, getDb, handleOptions, json, nowMs } from "../_db.js";
+import { clampUid } from "../_uid.js";
 
 const TASK_DEFS = [
   { id: "gather", target: 50 },

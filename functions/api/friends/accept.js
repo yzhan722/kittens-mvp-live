@@ -1,5 +1,5 @@
-import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../_db.js";
-import { clampUid, intOr } from "../../_uid.js";
+import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
+import { clampUid, intOr } from "../_uid.js";
 
 function pair(a, b) {
   return a < b ? [a, b] : [b, a];

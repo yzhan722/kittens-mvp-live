@@ -1,6 +1,6 @@
-import { BOSS_KEY, parseRewards } from "../../../../_boss.js";
-import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../../../_db.js";
-import { clampName, clampUid } from "../../../../_uid.js";
+import { BOSS_KEY, parseRewards } from "../../../_boss.js";
+import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../../_db.js";
+import { clampName, clampUid } from "../../../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;

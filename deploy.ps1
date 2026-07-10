@@ -39,14 +39,14 @@ if (-not $token) { Write-Host "[错误] 缺少 CLOUDFLARE_API_TOKEN" -Foreground
 if (-not $account) { Write-Host "[错误] 缺少 CLOUDFLARE_ACCOUNT_ID" -ForegroundColor Red; exit 1 }
 if (-not $project) { Write-Host "[错误] 缺少 CLOUDFLARE_PROJECT_NAME" -ForegroundColor Red; exit 1 }
 
-# 查找 wrangler
+# 查找 wrangler（优先全局，否则 npx）
 $wrangler = "D:\npm-global\wrangler.cmd"
+$useNpx = $false
 if (-not (Test-Path $wrangler)) {
     $wrangler = (Get-Command wrangler -ErrorAction SilentlyContinue).Source
 }
 if (-not $wrangler) {
-    Write-Host "[错误] Wrangler 未安装，请运行: npm install -g wrangler" -ForegroundColor Red
-    exit 1
+    $useNpx = $true
 }
 
 Write-Host "项目: $project" -ForegroundColor Cyan
@@ -55,7 +55,12 @@ Write-Host "开始上传..." -ForegroundColor Yellow
 Write-Host ""
 
 $env:CF_API_TOKEN = $token
-& $wrangler pages deploy . --project-name=$project --commit-message="$Message"
+$env:CLOUDFLARE_API_TOKEN = $token
+if ($useNpx) {
+    & npx --yes wrangler pages deploy . --project-name=$project --commit-message="$Message"
+} else {
+    & $wrangler pages deploy . --project-name=$project --commit-message="$Message"
+}
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""

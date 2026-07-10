@@ -1,5 +1,5 @@
-import { dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../_db.js";
-import { clampUid } from "../../_uid.js";
+import { dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
+import { clampUid } from "../_uid.js";
 
 const TTL_MS = 24 * 60 * 60 * 1000;
 
