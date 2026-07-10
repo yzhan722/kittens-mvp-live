@@ -1,12 +1,12 @@
 {
-  "mode": "fix-marathon",
+  "mode": "backend-rebuild",
   "currentTask": null,
   "completedThisSession": [
-    "FIX-001", "FIX-002", "FIX-003", "FIX-004", "FIX-005",
-    "FIX-006", "FIX-007", "FIX-008"
+    "BE-001", "BE-002", "BE-003", "BE-004",
+    "BE-005", "BE-006", "BE-007", "BE-008"
   ],
-  "blockedOn": "FIX-D01",
-  "lastIterationAt": "2026-07-09T10:45:00.000Z",
+  "blockedOn": ["BE-D01", "BE-D02", "FIX-D01b"],
+  "lastIterationAt": "2026-07-10T02:10:00.000Z",
   "iterationCount": 8,
   "backlogHead": null,
   "queueEmpty": true

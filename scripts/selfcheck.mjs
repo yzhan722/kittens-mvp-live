@@ -19,6 +19,13 @@ import {
   finalizeProductionRates,
 } from "../modules/systems/production.js";
 import { expeditionTypeMulFromTypes } from "../modules/systems/expedition.js";
+import {
+  SERVER_BUFF_KEYS,
+  getServerBuffLevel,
+  serverBuffMul,
+  serverBuffEffectText,
+  serverBuffResearchTimeMul,
+} from "../modules/systems/server_buffs.js";
 import { EXP_LEVELS, getExpLevelDef } from "../modules/expedition_defs.js";
 import { getTypeMul, TYPE_MUL } from "../modules/type_chart.js";
 
@@ -40,6 +47,19 @@ assert(getTypeMul("water", "fire") === TYPE_MUL.SUPER_EFFECTIVE, "water>fire");
 assert(expeditionTypeMulFromTypes(["water"], "fire") === 1.5, "exp mul SE");
 assert(expeditionTypeMulFromTypes(["fire"], "water") === 0.5, "exp mul weak");
 assert(expeditionTypeMulFromTypes(["electric"], "ground") === 0.5, "exp mul immune path");
+assert(expeditionTypeMulFromTypes(["normal"], "normal") === 1, "exp mul neutral");
+
+// server_buffs
+assert(SERVER_BUFF_KEYS.includes("capture"), "sbuff keys");
+{
+  const uiMap = { serverBuffLevels: new Map([["exp", 3], ["research", 2]]) };
+  assert(getServerBuffLevel("exp", uiMap) === 3, "sbuff level map");
+  assert(Math.abs(serverBuffMul("exp", uiMap) - 1.3) < 1e-9, "sbuff mul");
+  assert(serverBuffEffectText("capture", 2) === "捕获成功率 +20%", "sbuff text");
+  const clamp0 = (n, a, b) => Math.max(a, Math.min(b, n));
+  assert(Math.abs(serverBuffResearchTimeMul(uiMap, clamp0) - 1 / 1.4) < 1e-9, "sbuff research time");
+  assert(getServerBuffLevel("nope", uiMap) === 0, "sbuff bad key");
+}
 
 // effects
 const state = {

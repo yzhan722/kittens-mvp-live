@@ -1,41 +1,32 @@
-# Loop 运行记录（开发 · 重构向 · 长跑）
+# Loop 运行记录（开发 · functions 重建）
 
 ## 当前配置
 
 | 项 | 值 |
 |----|-----|
-| 模式 | 马拉松长跑 |
+| 模式 | 后端重建长跑 |
 | 可执行队列 | **空** |
-| blocked | **FIX-D01**（commit / 轮换 token，等你拍板） |
-| commit | 仅在你明确说「commit」时执行 |
+| blocked | **BE-D01** wipe D1 · **BE-D02** deploy · **FIX-D01b** token |
+| 前端仓 | https://github.com/yzhan722/kittens-mvp-live |
 
-## 最近一次运行 · 2026-07-09 FIX 加固长跑
+## 最近一次 · 2026-07-10 functions/ 全量重建
 
 ### 完成
 
-- FIX-001/006：重写 `ARCHITECTURE.md`（v0.39.1、无 `functions/`、密钥提醒）；`app.js` import `?v=` → 0.39.1
-- FIX-002/003/008：ignore 已覆盖；`git init` 已有；噪音文件已清
-- FIX-004：`CAPTURE_AWARD` ~124 行；删重复 `elFutureShop` 监听；接线 → `TAB_AND_RENDER_WIRE`
-- FIX-005：删未接线 `modules/app/{boss_bully,research,server_buffs}.js`
-- FIX-007：`node scripts/selfcheck.mjs` OK
+- `functions/api/`：health、auth、save、score、leaderboard、events、buffs、boss、friends、social、daily_tasks（33 个 JS 文件）
+- `d1_schema.sql` v2（DROP+CREATE）；旧 migrations → `migrations/archive/`
+- 前端：`ui.fetch`、`#dailyTasks`、boot 时 refresh
+- `scripts/api-contract-selfcheck.mjs` OK；`selfcheck.mjs` OK
 
-### 验证
+### 未做（等你）
 
-- `node --check app.js` OK
-- `node scripts/selfcheck.mjs` OK
-- `app.js` ~3294 行
+- 未 wipe 远程 D1
+- 未 deploy
+- 未 commit/push
 
-### 未做 / 等你
+### 本地冒烟（可选）
 
-- 未 commit / 未 deploy / 未轮换 Cloudflare token（FIX-D01）
-- 未浏览器实机点未来商店（删了重复监听，逻辑应只走 `initFutureTab`）
-
----
-
-## 历史
-
-| 轮次 | 任务 | 结果 |
-|------|------|------|
-| 1–12 | REF-001…010 | 完成 |
-| 13 | REF-D01 | 完成 |
-| 14 | FIX-001…008 | 完成；blocked FIX-D01 |
+```bash
+wrangler pages dev . --d1=DB
+# 另开：curl http://127.0.0.1:8788/api/health
+```

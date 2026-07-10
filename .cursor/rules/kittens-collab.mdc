@@ -8,46 +8,51 @@ alwaysApply: true
 ## 项目结构概览
 
 ```
-kittens_mvp_live/
-├── app.js                    ← 主入口（6100+行），所有逻辑的串联点
-├── main.js                   ← 加载器，负责 SW 注册 + 模块动态 import
-├── index.html / styles.css   ← 页面结构 + 样式
+kittens-mvp-live/
+├── app.js                    ← 主入口（~3300行），组装与 SECTION 串联
+├── main.js                   ← 加载器（SW + 动态 import app.js）
+├── index.html / styles.css
 ├── modules/
-│   ├── systems/              ← 【新】提取的纯函数系统模块
-│   │   ├── effects.js        ← computeTechEffects / getBuildingCost 等
-│   │   ├── server_buffs.js   ← 全服Buff常量 + 纯函数查询
-│   │   └── ticker.js         ← Ticker跑马灯系统（目标位置）
-│   ├── app/                  ← 系统级逻辑（boss/research/ticker等）
-│   ├── render/               ← 渲染层（每个Tab一个文件）
-│   ├── tabs/                 ← 交互层（事件处理）
-│   └── *.js                  ← 工具/数据/服务
-├── functions/                ← Cloudflare Workers 后端
-└── data/                     ← 静态数据表
+│   ├── systems/              ← 纯函数（无 DOM / 无网络）
+│   │   ├── effects.js
+│   │   ├── production.js
+│   │   ├── expedition.js
+│   │   └── server_buffs.js
+│   ├── app/                  ← 有副作用子系统（ticker / capture_system / boss…）
+│   ├── render/               ← 渲染层
+│   ├── tabs/                 ← 交互层
+│   └── *.js                  ← 数据/工具/服务
+├── functions/api/            ← Cloudflare Pages Functions（本树可重部署）
+├── scripts/selfcheck.mjs     ← 纯模块冒烟
+└── data/
 ```
+
+**后端：** 源码在本树 `functions/api/`。D1 schema 见 `d1_schema.sql`（v2 清库需口头确认）。
 
 ## 多窗口分工（严格遵守，避免冲突）
 
 ### 窗口 A — 核心游戏逻辑
-- SECTION:STATE_INIT, DEFS_AND_BALANCE, TECH_EFFECTS, DEX_EFFECTS, ECONOMY, RESOURCES, COMPUTE_DERIVED, SAVE_CLOUD, RENDER_AND_SAVE, CORE_HELPERS
-- 文件：`modules/systems/effects.js`, `modules/state.js`, `modules/save_codec.js`
+- SECTION: STATE_INIT, DEFS_AND_BALANCE, TECH_EFFECTS, DEX_EFFECTS, ECONOMY, RESOURCES, COMPUTE_DERIVED, SAVE_CLOUD, RENDER_AND_SAVE, CORE_HELPERS, TAB_AND_RENDER_WIRE（组装）
+- 文件：`modules/systems/{effects,production}.js`, `modules/state.js`, `modules/save_codec.js`
 
 ### 窗口 B — 精灵/捕捉系统
-- SECTION:CAPTURE_AWARD, MON_HELPERS, TICKER_SYSTEM
-- 文件：`modules/mons.js`, `modules/tabs/capture_tab.js`, `modules/render/capture.js`, `modules/app/capture_system.js`
+- SECTION: CAPTURE_AWARD, MON_HELPERS, TICKER_SYSTEM
+- 文件：`modules/mons.js`, `modules/tabs/capture_tab.js`, `modules/render/capture.js`, `modules/app/{capture_system,ticker}.js`, `modules/systems/expedition.js`
 
 ### 窗口 C — UI 渲染层
-- SECTION:UI_STATE, LOG_UI, RENDER_SERVER_BUFF_BAR, RENDER_OVERLAYS, RENDER_FUNCTIONS
+- SECTION: UI_STATE, LOG_UI, RENDER_SERVER_BUFF_BAR, RENDER_OVERLAYS, RENDER_FUNCTIONS
 - 文件：`modules/render/*.js`, `styles.css`, `index.html`
 
-### 窗口 D — 网络/后端/排行榜
-- SECTION:LEADERBOARD_*, SERVER_BUFFS, BOSS_BULLY
-- 文件：`functions/**`, `modules/cloud_save.js`, `modules/api_client.js`
+### 窗口 D — 网络/排行榜/全服
+- SECTION: LEADERBOARD_*, SERVER_BUFFS, BOSS_BULLY
+- 文件：`modules/cloud_save.js`, `modules/api_client.js`, `modules/systems/server_buffs.js`, `modules/tabs/leaderboard_tab.js`（若存在）
+- 后端源码不在本树时，勿假设可改 `functions/**`
 
 ## 强制规则
 
-1. **不得跨 SECTION 修改** — 每轮开发 loop 只改一个 SECTION
-2. **新增纯函数优先放 `modules/systems/`** — 不得在 app.js 堆积
-3. **`modules/systems/` 必须是纯函数** — 不得引用 app.js 闭包
+1. **不得跨 SECTION 修改** — 每轮开发 loop 只改一个 SECTION（马拉松可连续多条，但每条仍尽量单 SECTION）
+2. **新增纯函数优先放 `modules/systems/`**
+3. **`modules/systems/` 必须是纯函数** — 不得引用 app.js 闭包；DOM/网络放 `modules/app/` 或 tabs
 4. **版本号** — 仅窗口 A 在发布轮统一 bump 四处版本
 5. **重构不改变游戏行为** — 除非任务明确标注 `behavior-change`
 
@@ -57,34 +62,6 @@ kittens_mvp_live/
 data/*.js → modules/utils.js → modules/systems/ → modules/*.js → modules/render/ → modules/tabs/ → app.js
 ```
 
-## app.js SECTION 索引（快速定位）
+## app.js SECTION 索引（约，随重构漂移）
 
-| SECTION 标签 | 行号（约） | 负责窗口 |
-|---|---|---|
-| STORAGE_CONSTANTS | 55 | A |
-| TICKER_SYSTEM | 64 | B |
-| UTILS | 265 | A |
-| DEFS_AND_BALANCE | 273 | A |
-| STATE_INIT | 759 | A |
-| UI_STATE | 845 | C |
-| DIRTY_FLAGS | 959 | C |
-| DOM_ELEMENTS | 1007 | C |
-| LOG_UI | 1016 | C |
-| LEADERBOARD_IDENTITY | 1125 | D |
-| CORE_HELPERS | 1342 | A |
-| LEADERBOARD_NETWORK | 1407 | D |
-| SERVER_BUFFS | 1575 | D |
-| RENDER_SERVER_BUFF_BAR | 1742 | C |
-| BOSS_BULLY | 1798 | D |
-| RENDER_OVERLAYS | 1998 | C |
-| LEADERBOARD_DATA | 2149 | D |
-| MON_HELPERS | 2628 | B |
-| SAVE_CLOUD | 2729 | A |
-| DEX_EFFECTS | 2817 | A |
-| TECH_EFFECTS | 2906 | A |
-| ECONOMY | 3010 | A |
-| RESOURCES | 3106 | A |
-| COMPUTE_DERIVED | 3159 | A |
-| RENDER_FUNCTIONS | 3335 | C |
-| CAPTURE_AWARD | 4351 | B |
-| RENDER_AND_SAVE | 5840 | A |
+以源码中 `SECTION:` 注释为准；常见标签：STORAGE_CONSTANTS, UTILS, DEFS_AND_BALANCE, STATE_INIT, UI_STATE, TICKER_SYSTEM, DIRTY_FLAGS, DOM_ELEMENTS, LOG_UI, LEADERBOARD_*, SERVER_BUFFS, BOSS_BULLY, RENDER_*, MON_HELPERS, SAVE_CLOUD, DEX/TECH_EFFECTS, ECONOMY, RESOURCES, COMPUTE_DERIVED, CAPTURE_AWARD, TAB_AND_RENDER_WIRE, RENDER_AND_SAVE。

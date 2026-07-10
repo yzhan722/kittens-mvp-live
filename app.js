@@ -69,6 +69,18 @@ import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
 import { createSocialSystem } from "./modules/social.js";
 import { createRenderSocial } from "./modules/render/social.js";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js";
+import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.39.1";
+import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.39.1";
+import {
+  SERVER_BUFF_KEYS,
+  SERVER_BUFF_BUY_MAX_MINUTES,
+  SERVER_BUFF_UI,
+  getServerBuffLevel as getServerBuffLevel0,
+  serverBuffPct as serverBuffPct0,
+  serverBuffMul as serverBuffMul0,
+  serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
+  serverBuffEffectText as serverBuffEffectText0,
+} from "./modules/systems/server_buffs.js?v=0.39.1";
 import { createSocialTab } from "./modules/tabs/social_tab.js";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
@@ -1441,59 +1453,24 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     }
   }
 
-  const SERVER_BUFF_KEYS = ["exp", "resProd", "resCap", "research", "capture", "aff"];
-  const SERVER_BUFF_BUY_MAX_MINUTES = 30 * 24 * 60;
-  const SERVER_BUFF_UI = {
-    exp: { name: "全服经验", icon: "经验", perLvl: 0.1 },
-    resProd: { name: "全服资源产量", icon: "资源", perLvl: 0.1 },
-    resCap: { name: "全服资源上限", icon: "上限", perLvl: 0.1 },
-    research: { name: "全服科研速度", icon: "科研", perLvl: 0.2 },
-    capture: { name: "全服捕获率", icon: "捕获", perLvl: 0.1 },
-    aff: { name: "全服亲密度", icon: "亲密", perLvl: 0.1 },
-  };
-
   function getServerBuffLevel(key) {
-    const k = String(key || "");
-    if (!SERVER_BUFF_KEYS.includes(k)) return 0;
-    const map = ui.serverBuffLevels;
-    if (map && typeof map.get === "function") {
-      const lvl = map.get(k);
-      return typeof lvl === "number" && Number.isFinite(lvl) ? Math.max(0, Math.floor(lvl)) : 0;
-    }
-    const items = Array.isArray(ui.serverBuffs?.items) ? ui.serverBuffs.items : [];
-    const it = items.find((x) => x && String(x.key || "") === k) ?? null;
-    const lvl = typeof it?.level === "number" && Number.isFinite(it.level) ? Math.max(0, Math.floor(it.level)) : 0;
-    return lvl;
+    return getServerBuffLevel0(key, ui);
   }
 
   function serverBuffPct(key) {
-    const k = String(key || "");
-    const cfg = SERVER_BUFF_UI[k];
-    if (!cfg) return 0;
-    const lvl = getServerBuffLevel(k);
-    return Math.max(0, (cfg.perLvl ?? 0) * lvl);
+    return serverBuffPct0(key, ui);
   }
 
   function serverBuffMul(key) {
-    return 1 + serverBuffPct(key);
+    return serverBuffMul0(key, ui);
   }
 
   function serverBuffResearchTimeMul() {
-    const lvl = getServerBuffLevel("research");
-    const spd = 1 + 0.2 * Math.max(0, lvl);
-    return clamp(1 / spd, 1 / 3, 1);
+    return serverBuffResearchTimeMul0(ui, clamp);
   }
 
   function serverBuffEffectText(key, lvl) {
-    const cfg = SERVER_BUFF_UI[key];
-    if (!cfg) return "";
-    const l = Math.max(0, Math.floor(lvl || 0));
-    if (l <= 0) return "未激活";
-    const pct = Math.round(cfg.perLvl * l * 100);
-    if (key === "research") return `科研速度 +${pct}%`;
-    if (key === "capture") return `捕获成功率 +${pct}%`;
-    if (key === "aff") return `亲密度获得 +${pct}%`;
-    return `+${pct}%`;
+    return serverBuffEffectText0(key, lvl);
   }
 
   function closeServerBuffBuyModal() {
@@ -1647,129 +1624,25 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
 
   const BOSS_BULLY_SNOOZE_KEY = "kittens_mvp_boss_bully_snooze_until_v1";
   // ===== SECTION:BOSS_BULLY — Boss林佬系统 — 维护者窗口D =====
-  function bossBullySnoozeKey() {
-    const uid = typeof ui.lbUid === "string" && ui.lbUid ? ui.lbUid : "";
-    return uid ? `${BOSS_BULLY_SNOOZE_KEY}_${uid}` : BOSS_BULLY_SNOOZE_KEY;
-  }
-
-  function readBossBullySnoozeUntil() {
-    try {
-      const raw = readLocalStorage(bossBullySnoozeKey());
-      const v = Number(raw);
-      return Number.isFinite(v) ? v : 0;
-    } catch {
-      return 0;
-    }
-  }
-
-  function writeBossBullySnoozeUntil(ms) {
-    try {
-      localStorage.setItem(bossBullySnoozeKey(), String(Math.max(0, Math.floor(ms || 0))));
-    } catch {
-    }
-  }
-
-  let BOSS_BULLY_TIMER_ID = 0;
-  async function refreshBossBullyOnce({ forceOpen = false } = {}) {
-    try {
-      const base = lbBaseUrl();
-      const uid = typeof ui.lbUid === "string" ? ui.lbUid : "";
-      const res = await lbFetchJson(`${base}/api/server/boss/bully?uid=${encodeURIComponent(uid)}`);
-      ui.bossBully = res && typeof res === "object" ? res : null;
-
-      const killSeq = typeof res?.killSeq === "number" && Number.isFinite(res.killSeq) ? Math.floor(res.killSeq) : 0;
-      const claimed = Boolean(res?.claimed);
-      const rewardType = String(res?.rewardType || "");
-      const rewardQty = typeof res?.rewardQty === "number" && Number.isFinite(res.rewardQty) ? Math.max(0, Math.floor(res.rewardQty)) : 0;
-      const rewards = res && typeof res === "object" && res.rewards && typeof res.rewards === "object" ? res.rewards : null;
-      const hasReward = killSeq > 0 && !claimed && (Boolean(rewards && Object.keys(rewards).length > 0) || (rewardType && rewardQty > 0));
-
-      const snoozeUntil = readBossBullySnoozeUntil();
-      const now = Date.now();
-      if (hasReward && (forceOpen || now >= snoozeUntil)) {
-        ui.bossBullyRewardModalOpen = true;
-      }
-
-      markOverlaysDirty();
-      render();
-    } catch {
-    }
-  }
-
-  function ensureBossBullyPolling() {
-    if (BOSS_BULLY_TIMER_ID) return;
-    refreshBossBullyOnce();
-    BOSS_BULLY_TIMER_ID = window.setInterval(() => {
-      refreshBossBullyOnce();
-    }, 6000);
-  }
-
-  function onBossBullyMaybeReward() {
-    refreshBossBullyOnce({ forceOpen: true });
-  }
-
-  async function claimBossBullyReward() {
-    const b = ui.bossBully;
-    if (!b) return;
-    const killSeq = typeof b?.killSeq === "number" && Number.isFinite(b.killSeq) ? Math.floor(b.killSeq) : 0;
-    if (killSeq <= 0) return;
-
-    try {
-      const base = lbBaseUrl();
-      const name = typeof ui.lbName === "string" && ui.lbName.trim() ? ui.lbName.trim() : "训练家";
-      const res = await lbFetchJson(`${base}/api/server/boss/bully/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: ui.lbUid, name }),
-      });
-
-      const rid = String(res?.rewardType || "");
-      const qty = typeof res?.rewardQty === "number" && Number.isFinite(res.rewardQty) ? Math.max(0, Math.floor(res.rewardQty)) : 0;
-      const already = Boolean(res?.alreadyClaimed);
-      const rewards = res && typeof res === "object" && res.rewards && typeof res.rewards === "object" ? res.rewards : null;
-
-      const picked = {};
-      if (rewards && typeof rewards === "object") {
-        for (const [k, v] of Object.entries(rewards)) {
-          const q = typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
-          if (k && q > 0) picked[String(k)] = q;
-        }
-      } else if (rid && qty > 0) {
-        picked[rid] = qty;
-      }
-
-      if (!already && Object.keys(picked).length > 0) {
-        for (const [k, v] of Object.entries(picked)) {
-          addRes(k, v);
-        }
-        const text = Object.entries(picked)
-          .map(([k, v]) => `${defs.resources?.[k]?.name ?? k} +${v}`)
-          .join("，");
-        addLog(`领取林佬奖励：${text}`, true);
-        save();
-      } else {
-        addLog("林佬奖励：已领取或暂无可领。", true);
-      }
-
-      ui.bossBullyRewardModalOpen = false;
-      markOverlaysDirty();
-      render();
-      refreshBossBullyOnce();
-    } catch {
-      addLog("林佬奖励：领取失败（请求失败）", true);
-      ui.bossBullyRewardModalOpen = false;
-      writeBossBullySnoozeUntil(Date.now() + 3 * 60 * 1000);
-      markOverlaysDirty();
-      render();
-    }
-  }
-
-  function closeBossBullyRewardModal({ snoozeMin = 10 } = {}) {
-    ui.bossBullyRewardModalOpen = false;
-    writeBossBullySnoozeUntil(Date.now() + Math.max(1, Math.floor(snoozeMin)) * 60 * 1000);
-    markOverlaysDirty();
-    render();
-  }
+  const {
+    refreshBossBullyOnce,
+    ensureBossBullyPolling,
+    onBossBullyMaybeReward,
+    claimBossBullyReward,
+    closeBossBullyRewardModal,
+  } = createBossBullySystem({
+    ui,
+    defs,
+    BOSS_BULLY_SNOOZE_KEY,
+    readLocalStorage,
+    lbBaseUrl,
+    lbFetchJson,
+    addRes,
+    addLog,
+    save,
+    markOverlaysDirty,
+    render,
+  });
 
   function closeExpeditionRewardModal() {
     ui.expeditionRewardModalOpen = false;
@@ -2245,6 +2118,30 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     slotKeys: [SAVE_SLOT_KEY],
     applyAutosaveRaw,
   });
+
+  // API fetch for daily_tasks / authenticated endpoints (Bearer from cloudSave)
+  ui.fetch = async (path, { method = "GET", body = null } = {}) => {
+    const headers = { "Content-Type": "application/json" };
+    const token = cloudSave.getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const qs = !token && ui.lbUid ? `${path.includes("?") ? "&" : "?"}uid=${encodeURIComponent(ui.lbUid)}` : "";
+    const res = await fetch(`${path}${qs}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : null,
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    if (!res.ok) {
+      const err = data && typeof data.error === "string" ? data.error : `http ${res.status}`;
+      throw new Error(err);
+    }
+    return data;
+  };
 
   function refreshCloudUI() {
     const token = cloudSave.getToken();
@@ -2880,76 +2777,16 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     getState: () => state,
   });
 
-  if (elLeaderboard) {
-    elLeaderboard.addEventListener("input", (ev) => {
-      const nameInp = ev.target?.closest?.("input[data-lb-name]");
-      if (!nameInp || !elLeaderboard.contains(nameInp)) return;
-      ui.lbName = String(nameInp.value || "");
-      try {
-        localStorage.setItem(LB_NAME_KEY, ui.lbName);
-      } catch {
-      }
-    });
-
-    elLeaderboard.addEventListener("change", async (ev) => {
-      const fileInp = ev.target?.closest?.("input[type=file][data-lb-avatar]");
-      if (!fileInp || !elLeaderboard.contains(fileInp)) return;
-      const f = fileInp.files && fileInp.files[0] ? fileInp.files[0] : null;
-      if (!f) return;
-      try {
-        const url = await avatarFileToDataUrl(f);
-        ui.lbAvatar = url;
-        try {
-          localStorage.setItem(LB_AVATAR_KEY, ui.lbAvatar);
-        } catch {
-        }
-        markLeaderboardDirty();
-        render();
-      } catch {
-        ui.lbErr = "头像处理失败";
-        markLeaderboardDirty();
-        render();
-      } finally {
-        try {
-          fileInp.value = "";
-        } catch {
-        }
-      }
-    });
-
-    elLeaderboard.addEventListener("click", (ev) => {
-      const foldBtn = ev.target?.closest?.("button[data-lb-fold]");
-      if (foldBtn && elLeaderboard.contains(foldBtn)) {
-        const k = foldBtn.getAttribute("data-lb-fold");
-        if (k === "dex") ui.lbDexFolded = !ui.lbDexFolded;
-        if (k === "power") ui.lbPowerFolded = !ui.lbPowerFolded;
-        if (k === "contrib") ui.lbContribFolded = !ui.lbContribFolded;
-        if (k === "hatch") ui.lbHatchFolded = !ui.lbHatchFolded;
-        if (k === "shiny") ui.lbShinyFolded = !ui.lbShinyFolded;
-        if (k === "totalPower") ui.lbTotalPowerFolded = !ui.lbTotalPowerFolded;
-        if (k === "gather") ui.lbGatherFolded = !ui.lbGatherFolded;
-        if (k === "resource") ui.lbResourceFolded = !ui.lbResourceFolded;
-        if (k === "catch") ui.lbCatchFolded = !ui.lbCatchFolded;
-        markLeaderboardDirty();
-        render();
-        return;
-      }
-      const lbBtn = ev.target?.closest?.("button[data-lb-act]");
-      if (!lbBtn || !elLeaderboard.contains(lbBtn)) return;
-      const act = lbBtn.getAttribute("data-lb-act");
-      if (act === "submit") {
-        submitScoreAndRefresh();
-        return;
-      }
-      if (act === "pickAvatar") {
-        const inp = elLeaderboard.querySelector("input[type=file][data-lb-avatar]");
-        inp?.click?.();
-        return;
-      }
-    });
-  }
-
-  
+  initLeaderboardTab({
+    elLeaderboard,
+    ui,
+    LB_NAME_KEY,
+    LB_AVATAR_KEY,
+    avatarFileToDataUrl,
+    markLeaderboardDirty,
+    render,
+    submitScoreAndRefresh,
+  });
 
   initFutureTab({
     elFutureShop,
@@ -3089,6 +2926,11 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     refreshCloudUI();
     if (cloudSave.getToken()) {
       doCloudSyncNow();
+    }
+
+    try {
+      if (typeof renderDailyTasks?.refresh === "function") renderDailyTasks.refresh();
+    } catch {
     }
 
     if (!autosaveEnabled) {
