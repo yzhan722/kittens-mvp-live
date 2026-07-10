@@ -18,9 +18,11 @@
 
 ## 等你拍板
 
+- [x] **BE-D00** 本地 commit（不上线）`4828775` — 2026-07-10
 - [ ] **BE-D01** 允许 wipe 远程 D1 并执行 `wrangler d1 execute ... --file=./d1_schema.sql` `tag:decision`
 - [ ] **BE-D02** 允许 `deploy.ps1` 上线新 `functions/` `tag:decision`
 - [ ] **FIX-D01b** 是否轮换 Cloudflare token `tag:decision`
+- [ ] **GIT-D01** 是否 `git push` 到 origin `tag:decision`
 
 ---
 
