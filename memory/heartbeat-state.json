@@ -1,0 +1,16 @@
+{
+  "lastScan": "2026-04-11T07:56:00.000Z",
+  "lastNotification": "2026-04-11T07:56:00.000Z",
+  "lastAutoFix": "2026-03-06T01:11:00.000Z",
+  "totalTodos": 11,
+  "pendingFixes": 0,
+  "scanCount": 11,
+  "autoFixCount": 1,
+  "autoFixEnabled": true,
+  "lastScanResults": {
+    "consoleLogCount": 32,
+    "todoCommentCount": 0,
+    "newIssuesFound": 0,
+    "proposalsGenerated": 0
+  }
+}

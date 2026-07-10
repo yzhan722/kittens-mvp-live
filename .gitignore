@@ -1,0 +1,48 @@
+﻿# Dependencies
+node_modules/
+
+# VCS
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Archives
+*.zip
+*.7z
+*.rar
+
+# Misc
+*.psd
+*.ai
+*.sketch
+
+# Local backups / tooling (not required at runtime)
+_backup_sync_*/
+_archive/
+tools/
+.wrangler/
+
+# Python cache (if any)
+__pycache__/
+*.pyc
+
+# 閮ㄧ讲閰嶇疆锛堝寘鍚晱鎰熶俊鎭級
+.env.local
+.env
+wrangler.toml
+
+# 閮ㄧ讲璇存槑鏂囨。
+deploy-instructions.md
+
+# Build artifacts
+_worker.js
+.workers-pool/
+
+# Agent scan noise
+.kittens/

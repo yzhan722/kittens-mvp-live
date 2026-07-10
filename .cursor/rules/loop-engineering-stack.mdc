@@ -1,0 +1,46 @@
+---
+description: Loop engineering stack routing — superpowers / gstack / ECC + skill router (global)
+alwaysApply: true
+---
+
+# Loop engineering — tool routing
+
+Three skill packs live under `~/.cursor/`. Pick **one primary lane** per task; do not stack all three.
+
+| System | Role | When to use |
+|--------|------|-------------|
+| **superpowers** | Execution discipline (TDD, verify, bugfix) | Default for clear implementation, bug/test fixes, min-diff verification |
+| **gstack** | Product / architecture / review / QA / ship | Fuzzy requirements, options, pre-ship review/QA (`gstack-office-hours`, `gstack-autoplan`, `gstack-plan-*`, `gstack-review`, `gstack-qa`, `gstack-cso`) |
+| **ECC** | Opt-in loops / e2e / research / harness | Only when user wants auto loop, e2e, research-first, or specialty harness — not by default |
+
+## Default order
+
+1. **Clear bug / test / small change** → superpowers (`systematic-debugging` / `test-driven-development` → `verification-before-completion`)
+2. **Requirements unclear / no code yet** → gstack first; do not hard-code
+3. **Pre-ship** → gstack `review` + `qa`, then superpowers verification
+4. **Auto repair loop** → ECC `continuous-agent-loop` / `autonomous-loops` and/or Cursor `/loop`, still min-diff + verify
+5. **UI / interaction** → `gstack-qa` or ECC `e2e-testing`
+6. **Security / auth / data risk** → `gstack-cso`
+
+## Short oral requests → Skill Router
+
+If the user gives a vague one-liner and wants a paste-ready Agent prompt (or says “调度 / skill router / 让 Cursor…”), read and follow:
+
+`~/.cursor/skills/cursor-skill-router/SKILL.md`
+
+Output the paste-ready instruction block; do not ask them to fill a template.
+
+## Hard floor
+
+- No auto commit / push / PR unless explicitly requested
+- No drive-by refactor or unrelated modules
+- No ECC full takeover of clear small fixes
+- No superpowers hard-coding when requirements are unclear
+- Verify before done; report files changed, why, what was run, residual risk
+
+## Locations
+
+- gstack: `~/.cursor/skills/gstack-*`
+- superpowers: `~/.cursor/plugins/local/superpowers` + `~/.cursor/skills/`
+- ECC: `~/.cursor/` (`ecc-install-state.json`, rules, hooks, skills)
+- Router: `~/.cursor/skills/cursor-skill-router/`

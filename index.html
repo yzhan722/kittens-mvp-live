@@ -1,0 +1,1062 @@
+<!doctype html>
+
+<html lang="zh-CN">
+
+  <head>
+
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="theme-color" content="#0b0f17" />
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
+    <meta http-equiv="Pragma" content="no-cache" />
+
+    <meta http-equiv="Expires" content="0" />
+
+    <title>宝可梦放置冒险 v0.39.1</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://pokeapi.co" />
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Rajdhani:wght@600;700&display=swap" />
+
+    <link rel="stylesheet" href="./styles.css?v=0.39.1" />
+
+  </head>
+
+  <body>
+
+    <div id="ticker" class="ticker" aria-live="polite"></div>
+
+    <header class="topbar">
+
+      <div class="brand">
+
+        <div class="brand__title">宝可梦放置冒险</div>
+
+        <div class="brand__subtitle" id="topbarStatus">v0.39.1 · 挂机冒险</div>
+
+    </header>
+
+
+
+    <main class="shell">
+
+      <aside id="serverBuffBar" class="serverBuffBar" aria-label="服务器Buff"></aside>
+      <aside class="bulletin">
+
+        <div class="sidebar__header">
+
+          <div class="sidebar__title">最新公告</div>
+
+        </div>
+
+                <div class="bulletin__body">
+
+          <div class="bulletin__line">【v0.39.1】代码优化：排行榜端点去重(-351行)；好友API重构(-82行)；事件监听器去重(-67行)；复合索引修复；版本号统一。</div>
+
+          <div class="bulletin__line">【v0.38.21】深度平衡：消除建筑双重缩放系数；workshop补充碎片产出；捕捉概率递减边际+稀有度差异化上限（common≤75%/rare≤92%/epic≤98%）；精灵球上限修复。</div>
+
+          <div class="bulletin__line">【v0.38.20】平衡优化：修复球果堆场/采石场无产量bug；优化精灵经验曲线；hyperGrowth1倍率×2.5；孵蛋时间缩短；星级★5 +150%；PVE复刷奖励+50%；区域解锁门槛降低。</div>
+
+          <div class="bulletin__line">【v0.38.19】架构优化：app.js加入SECTION注释；新增modules/systems/纯函数模块；新增.cursor/rules协作规范。</div>
+
+        </div>
+
+      </aside>
+
+
+
+      <aside class="sidebar">
+
+        <div class="sidebar__header">
+
+          <div class="sidebar__title">资源</div>
+
+          <button id="btnGather" class="btn btn--primary btn--small">采集</button>
+
+        </div>
+
+        <div id="resources" class="resources"></div>
+
+        <div class="hint" id="hint"></div>
+
+
+
+        <div class="sidebar__divider sidebar__divider--log"></div>
+
+        <div class="sidebar__sectionTitleRow sidebar__sectionTitleRow--log">
+
+          <div class="sidebar__sectionTitle">日志</div>
+
+          <button id="logToggle" class="btn btn--small btn--ghost" type="button">展开</button>
+
+        </div>
+
+        <div id="log" class="log"></div>
+
+      </aside>
+
+
+
+      <section class="main">
+
+        <div class="tabs" role="tablist" aria-label="Game Tabs">
+
+          <button class="tab is-active" data-tab="bonfire" role="tab" aria-selected="true">篝火</button>
+
+          <button class="tab" data-tab="science" role="tab" aria-selected="false">研究</button>
+
+          <button class="tab" data-tab="capture" role="tab" aria-selected="false">捕捉</button>
+
+          <button class="tab" data-tab="mons" role="tab" aria-selected="false">精灵</button>
+
+          <button class="tab" data-tab="functions" role="tab" aria-selected="false">功能</button>
+
+          <button class="tab" data-tab="future" role="tab" aria-selected="false">未来商店</button>
+
+          <button class="tab" data-tab="dex" role="tab" aria-selected="false">图鉴</button>
+
+          <button class="tab" data-tab="pve" role="tab" aria-selected="false">挑战</button>
+
+          <button class="tab" data-tab="items" role="tab" aria-selected="false">道具</button>
+
+          <button class="tab" data-tab="social" role="tab" aria-selected="false">社交</button>
+
+          <button class="tab" data-tab="help" role="tab" aria-selected="false">帮助</button>
+
+          <button class="tab" data-tab="options" role="tab" aria-selected="false">设置</button>
+
+          <button class="tab" data-tab="leaderboard" role="tab" aria-selected="false">排行榜</button>
+
+        </div>
+
+
+
+        <div class="panels">
+
+          <div class="panel is-active" id="panel-bonfire" role="tabpanel">
+
+            <div id="bonfireActions" class="list"></div>
+
+            <div id="buildings" class="list"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-science" role="tabpanel" hidden>
+
+            <div class="actions">
+
+              <span id="researchEff" class="muted"></span>
+
+              <select id="autoResearchMode" class="input">
+
+                <option value="time">优先研究时间短</option>
+
+                <option value="cost">优先研究成本低</option>
+
+              </select>
+
+              <label class="check">
+
+                <input id="autoResearchToggle" type="checkbox" />
+
+              <span>自动研究</span>
+
+              </label>
+
+            </div>
+
+            <div id="tech" class="list"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-capture" role="tabpanel" hidden>
+
+            <div class="actions">
+
+              <select id="captureArea" class="input"></select>
+
+              <span id="captureChance" class="muted"></span>
+
+            </div>
+
+            <div id="captureInfo" class="list"></div>
+
+            <div id="captureActions" class="list"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-mons" role="tabpanel" hidden>
+
+            <div class="actions">
+
+              <select id="monRegion" class="input">
+
+                <option value="all">全部属性</option>
+
+                <option value="kanto">关都（No.001-151）</option>
+
+                <option value="johto">城都（No.152-251）</option>
+
+                <option value="hoenn">丰缘（No.252-386）</option>
+
+                <option value="sinnoh">神奥（No.387-493）</option>
+
+                <option value="unova">合众（No.494-649）</option>
+
+                <option value="kalos">卡洛斯（650-721）</option>
+
+                <option value="mythic">神兽/传说/幻之</option>
+
+              </select>
+
+              <select id="monType" class="input">
+
+                <option value="all">全部属性</option>
+
+                <option value="normal">一般</option>
+
+                <option value="fire">火</option>
+
+                <option value="water">水</option>
+
+                <option value="electric">电</option>
+
+                <option value="grass">草</option>
+
+                <option value="ice">冰</option>
+
+                <option value="fighting">格斗</option>
+
+                <option value="poison">毒</option>
+
+                <option value="ground">地面</option>
+
+                <option value="flying">飞行</option>
+
+                <option value="psychic">超能力</option>
+
+                <option value="bug">虫</option>
+
+                <option value="rock">岩石</option>
+
+                <option value="ghost">幽灵</option>
+
+                <option value="dragon">龙</option>
+
+                <option value="dark">恶</option>
+
+                <option value="steel">钢</option>
+
+                <option value="fairy">妖精</option>
+
+              </select>
+
+              <select id="monSort" class="input">
+
+                <option value="created">获取时间</option>
+
+                <option value="dex">图鉴编号</option>
+
+                <option value="lvl">等级</option>
+
+                <option value="power">战斗力</option>
+
+                <option value="satiety">饱腹度</option>
+
+              </select>
+
+              <button id="monPrev" class="btn btn--small">上一页</button>
+
+              <button id="monNext" class="btn btn--small">下一页</button>
+
+              <span id="monPageInfo" class="muted"></span>
+
+              <button id="monBack" class="btn btn--small" hidden>返回列表</button>
+
+            </div>
+
+            <div id="monList" class="list"></div>
+
+            <div id="monDetail" class="list" hidden></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-functions" role="tabpanel" hidden>
+
+            <div class="list" id="functionsTraining"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-future" role="tabpanel" hidden>
+
+            <div id="futureShop" class="list"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-dex" role="tabpanel" hidden>
+
+            <div class="actions">
+
+              <select id="dexArea" class="select"></select>
+
+              <input id="dexSearch" class="input" placeholder="搜索名称/编号" />
+
+              <label class="check">
+
+                <input id="dexOnlyCaught" type="checkbox" />
+
+              <span>只显示已捕捉</span>
+
+              </label>
+
+              <label class="check">
+
+                <input id="dexOnlyMissing" type="checkbox" />
+
+              <span>只显示未捕捉</span>
+
+              </label>
+
+              <button id="dexPrev" class="btn btn--small">上一页</button>
+
+              <button id="dexNext" class="btn btn--small">下一页</button>
+
+              <span id="dexPageInfo" class="muted"></span>
+
+              <span id="dexRegionInfo" class="muted"></span>
+
+            </div>
+
+            <div id="dexSummary" class="list"></div>
+
+            <div id="dexList" class="list"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-pve" role="tabpanel" hidden>
+
+            <div id="pveList" class="list"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-items" role="tabpanel" hidden>
+
+            <div id="items" class="list"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-social" role="tabpanel" hidden>
+
+            <!-- 社交功能由 social_tab.js 渲染 -->
+
+          </div>
+
+
+
+          <div class="panel" id="panel-help" role="tabpanel" hidden>
+
+            <div id="help" class="list"></div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-options" role="tabpanel" hidden>
+
+            <div class="sidebar__divider"></div>
+
+            <div class="panel__title">云存档</div>
+
+
+
+            <div class="actions">
+
+              <input class="input" id="cloudUsername" placeholder="用户名" autocomplete="username" />
+
+              <input class="input" id="cloudPassword" placeholder="密码" type="password" autocomplete="current-password" />
+
+              <button class="btn btn--small" id="btnCloudLogin">登录</button>
+
+              <button class="btn btn--small" id="btnCloudRegister">注册</button>
+
+              <button class="btn btn--small" id="btnCloudLogout">退出</button>
+
+              <button class="btn btn--small" id="btnCloudSyncNow">立即同步</button>
+
+              <span class="muted" id="cloudStatus"></span>
+
+            </div>
+
+
+
+            <div class="saveQrWrap">
+
+              <div class="saveQr">
+
+                <img class="saveQr__img" src="./assets/donate_qr.jpg" alt="赞助二维码" loading="lazy" width="100" height="100" onerror="this.parentNode.parentNode.style.display='none';" />
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
+          <div class="panel" id="panel-leaderboard" role="tabpanel" hidden>
+
+            <div class="list" id="leaderboard"></div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+
+
+    <div id="overlays"></div>
+
+
+
+    <footer class="footer">
+
+    </footer>
+
+
+
+    <script>
+
+      // ========== UX 澧炲己灞?==========
+
+
+
+      // Toast 閫氱煡绯荤粺
+
+      (function() {
+
+        var container = null;
+
+        function getContainer() {
+
+          if (!container) {
+
+            container = document.createElement('div');
+
+            container.className = 'toast-container';
+
+            document.body.appendChild(container);
+
+          }
+
+          return container;
+
+        }
+
+        var ICONS = { ok: '✅', danger: '❌', warn: '⚠️', info: 'ℹ️', shiny: '✨' };
+
+        window.showToast = function(msg, type, ttl) {
+
+          type = type || 'info';
+
+          ttl = typeof ttl === 'number' ? ttl : (type === 'shiny' ? 5000 : 2800);
+
+          var c = getContainer();
+
+          var el = document.createElement('div');
+
+          el.className = 'toast toast--' + type;
+
+          el.innerHTML = '<span class="toast__icon">' + (ICONS[type] || '❓') + '</span><span class="toast__body">' + String(msg) + '</span>';
+
+          c.appendChild(el);
+
+          var tid = setTimeout(function() { dismiss(el); }, ttl);
+
+          el.addEventListener('click', function() { dismiss(el); });
+
+          function dismiss(t) {
+
+            clearTimeout(tid);
+
+            t.classList.add('is-hiding');
+
+            setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+
+          }
+
+          var toasts = c.querySelectorAll('.toast');
+
+          if (toasts.length > 5) dismiss(toasts[0]);
+
+        };
+
+      })();
+
+
+
+      // Tab 滚动位置记忆
+
+      (function() {
+
+        var scrollMap = {};
+
+        var panels = null;
+
+        function getPanels() { if (!panels) panels = document.querySelector('.panels'); return panels; }
+
+        document.addEventListener('click', function(e) {
+
+          var tab = e.target.closest('.tab');
+
+          if (!tab) return;
+
+          var p = getPanels(); if (!p) return;
+
+          var activePanel = p.querySelector('.panel.is-active');
+
+          if (activePanel) scrollMap[activePanel.id] = p.scrollTop;
+
+        });
+
+        var mo = new MutationObserver(function(mutations) {
+
+          mutations.forEach(function(m) {
+
+            if (m.type === 'attributes' && m.attributeName === 'class') {
+
+              var el = m.target;
+
+              if (el.classList.contains('panel') && el.classList.contains('is-active')) {
+
+                var p = getPanels();
+
+                if (p) p.scrollTop = scrollMap[el.id] || 0;
+
+              }
+
+            }
+
+          });
+
+        });
+
+        window.addEventListener('load', function() {
+
+          var p = getPanels(); if (!p) return;
+
+          p.querySelectorAll('.panel').forEach(function(panel) {
+
+            mo.observe(panel, { attributes: true, attributeFilter: ['class'] });
+
+          });
+
+        });
+
+      })();
+
+
+
+      // 键盘快捷键
+
+      (function() {
+
+        var TAB_KEYS = { '1':'bonfire','2':'capture','3':'mons','4':'science','5':'dex','6':'pve','7':'items','8':'social','9':'help' };
+
+        document.addEventListener('keydown', function(e) {
+
+          var tag = document.activeElement && document.activeElement.tagName;
+
+          if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+          if (e.altKey && TAB_KEYS[e.key]) {
+
+            e.preventDefault();
+
+            var btn = document.querySelector('.tab[data-tab="' + TAB_KEYS[e.key] + '"]');
+
+            if (btn) btn.click(); return;
+
+          }
+
+          var activeTab = document.querySelector('.tab.is-active');
+
+          if (activeTab && activeTab.getAttribute('data-tab') === 'capture') {
+
+            if (e.key === 'e' || e.key === 'E') { var b = document.querySelector('[data-capture-action="encounter"]:not(:disabled)'); if (b) { b.click(); e.preventDefault(); } }
+
+            else if (e.key === 't' || e.key === 'T') { var b = document.querySelector('[data-capture-action="throw"]:not(:disabled)'); if (b) { b.click(); e.preventDefault(); } }
+
+            else if (e.key === 'r' || e.key === 'R') { var b = document.querySelector('[data-capture-action="run"]:not(:disabled)'); if (b) { b.click(); e.preventDefault(); } }
+
+          }
+
+        });
+
+      })();
+
+
+
+      // 资源进度条动态更新
+
+      (function() {
+
+        function updateResBars() {
+
+          document.querySelectorAll('.resrow').forEach(function(row) {
+
+            var vEl = row.querySelector('.resrow__v'); if (!vEl) return;
+
+            var m = (vEl.textContent || '').match(/([\d,]+)\s*\/\s*([\d,]+)/);
+
+            if (!m) return;
+
+            var pct = Math.min(1, parseFloat(m[1].replace(/,/g,'')) / parseFloat(m[2].replace(/,/g,'')));
+
+            if (!row.querySelector('.resrow__bar')) {
+
+              var bar = document.createElement('div'); bar.className = 'resrow__bar';
+
+              row.insertBefore(bar, row.firstChild);
+
+            }
+
+            row.style.setProperty('--res-pct', pct);
+
+            row.classList.toggle('is-near-full', pct >= 0.8 && pct < 1);
+
+            row.classList.toggle('is-full', pct >= 1);
+
+          });
+
+        }
+
+        window.addEventListener('load', function() {
+
+          var resEl = document.getElementById('resources'); if (!resEl) return;
+
+          updateResBars();
+
+          new MutationObserver(updateResBars).observe(resEl, { childList: true, subtree: true, characterData: true });
+
+        });
+
+      })();
+
+
+
+      // 移动端：bulletin 折叠
+
+      (function() {
+
+        var body = document.querySelector('.bulletin__body');
+
+        if (!body) return;
+
+        var toggle = document.createElement('span');
+
+        toggle.className = 'bulletin__toggle';
+
+        toggle.textContent = '▶ 展开全部';
+
+        body.parentNode.appendChild(toggle);
+
+        toggle.addEventListener('click', function() {
+
+          var exp = body.classList.toggle('is-expanded');
+
+          toggle.textContent = exp ? '▼ 收起' : '▶ 展开全部';
+
+        });
+
+      })();
+
+
+
+      // 移动端：日志折叠
+
+      (function() {
+
+        var logToggle = document.getElementById('logToggle');
+
+        var log = document.getElementById('log');
+
+        if (!logToggle || !log) return;
+
+        function applyMobileLog() {
+
+          if (window.innerWidth <= 768 && !log.classList.contains('is-expanded-mobile')) {
+
+            log.style.maxHeight = '100px'; log.style.overflow = 'hidden';
+
+          } else if (window.innerWidth > 768) {
+
+            log.style.maxHeight = ''; log.style.overflow = '';
+
+          }
+
+        }
+
+        applyMobileLog();
+
+        window.addEventListener('resize', applyMobileLog);
+
+        logToggle.addEventListener('click', function() {
+
+          if (window.innerWidth <= 768) {
+
+            var exp = log.classList.toggle('is-expanded-mobile');
+
+            log.style.maxHeight = exp ? '260px' : '100px';
+
+            log.style.overflow = exp ? 'auto' : 'hidden';
+
+            logToggle.textContent = exp ? '收起' : '展开';
+
+          }
+
+        });
+
+      })();
+
+    </script>
+
+
+
+    <script>
+
+      // ========== 视觉游戏感激活层 ==========
+
+
+
+      // --- 日志彩色分类 ---
+
+      (function() {
+
+        var PATTERNS = [
+
+          { re: /闪光|shiny/i,            cls: 'log-line--shiny'    },
+
+          { re: /神兽|传说|幻之/,           cls: 'log-line--mythic'   },
+
+          { re: /进化|evolution/i,         cls: 'log-line--evo'      },
+
+          { re: /升级|level.?up|lv\./i,  cls: 'log-line--level'    },
+
+          { re: /捕草|捕获|caught|capture/i, cls: 'log-line--catch'  },
+
+          { re: /战斗|挑战|pve|pvp|boss/i, cls: 'log-line--battle'   },
+
+          { re: /采集|资源|produce|gather/i, cls: 'log-line--resource'},
+
+        ];
+
+        function classifyLine(text) {
+
+          for (var i = 0; i < PATTERNS.length; i++) {
+
+            if (PATTERNS[i].re.test(text)) return PATTERNS[i].cls;
+
+          }
+
+          return null;
+
+        }
+
+        function colorizeLog() {
+
+          var log = document.getElementById('log');
+
+          if (!log) return;
+
+          var divs = log.querySelectorAll('div:not(.log-line)');
+
+          divs.forEach(function(d) {
+
+            d.classList.add('log-line');
+
+            var cls = classifyLine(d.textContent || '');
+
+            if (cls) d.classList.add(cls);
+
+          });
+
+        }
+
+        window.addEventListener('load', function() {
+
+          var log = document.getElementById('log');
+
+          if (!log) return;
+
+          colorizeLog();
+
+          new MutationObserver(colorizeLog).observe(log, { childList: true, subtree: false });
+
+        });
+
+      })();
+
+
+
+      // --- 建筑等级进度条注入---
+
+      (function() {
+
+        function injectBuildingBars() {
+
+          var buildings = document.getElementById('buildings');
+
+          if (!buildings) return;
+
+          buildings.querySelectorAll('.row').forEach(function(row) {
+
+            if (row.querySelector('.building-level-bar')) return;
+
+            var badges = row.querySelectorAll('.badge');
+
+            var ownedBadge = null;
+
+            badges.forEach(function(b) {
+
+              if (/拥有/.test(b.textContent)) ownedBadge = b;
+
+            });
+
+            if (!ownedBadge) return;
+
+            var m = ownedBadge.textContent.match(/(\d+)(?:\s*\/\s*婊＄骇)?/);
+
+            if (!m) return;
+
+            var owned = parseInt(m[1], 10);
+
+            var maxLevel = 50;
+
+            var isMaxed = /婊＄骇/.test(ownedBadge.textContent);
+
+            var pct = isMaxed ? 100 : Math.min(100, Math.round(owned / maxLevel * 100));
+
+            var bar = document.createElement('div');
+
+            bar.className = 'building-level-bar';
+
+            bar.innerHTML = '<div class="building-level-bar__track"><div class="building-level-bar__fill"' + (isMaxed ? ' is-maxed' : '') + '" style="width:' + pct + '%"></div></div><div class="building-level-bar__label">Lv.' + owned + (isMaxed ? ' 满级' : '') + '</div>';
+
+            var left = row.querySelector('.row__left');
+
+            if (left) left.appendChild(bar);
+
+          });
+
+        }
+
+        window.addEventListener('load', function() {
+
+          var buildings = document.getElementById('buildings');
+
+          if (!buildings) return;
+
+          injectBuildingBars();
+
+          new MutationObserver(injectBuildingBars).observe(buildings, { childList: true, subtree: false });
+
+        });
+
+      })();
+
+
+
+      // --- 科技行状态类注入 ---
+
+      (function() {
+
+        function injectTechClasses() {
+
+          var tech = document.getElementById('tech');
+
+          if (!tech) return;
+
+          tech.querySelectorAll('.row').forEach(function(row) {
+
+            row.classList.remove('row--researching', 'row--researchable', 'row--researched');
+
+            var badges = row.querySelectorAll('.badge');
+
+            badges.forEach(function(b) {
+
+              var t = b.textContent.trim();
+
+              if (t === '已研究') row.classList.add('row--researched');
+
+              else if (t === '研究中') {
+
+                row.classList.add('row--researching');
+
+                // 注入进度条
+
+                if (!row.querySelector('.research-progress')) {
+
+                  var pg = document.createElement('div');
+
+                  pg.className = 'research-progress';
+
+                  pg.innerHTML = '<div class="research-progress__bar" style="--research-pct:60%"></div>';
+
+                  var left = row.querySelector('.row__left');
+
+                  if (left) left.appendChild(pg);
+
+                }
+
+              }
+
+              else if (/可研究/.test(t)) row.classList.add('row--researchable');
+
+            });
+
+          });
+
+        }
+
+        window.addEventListener('load', function() {
+
+          var tech = document.getElementById('tech');
+
+          if (!tech) return;
+
+          injectTechClasses();
+
+          new MutationObserver(injectTechClasses).observe(tech, { childList: true, subtree: false });
+
+        });
+
+      })();
+
+
+
+      // --- 精灵行 shiny/mythic 标识 ---
+
+      (function() {
+
+        function injectMonClasses() {
+
+          var monList = document.getElementById('monList');
+
+          if (!monList) return;
+
+          monList.querySelectorAll('.row').forEach(function(row) {
+
+            row.classList.remove('row--shiny-mon', 'row--mythic-mon');
+
+            var text = row.textContent || '';
+
+            // 检查闪光标识
+
+            var shinyBadge = row.querySelector('.pk-icon--shiny');
+
+            if (shinyBadge || /闪光/.test(text)) row.classList.add('row--shiny-mon');
+
+            // 检查神兽标识
+
+            if (/神兽|传说|幻之/.test(text)) row.classList.add('row--mythic-mon');
+
+          });
+
+        }
+
+        window.addEventListener('load', function() {
+
+          var monList = document.getElementById('monList');
+
+          if (!monList) return;
+
+          injectMonClasses();
+
+          new MutationObserver(injectMonClasses).observe(monList, { childList: true, subtree: false });
+
+        });
+
+      })();
+
+
+
+      // --- topbar position:relative 确保 ::after 定位 ---
+
+      window.addEventListener('DOMContentLoaded', function() {
+
+        var tb = document.querySelector('.topbar');
+
+        if (tb) tb.style.position = 'relative';
+
+      });
+
+    </script>
+
+
+
+    <script src="./data/pokemon_zh.js?v=0.39.1" defer></script>
+
+    <script src="./data/pokemon_tier.js?v=0.39.1" defer></script>
+
+    <script src="./data/pokemon_catch_rate.js?v=0.39.1" defer></script>
+
+    <script src="./data/pokemon_evo.js?v=0.39.1" defer></script>
+
+    <script src="./data/pokemon_evo_req.js?v=0.39.1" defer></script>
+
+    <script src="./data/pokemon_types.js?v=0.39.1" defer></script>
+
+    <script type="module" src="./main.js?v=0.39.1"></script>
+
+    <script>
+
+          // 注册 Service Worker 在 activate 后强制刷新页面缓存
+
+      if ('serviceWorker' in navigator) {
+
+        window.addEventListener('load', function() {
+
+          navigator.serviceWorker.register('./sw.js?v=0.39.1', { updateViaCache: 'none' });
+
+        });
+
+      }
+
+    </script>
+
+  </body>
+
+</html>
+
