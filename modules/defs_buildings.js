@@ -29,7 +29,7 @@ export const BUILDING_DEFS = {
         capWoodAdd: 10 * n,       // 原40 × 0.25
       };
     },
-    visible: (state) => state.res.catnip.value >= 25 || state.buildings.hut.owned > 0,
+    visible: (state) => state.res.catnip.value >= 10 || state.buildings.hut.owned > 0,
   },
   workshop: {
     name: "碎片工坊",

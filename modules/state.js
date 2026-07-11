@@ -619,6 +619,8 @@ export function loadFromRaw(raw) {
 
     };
 
+    if (data.meta.starterBallsGranted) s.meta.starterBallsGranted = true;
+
   }
 
   s.version = SAVE_VERSION;

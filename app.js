@@ -1,11 +1,11 @@
-import { legacyIdMap, pokemon, getPokemonTier } from "./modules/pokemon_defs.js";
-import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.39.1";
-import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.39.1";
-import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.39.1";
-import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.39.1";
-import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.39.1";
+﻿import { legacyIdMap, pokemon, getPokemonTier } from "./modules/pokemon_defs.js";
+import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.39.2";
+import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.39.2";
+import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.39.2";
+import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.39.2";
+import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.39.2";
 import { createPokeApiClient } from "./modules/pokeapi_client.js";
-import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.39.1";
+import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.39.2";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js";
@@ -13,29 +13,29 @@ import { clampStar, getStarBonusMul, getStarUpgradeNeed, renderStars } from "./m
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
-import { createTick } from "./modules/tick.js?v=0.39.1";
-import { createRenderResources } from "./modules/render/resources.js?v=0.39.1";
-import { createRenderLog } from "./modules/render/log.js?v=0.39.1";
-import { createRenderBuildings } from "./modules/render/buildings.js?v=0.39.1";
-import { createRenderTech } from "./modules/render/tech.js?v=0.39.1";
-import { createRenderCapture } from "./modules/render/capture.js?v=0.39.1";
-import { createRenderMons } from "./modules/render/mons.js?v=0.39.1";
-import { createRenderDex } from "./modules/render/dex.js?v=0.39.1";
-import { createRenderFutureShop } from "./modules/render/future.js?v=0.39.1";
-import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.39.1";
+import { createTick } from "./modules/tick.js?v=0.39.2";
+import { createRenderResources } from "./modules/render/resources.js?v=0.39.2";
+import { createRenderLog } from "./modules/render/log.js?v=0.39.2";
+import { createRenderBuildings } from "./modules/render/buildings.js?v=0.39.2";
+import { createRenderTech } from "./modules/render/tech.js?v=0.39.2";
+import { createRenderCapture } from "./modules/render/capture.js?v=0.39.2";
+import { createRenderMons } from "./modules/render/mons.js?v=0.39.2";
+import { createRenderDex } from "./modules/render/dex.js?v=0.39.2";
+import { createRenderFutureShop } from "./modules/render/future.js?v=0.39.2";
+import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.39.2";
 import { createDailySignin } from "./modules/daily_signin.js";
 import { createMonthlyCard } from "./modules/monthly_card.js";
 import { createDailyTasks } from "./modules/daily_tasks.js";
-import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.39.1";
-import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.39.1";
-import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.39.1";
-import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.39.1";
-import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.39.1";
-import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.39.1";
-import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.39.1";
-import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.39.1";
+import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.39.2";
+import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.39.2";
+import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.39.2";
+import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.39.2";
+import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.39.2";
+import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.39.2";
+import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.39.2";
+import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.39.2";
 import { createItemUsage } from "./modules/item_usage.js";
-import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.39.1";
+import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.39.2";
 import { createRenderDailyTasks } from "./modules/render/daily_tasks.js";
 import { createRenderFunctions, initFunctionsTab } from "./modules/tabs/functions_tab.js";
 import { getExpLevelDef } from "./modules/expedition_defs.js";
@@ -69,8 +69,8 @@ import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
 import { createSocialSystem } from "./modules/social.js";
 import { createRenderSocial } from "./modules/render/social.js";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js";
-import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.39.1";
-import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.39.1";
+import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.39.2";
+import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.39.2";
 import {
   SERVER_BUFF_KEYS,
   SERVER_BUFF_BUY_MAX_MINUTES,
@@ -80,7 +80,7 @@ import {
   serverBuffMul as serverBuffMul0,
   serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
   serverBuffEffectText as serverBuffEffectText0,
-} from "./modules/systems/server_buffs.js?v=0.39.1";
+} from "./modules/systems/server_buffs.js?v=0.39.2";
 import { createSocialTab } from "./modules/tabs/social_tab.js";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
@@ -249,10 +249,11 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       pokeballBasics: {
         name: "精灵球基础",
         desc: "营地建筑成本 -5%，并解锁精灵球制作与捕捉。",
-        cost: { catnip: 60 },
+        // After TECH researchCostMul(~2): ~40 catnip — reachable after a short gather burst
+        cost: { catnip: 20 },
         prereq: [],
-        req: (state) => state.buildings.hut.owned > 0,
-        timeSec: 10,
+        req: () => true,
+        timeSec: 5,
         effects: {
           buildingCostMul: 0.95,
           catchChanceAdd: 0.02,
@@ -2430,6 +2431,32 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     state.unlocks.minerals = Boolean(eff.unlockMinerals);
     state.unlocks.pokeball = Boolean(eff.unlockPokeball);
 
+    // After caps applied: one-time starter pack so first catch isn't blocked by wood/hut farm.
+    // (Previously granting inside tick lost balls when pokeball.cap was reset to 0 here.)
+    if (eff.unlockPokeball) {
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      state.res.pokeball.cap = Math.max(Number(state.res.pokeball.cap) || 0, 10);
+      if (!state.meta.starterBallsGranted) {
+        // Skip grant for saves that already progressed past the tutorial pack
+        if ((state.catchCount || 0) > 0 || (state.pokeballMade || 0) > 0 || (state.res.pokeball.value || 0) > 0) {
+          state.meta.starterBallsGranted = true;
+        } else {
+          state.meta.starterBallsGranted = true;
+          state.res.pokeball.value = Math.min(
+            state.res.pokeball.cap,
+            (Number(state.res.pokeball.value) || 0) + 5
+          );
+          state.res.wood.cap = Math.max(Number(state.res.wood.cap) || 0, 40);
+          state.res.wood.value = Math.max(Number(state.res.wood.value) || 0, 24);
+          try {
+            addLog("精灵球基础生效：赠送精灵球×5与球果×24，可直接去捕捉。", true);
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
     ensureDerivedContainers(state, clamp);
 
     const unlockedRates = computeUnlockedResourceRates(state, techEff);
@@ -2896,7 +2923,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       const eff = computeDerived();
       renderResources(eff);
 
-      // Tab 阶段性解锁：根据图鉴数量控制Tab显隐
+      // Tab 阶段性解锁：核心路径尽早可见，重玩法仍按进度开门
       (function updateTabVisibility() {
         const caught = state.dex?.caught ?? {};
         let unique = 0;
@@ -2904,14 +2931,17 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         const pokeballUnlocked = Boolean(state.unlocks?.pokeball);
         const hasMons = (state.mons?.list?.length ?? 0) > 0;
         const tabRules = {
-          capture:     pokeballUnlocked,
-          mons:        hasMons,
-          functions:   hasMons,
-          pve:         unique >= 20,
+          // Always show capture so guide + lock copy can steer new players
+          capture:     true,
+          // Show team tabs once balls unlock (empty state) or once you have mons
+          mons:        pokeballUnlocked || hasMons,
+          functions:   pokeballUnlocked || hasMons,
+          items:       pokeballUnlocked || hasMons,
+          pve:         unique >= 5,
           dex:         true,
-          future:      unique >= 5,
-          items:       hasMons,
-          social:      Boolean(state.cloudUid),
+          future:      unique >= 1,
+          // cloudUid was never written — social was permanently hidden; always show
+          social:      true,
           leaderboard: true,
           science:     true,
           bonfire:     true,

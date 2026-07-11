@@ -1,8 +1,8 @@
-const BOOT_PANEL_ID = "bootStatus";
+﻿const BOOT_PANEL_ID = "bootStatus";
 const MAX_RETRY = 5;
 const RELOAD_GUARD_KEY = "bootReloadCount";
 const VERSION_CHECK_KEY = "lastKnownVersion";
-const CURRENT_VERSION = "0.39.1";
+const CURRENT_VERSION = "0.39.2";
 
 // 版本检测：版本变化时清缓存并刷新
 (function checkVersion() {

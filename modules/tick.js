@@ -507,6 +507,7 @@ export function createTick(ctx) {
         if (tdef && !state.tech[tid]) {
           state.tech[tid] = true;
           addLog(`研究完成：${tdef.name}`);
+          // Starter balls granted in computeDerived via meta.starterBallsGranted
           tryAutoResearch();
         }
       }

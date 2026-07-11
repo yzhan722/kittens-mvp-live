@@ -14,14 +14,14 @@ const GUIDE_STEPS = [
   {
     id: "research",
     title: "第2步：解锁精灵球",
-    desc: "点击「研究」Tab，找到「精灵球基础」科技并研究它。这是捕捉精灵的前提。",
+    desc: "点击「研究」Tab，研究「精灵球基础」（约几十树果、数秒完成）。无需先造球果营地。",
     targetSelector: ".tab[data-tab='science']",
     position: "bottom",
   },
   {
     id: "capture",
     title: "第3步：制作并使用精灵球",
-    desc: "解锁精灵球后，在「捕捉」Tab里制作精灵球，然后遭遇并捕捉你的第一只宝可梦！",
+    desc: "解锁后「捕捉」Tab可制作精灵球；完成「精灵球基础」会赠送 5 个球，可马上抓第一只。",
     targetSelector: ".tab[data-tab='capture']",
     position: "bottom",
   },
