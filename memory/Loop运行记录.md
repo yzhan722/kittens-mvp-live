@@ -1,32 +1,27 @@
-# Loop 运行记录（开发 · functions 重建）
+# Loop 运行记录（开发 · 上线后加固）
 
 ## 当前配置
 
 | 项 | 值 |
 |----|-----|
-| 模式 | 后端重建长跑 |
-| 可执行队列 | **空** |
-| blocked | **BE-D01** wipe D1 · **BE-D02** deploy · **FIX-D01b** token |
+| 模式 | 长跑到队列空 |
+| 可执行队列 | POST-007（deploy+commit+push）进行中 → 完成后空 |
+| 不做 | FIX-D01b token 轮换 |
 | 前端仓 | https://github.com/yzhan722/kittens-mvp-live |
 
-## 最近一次 · 2026-07-10 functions/ 全量重建
+## 最近一次 · 2026-07-11 上线后加固
 
 ### 完成
 
-- `functions/api/`：health、auth、save、score、leaderboard、events、buffs、boss、friends、social、daily_tasks（33 个 JS 文件）
-- `d1_schema.sql` v2（DROP+CREATE）；旧 migrations → `migrations/archive/`
-- 前端：`ui.fetch`、`#dailyTasks`、boot 时 refresh
-- `scripts/api-contract-selfcheck.mjs` OK；`selfcheck.mjs` OK
+- POST-001…006：backlog 清理、帮助/公告、CI workflow、ARCHITECTURE migration 政策、线上 QA
+- selfcheck + api-contract-selfcheck OK；线上 FAIL=0
 
-### 未做（等你）
+### 进行中
 
-- 未 wipe 远程 D1
-- 未 deploy
-- 未 commit/push
+- POST-007 deploy + commit/push
 
-### 本地冒烟（可选）
+---
 
-```bash
-wrangler pages dev . --d1=DB
-# 另开：curl http://127.0.0.1:8788/api/health
-```
+## 历史 · 2026-07-10 functions/ 全量重建
+
+- `functions/api/` 33 文件；schema v2；wipe + deploy 已完成；push `8015e58`

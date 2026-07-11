@@ -33,20 +33,22 @@
 
 共享模块：`_db.js` · `_auth.js` · `_uid.js` · `_buffs.js` · `_boss.js`。
 
-### D1 Schema v2（清库）
+### D1 Schema 与迁移政策
 
-- 定义：[`d1_schema.sql`](d1_schema.sql)（含 `DROP` + `CREATE`）
+- 基线定义：[`d1_schema.sql`](d1_schema.sql)（含 `DROP` + `CREATE`，**仅灾难恢复 / 明确授权清库**）
 - 重置副本：[`scripts/d1_reset.sql`](scripts/d1_reset.sql)
-- **执行清库前必须口头确认**（会清空排行榜/存档/社交）
+- **默认禁止远程 wipe。** 日常 schema 变更走增量 SQL（建议放 `migrations/`，只 `ALTER`/`CREATE IF NOT EXISTS`），先本地 `pages dev` 验证再 `wrangler d1 execute --remote --file=...`
+- 全量 `d1_schema.sql` 清库须口头确认（会清空排行榜/存档/社交）
 
 ```bash
+# 灾难恢复 / 已授权清库 ONLY
 wrangler d1 execute kittens-mvp --remote --file=./d1_schema.sql
 ```
 
 本地开发：
 
 ```bash
-wrangler pages dev . --d1=DB
+wrangler pages dev . --persist-to .wrangler/state --d1=DB
 node scripts/api-contract-selfcheck.mjs
 node scripts/selfcheck.mjs
 ```
@@ -56,6 +58,8 @@ node scripts/selfcheck.mjs
 
 前端仓：https://github.com/yzhan722/kittens-mvp-live
 
+CI：`.github/workflows/selfcheck.yml`（push/PR 跑两个 selfcheck）。
+
 ## 前端要点
 
 - `app.js` 组装层；`ui.fetch` 带 Bearer，供每日任务等 API 使用
@@ -64,4 +68,4 @@ node scripts/selfcheck.mjs
 
 ## 密钥
 
-- `.env*` 已 ignore；若 token 曾暴露请在 Cloudflare 控制台轮换
+- `.env*` 已 ignore；本项目当前选择不轮换 token（2026-07-11）

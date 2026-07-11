@@ -1,4 +1,4 @@
-# deploy.ps1 — 统一部署脚本（从 .env.local 读取配置）
+# deploy.ps1 - load config from .env.local and deploy Pages
 param(
     [string]$Message = ""
 )
@@ -6,18 +6,16 @@ param(
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-# 读取版本号
 $version = "unknown"
 $html = Get-Content "index.html" -Raw -ErrorAction SilentlyContinue
 if ($html -match 'v(\d+\.\d+\.\d+)') { $version = "v$($Matches[1])" }
 
 if (-not $Message) { $Message = "$version - deploy" }
 
-Write-Host "=== 部署 $version ===" -ForegroundColor Green
+Write-Host "=== Deploy $version ===" -ForegroundColor Green
 
-# 从 .env.local 读取配置
 if (-not (Test-Path ".env.local")) {
-    Write-Host "[错误] 找不到 .env.local" -ForegroundColor Red
+    Write-Host "[error] missing .env.local" -ForegroundColor Red
     exit 1
 }
 
@@ -35,11 +33,10 @@ $token = $env:CLOUDFLARE_API_TOKEN
 $account = $env:CLOUDFLARE_ACCOUNT_ID
 $project = $env:CLOUDFLARE_PROJECT_NAME
 
-if (-not $token) { Write-Host "[错误] 缺少 CLOUDFLARE_API_TOKEN" -ForegroundColor Red; exit 1 }
-if (-not $account) { Write-Host "[错误] 缺少 CLOUDFLARE_ACCOUNT_ID" -ForegroundColor Red; exit 1 }
-if (-not $project) { Write-Host "[错误] 缺少 CLOUDFLARE_PROJECT_NAME" -ForegroundColor Red; exit 1 }
+if (-not $token) { Write-Host "[error] missing CLOUDFLARE_API_TOKEN" -ForegroundColor Red; exit 1 }
+if (-not $account) { Write-Host "[error] missing CLOUDFLARE_ACCOUNT_ID" -ForegroundColor Red; exit 1 }
+if (-not $project) { Write-Host "[error] missing CLOUDFLARE_PROJECT_NAME" -ForegroundColor Red; exit 1 }
 
-# 查找 wrangler（优先全局，否则 npx）
 $wrangler = "D:\npm-global\wrangler.cmd"
 $useNpx = $false
 if (-not (Test-Path $wrangler)) {
@@ -49,9 +46,9 @@ if (-not $wrangler) {
     $useNpx = $true
 }
 
-Write-Host "项目: $project" -ForegroundColor Cyan
-Write-Host "版本: $version" -ForegroundColor Cyan
-Write-Host "开始上传..." -ForegroundColor Yellow
+Write-Host "project: $project" -ForegroundColor Cyan
+Write-Host "version: $version" -ForegroundColor Cyan
+Write-Host "uploading..." -ForegroundColor Yellow
 Write-Host ""
 
 $env:CF_API_TOKEN = $token
@@ -64,10 +61,10 @@ if ($useNpx) {
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "=== 部署成功! ===" -ForegroundColor Green
-    Write-Host "线上地址: https://game.pokeauto.online/" -ForegroundColor Cyan
-    Write-Host "请等待 1-2 分钟让 CDN 更新缓存" -ForegroundColor Yellow
+    Write-Host "=== Deploy OK ===" -ForegroundColor Green
+    Write-Host "https://game.pokeauto.online/" -ForegroundColor Cyan
+    Write-Host "Wait 1-2 min for CDN cache" -ForegroundColor Yellow
 } else {
     Write-Host ""
-    Write-Host "=== 部署失败 (code: $LASTEXITCODE) ===" -ForegroundColor Red
+    Write-Host "=== Deploy failed (code: $LASTEXITCODE) ===" -ForegroundColor Red
 }
