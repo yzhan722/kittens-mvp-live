@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 
 <html lang="zh-CN">
 
@@ -21,7 +21,7 @@
 
     <meta http-equiv="Expires" content="0" />
 
-    <title>宝可梦放置冒险 v0.39.5</title>
+    <title>宝可梦放置冒险 v0.39.6</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,7 +29,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Rajdhani:wght@600;700&display=swap" />
 
-    <link rel="stylesheet" href="./styles.css?v=0.39.5" />
+    <link rel="stylesheet" href="./styles.css?v=0.39.6" />
 
   </head>
 
@@ -38,13 +38,14 @@
     <div id="ticker" class="ticker" aria-live="polite"></div>
 
     <header class="topbar">
-
       <div class="brand">
-
         <div class="brand__title">宝可梦放置冒险</div>
-
-        <div class="brand__subtitle" id="topbarStatus">v0.39.5 · 挂机冒险</div>
-
+        <div class="brand__subtitle" id="topbarStatus">v0.39.6 · 挂机冒险</div>
+      </div>
+      <div class="topbar__res" aria-label="资源">
+        <button id="btnGather" class="btn btn--primary btn--small">采集</button>
+        <div id="resources" class="resources resources--top"></div>
+      </div>
     </header>
 
 
@@ -62,8 +63,10 @@
             <div class="bulletin__line">【玩法】研究「精灵球基础」约 40 树果即可解锁捕捉，完成赠送精灵球×5；采集 → 研究 → 抓第一只。</div>
             <div class="bulletin__line">【玩法】主栏精简为篝火 / 研究 / 捕捉 / 精灵 / 任务，其余入口在「更多」；捕捉页默认只显示下一区域。</div>
             <div class="bulletin__line">【玩法】升星需等级+亲密度门槛，并消耗更多同进化系材料；满星偏后期。</div>
+            <div class="bulletin__line">【玩法】树果等核心资源与采集按钮已移到顶栏，侧栏专注日志。</div>
             <details class="bulletin__eng">
               <summary class="bulletin__engSummary">工程更新（开发笔记）</summary>
+              <div class="bulletin__line">【v0.39.6】资源+采集搬顶栏；侧栏仅日志。</div>
               <div class="bulletin__line">【v0.39.4】星级门槛；公告/Buff 默认可折叠；资源侧栏降噪。</div>
               <div class="bulletin__line">【v0.39.3】门控优化：捕捉/社交可见；精灵球基础降门槛；社交 Tab 永隐修复。</div>
               <div class="bulletin__line">【v0.39.1】后端重建：Pages Functions + D1 schema v2（曾清库）。</div>
@@ -74,34 +77,15 @@
 
 
 
-      <aside class="sidebar">
-
-        <div class="sidebar__header">
-
-          <div class="sidebar__title">资源</div>
-
-          <button id="btnGather" class="btn btn--primary btn--small">采集</button>
-
-        </div>
-
-        <div id="resources" class="resources"></div>
-
+      <aside class="sidebar sidebar--log">
         <div class="hint" id="hint"></div>
 
-
-
-        <div class="sidebar__divider sidebar__divider--log"></div>
-
         <div class="sidebar__sectionTitleRow sidebar__sectionTitleRow--log">
-
           <div class="sidebar__sectionTitle">日志</div>
-
           <button id="logToggle" class="btn btn--small btn--ghost" type="button">展开</button>
-
         </div>
 
         <div id="log" class="log"></div>
-
       </aside>
 
 
@@ -1021,19 +1005,19 @@
 
 
 
-    <script src="./data/pokemon_zh.js?v=0.39.5" defer></script>
+    <script src="./data/pokemon_zh.js?v=0.39.6" defer></script>
 
-    <script src="./data/pokemon_tier.js?v=0.39.5" defer></script>
+    <script src="./data/pokemon_tier.js?v=0.39.6" defer></script>
 
-    <script src="./data/pokemon_catch_rate.js?v=0.39.5" defer></script>
+    <script src="./data/pokemon_catch_rate.js?v=0.39.6" defer></script>
 
-    <script src="./data/pokemon_evo.js?v=0.39.5" defer></script>
+    <script src="./data/pokemon_evo.js?v=0.39.6" defer></script>
 
-    <script src="./data/pokemon_evo_req.js?v=0.39.5" defer></script>
+    <script src="./data/pokemon_evo_req.js?v=0.39.6" defer></script>
 
-    <script src="./data/pokemon_types.js?v=0.39.5" defer></script>
+    <script src="./data/pokemon_types.js?v=0.39.6" defer></script>
 
-    <script type="module" src="./main.js?v=0.39.5"></script>
+    <script type="module" src="./main.js?v=0.39.6"></script>
 
     <script>
 
@@ -1043,7 +1027,7 @@
 
         window.addEventListener('load', function() {
 
-          navigator.serviceWorker.register('./sw.js?v=0.39.5', { updateViaCache: 'none' });
+          navigator.serviceWorker.register('./sw.js?v=0.39.6', { updateViaCache: 'none' });
 
         });
 

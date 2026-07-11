@@ -1,4 +1,4 @@
-﻿export function createRenderHelp({ elHelp, ui, escapeHtml }) {
+export function createRenderHelp({ elHelp, ui, escapeHtml }) {
   return function renderHelp() {
     if (!elHelp) return;
     if (ui.activeTab !== "help") return;
@@ -20,7 +20,7 @@
       <div class="row">
         <div class="row__left">
           <div class="row__title">帮助文档</div>
-          <div class="row__desc muted">版本 v0.39.5 · 点击各节标题展开详情</div>
+          <div class="row__desc muted">版本 v0.39.6 · 点击各节标题展开详情</div>
         </div>
       </div>
     `);

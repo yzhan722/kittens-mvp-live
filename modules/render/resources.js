@@ -72,7 +72,7 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
     elResources.append(frag);
   };
 
-  // 渲染训练家等级进度条（默认折叠，插在资源列表上方）
+  // 渲染训练家等级进度条（默认折叠；插在资源列表前，跟资源同属 topbar）
   function renderTrainerLevel(state) {
     if (!elResources) return;
     const caught = state.dex?.caught ?? {};
@@ -87,9 +87,8 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
       el = document.createElement("details");
       el.id = containerId;
       el.className = "trainerLevel";
-      if (elResources.parentNode) {
-        elResources.parentNode.insertBefore(el, elResources);
-      }
+      const host = elResources.parentNode;
+      if (host) host.insertBefore(el, elResources);
     }
     const pct = info.next ? Math.min(100, Math.round((unique / info.nextReq) * 100)) : 100;
     const nextTip = info.next ? `→ 解锁「${info.next}」(${unique}/${info.nextReq})` : "全部地图已解锁";
