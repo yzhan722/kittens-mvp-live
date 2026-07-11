@@ -56,3 +56,5 @@
 - **Resource chip**：统一边框+弱底；数值右对齐；速率 10–11px muted
 - **Tab**：非 active 无边框；active 琥珀边 + 底指示条
 - **Build CTA**：`btn--primary` 仅用于建造/确认类；次要用 ghost/small
+- **Building section**：琥珀标题 + 渐变分隔线（`.building-section`）
+- **Building level bar**：6px 轨、琥珀填充；满级青绿；由 `buildings.js` 直出

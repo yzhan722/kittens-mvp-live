@@ -25,6 +25,7 @@ export function createRenderBuildings({ elBuildings, defs, canAfford, getBuildin
       const maxLvl = typeof bdef.maxLevel === "number" && Number.isFinite(bdef.maxLevel) ? Math.max(1, Math.floor(bdef.maxLevel)) : BUILDING_MAX_LEVEL;
       const isMax = owned >= maxLvl;
       const ok = !isMax && canAfford(cost);
+      const pct = isMax ? 100 : Math.min(100, Math.round((owned / maxLvl) * 100));
 
       const costText = Object.entries(cost)
         .map(([rid, v]) => `${defs.resources[rid].name}${v}`)
@@ -37,11 +38,17 @@ export function createRenderBuildings({ elBuildings, defs, canAfford, getBuildin
           <div class="row__left">
             <div class="row__title">${bdef.name}</div>
             <div class="row__desc">${bdef.desc}</div>
+            <div class="building-level-bar" aria-label="等级 ${owned}/${maxLvl}">
+              <div class="building-level-bar__track">
+                <div class="building-level-bar__fill${isMax ? " is-maxed" : ""}" style="width:${pct}%"></div>
+              </div>
+              <div class="building-level-bar__label">Lv.${owned}${isMax ? " 满级" : `/${maxLvl}`}</div>
+            </div>
           </div>
           <div class="row__right">
             <div class="badge ${isMax ? "badge--muted" : ok ? "badge--ok" : ""}">拥有：${owned}${isMax ? " / 满级" : ""}</div>
             <div class="badge">${isMax ? "已满级" : `花费：${costText}`}</div>
-            <button class="btn btn--primary" data-buy="${bid}" ${ok ? "" : "disabled"}>${isMax ? "已满级" : "建造"}</button>
+            <button class="btn btn--primary btn--small" data-buy="${bid}" ${ok ? "" : "disabled"}>${isMax ? "已满级" : "建造"}</button>
           </div>
         </div>
       `);
@@ -82,17 +89,22 @@ export function createRenderBuildings({ elBuildings, defs, canAfford, getBuildin
       `);
     }
 
-    for (const cat of groupOrder) {
-      const rows = groups.get(cat) ?? [];
-      if (rows.length === 0) continue;
-      sections.push(`<div class="sidebar__sectionTitle">${cat}</div>`);
+    const pushCat = (cat, rows) => {
+      if (!rows || rows.length === 0) return;
+      sections.push(`
+        <div class="building-section" role="group" aria-label="${cat}">
+          <div class="building-section__title">${cat}</div>
+        </div>
+      `);
       sections.push(rows.join(""));
+    };
+
+    for (const cat of groupOrder) {
+      pushCat(cat, groups.get(cat) ?? []);
     }
     for (const [cat, rows] of groups.entries()) {
       if (groupOrder.includes(cat)) continue;
-      if (!rows || rows.length === 0) continue;
-      sections.push(`<div class="sidebar__sectionTitle">${cat}</div>`);
-      sections.push(rows.join(""));
+      pushCat(cat, rows);
     }
 
     elBuildings.innerHTML = sections.join("");

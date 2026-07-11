@@ -2763,37 +2763,66 @@ body::before {
   letter-spacing: 0.3px;
 }
 
-/* 5. 建筑等级进度条 */
+/* 5. 建筑等级进度条 + 分类锚点 */
+.building-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+.building-section:first-child {
+  margin-top: 4px;
+}
+.building-section__title {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: rgba(250, 204, 21, 0.88);
+  text-transform: none;
+  padding: 2px 0;
+}
+.building-section::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(250, 204, 21, 0.35), rgba(255, 255, 255, 0.06) 55%, transparent);
+}
 .building-level-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 5px;
+  gap: 8px;
+  margin-top: 6px;
+  max-width: 280px;
 }
 .building-level-bar__track {
   flex: 1;
-  height: 3px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.08);
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
 .building-level-bar__fill {
   height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, rgba(125,211,252,0.55), rgba(125,211,252,0.9));
-  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(250, 204, 21, 0.45), rgba(250, 204, 21, 0.95));
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.18);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .building-level-bar__fill.is-maxed {
-  background: linear-gradient(90deg, var(--primary), rgba(250,204,21,0.7));
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.55), rgba(52, 211, 153, 0.95));
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
 }
 .building-level-bar__label {
   font-size: 11px;
-  font-family: 'Rajdhani', monospace;
+  font-family: "Rajdhani", "Noto Sans SC", sans-serif;
   font-weight: 700;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.78);
   white-space: nowrap;
-  min-width: 38px;
+  min-width: 52px;
   text-align: right;
+  letter-spacing: 0.3px;
 }
 
 /* 6. 科技三态视觉 */
