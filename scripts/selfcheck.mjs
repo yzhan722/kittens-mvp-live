@@ -28,6 +28,13 @@ import {
 } from "../modules/systems/server_buffs.js";
 import { EXP_LEVELS, getExpLevelDef } from "../modules/expedition_defs.js";
 import { getTypeMul, TYPE_MUL } from "../modules/type_chart.js";
+import {
+  getStarUpgradeNeed,
+  getStarUpgradeGate,
+  meetsStarUpgradeGate,
+  getStarBonusMul,
+  clampStar,
+} from "../modules/stars.js";
 
 let failed = 0;
 function assert(cond, msg) {
@@ -134,6 +141,16 @@ const rates = computeUnlockedResourceRates(ps, { woodRateMul: 1, mineralsRateMul
 pe.woodPerSec = rates.woodPerSec;
 finalizeProductionRates(pe, ps, 1);
 assert(Math.abs(pe.catnipPerSec - (2 * 3 * 0.5 * 1.1 - 10)) < 1e-9, "finalize rates");
+
+// stars curve: catch starts ★0; early upgrade gated; costs steeper
+assert(getStarUpgradeNeed(0) === 5, "star need ★0→1");
+assert(getStarUpgradeNeed(4) === 80, "star need ★4→5");
+assert(getStarUpgradeGate(0)?.lvl === 5 && getStarUpgradeGate(0)?.aff === 10, "star gate ★1");
+assert(getStarUpgradeGate(4)?.lvl === 70 && getStarUpgradeGate(4)?.aff === 90, "star gate ★5");
+assert(!meetsStarUpgradeGate({ lvl: 1, affection: 0, stars: 0 }, 0), "fresh catch cannot ★1");
+assert(meetsStarUpgradeGate({ lvl: 5, affection: 10, stars: 0 }, 0), "gate met for ★1");
+assert(clampStar(9) === 5, "clamp star");
+assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
 
 if (failed) {
   console.error(`selfcheck: ${failed} failed`);

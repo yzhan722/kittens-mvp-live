@@ -72,7 +72,7 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
     elResources.append(frag);
   };
 
-  // 渲染训练家等级进度条（插在资源列表上方）
+  // 渲染训练家等级进度条（默认折叠，插在资源列表上方）
   function renderTrainerLevel(state) {
     if (!elResources) return;
     const caught = state.dex?.caught ?? {};
@@ -84,7 +84,7 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
     const containerId = "trainerLevelBar";
     let el = document.getElementById(containerId);
     if (!el) {
-      el = document.createElement("div");
+      el = document.createElement("details");
       el.id = containerId;
       el.className = "trainerLevel";
       if (elResources.parentNode) {
@@ -93,13 +93,15 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
     }
     const pct = info.next ? Math.min(100, Math.round((unique / info.nextReq) * 100)) : 100;
     const nextTip = info.next ? `→ 解锁「${info.next}」(${unique}/${info.nextReq})` : "全部地图已解锁";
+    const wasOpen = el.open;
     el.innerHTML = `
+      <summary class="trainerLevel__summary">Lv.${info.level} ${info.name}</summary>
       <div class="trainerLevel__row">
-        <span class="trainerLevel__name">Lv.${info.level} ${info.name}</span>
         <span class="trainerLevel__tip">${nextTip}</span>
       </div>
       <div class="trainerLevel__bar"><div class="trainerLevel__fill" style="width:${pct}%"></div></div>
     `;
+    el.open = wasOpen;
   }
 
   return function renderResources(eff) {

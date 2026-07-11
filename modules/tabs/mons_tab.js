@@ -14,6 +14,8 @@ export function initMonsTab({
   monPower,
   clampStar,
   getStarUpgradeNeed,
+  getStarUpgradeGate,
+  meetsStarUpgradeGate,
   isSameEvoFamily,
   stageIndex,
   getEvoReqLevel,
@@ -471,37 +473,37 @@ export function initMonsTab({
         if (fedCount <= 0) {
           addLog("一键喂食：所有精灵饱腹度已满或树果不足", true);
         }
-
-      const batchSkillBtn = ev.target?.closest?.("button[data-mon-batch-skill]");
-      if (batchSkillBtn && elMonList.contains(batchSkillBtn)) {
-        if (batchSkillBtn.disabled) return;
-        const batchType = batchSkillBtn.getAttribute("data-mon-batch-skill");
-        if (!batchType) return;
-        const list = state.mons?.list ?? [];
-        let batchCount = 0;
-        for (const mon of list) {
-          if (!mon) continue;
-          const api = getPokeApiDataByDex(mon.dex);
-          const types = Array.isArray(api?.types) ? api.types : [];
-          if (!types.includes(batchType)) continue;
-          const sat0 = clamp(typeof mon.satiety === "number" && Number.isFinite(mon.satiety) ? mon.satiety : 100, 0, 100);
-          if (sat0 < 50) continue;
-          const cd0 = typeof mon.skillCdRemainingSec === "number" && Number.isFinite(mon.skillCdRemainingSec) ? Math.max(0, mon.skillCdRemainingSec) : 0;
-          if (cd0 > 0) continue;
-          const fakeBtn = { disabled: false, getAttribute: (k) => k === "data-mon-skill" ? batchType : String(mon.id), closest: () => null };
-          handleSkillButton(state, fakeBtn);
-          batchCount++;
-        }
-        const typeZh = TYPE_ZH?.[batchType] ?? batchType;
-        if (batchCount > 0) {
-          addLog(`批量技能：${typeZh}（共触发 ${batchCount} 只）`, true);
-        } else {
-          addLog(`批量技能：没有可用的 ${typeZh} 属性精灵`, true);
-        }
-        markMonListDirty(false);
-        render();
-        return;
-      }
+        markMonListDirty(false);
+        render();
+        return;
+      }
+
+      const batchSkillBtn = ev.target?.closest?.("button[data-mon-batch-skill]");
+      if (batchSkillBtn && elMonList.contains(batchSkillBtn)) {
+        if (batchSkillBtn.disabled) return;
+        const batchType = batchSkillBtn.getAttribute("data-mon-batch-skill");
+        if (!batchType) return;
+        const list = state.mons?.list ?? [];
+        let batchCount = 0;
+        for (const mon of list) {
+          if (!mon) continue;
+          const api = getPokeApiDataByDex(mon.dex);
+          const types = Array.isArray(api?.types) ? api.types : [];
+          if (!types.includes(batchType)) continue;
+          const sat0 = clamp(typeof mon.satiety === "number" && Number.isFinite(mon.satiety) ? mon.satiety : 100, 0, 100);
+          if (sat0 < 50) continue;
+          const cd0 = typeof mon.skillCdRemainingSec === "number" && Number.isFinite(mon.skillCdRemainingSec) ? Math.max(0, mon.skillCdRemainingSec) : 0;
+          if (cd0 > 0) continue;
+          const fakeBtn = { disabled: false, getAttribute: (k) => k === "data-mon-skill" ? batchType : String(mon.id), closest: () => null };
+          handleSkillButton(state, fakeBtn);
+          batchCount++;
+        }
+        const typeZh = TYPE_ZH?.[batchType] ?? batchType;
+        if (batchCount > 0) {
+          addLog(`批量技能：${typeZh}（共触发 ${batchCount} 只）`, true);
+        } else {
+          addLog(`批量技能：没有可用的 ${typeZh} 属性精灵`, true);
+        }
         markMonListDirty(false);
         render();
         return;
@@ -639,6 +641,11 @@ export function initMonsTab({
 
         const need = getStarUpgradeNeed(stars);
         if (!Number.isFinite(need) || need <= 0) return;
+        if (!meetsStarUpgradeGate(target, stars)) {
+          const gate = getStarUpgradeGate(stars);
+          addLog(`升星失败：需 Lv.${gate?.lvl ?? "?"} 且亲密度 ${gate?.aff ?? "?"}+`, true);
+          return;
+        }
 
         const candidates = list.filter((x) => x && x.id !== id && isSameEvoFamily(x.pid, target.pid));
         const selIds = Array.isArray(ui.starUpSelectedIds) ? ui.starUpSelectedIds : [];

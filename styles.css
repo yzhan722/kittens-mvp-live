@@ -154,6 +154,59 @@ body {
    z-index: 220;
  }
 
+ .serverBuffBar__toggle {
+   width: 100%;
+   border: 1px solid rgba(255, 255, 255, 0.12);
+   border-radius: 10px;
+   background: rgba(255, 255, 255, 0.06);
+   color: var(--text);
+   font-size: 11px;
+   font-weight: 700;
+   padding: 6px 4px;
+   cursor: pointer;
+   line-height: 1.2;
+ }
+
+ .serverBuffBar.is-collapsed {
+   width: auto;
+   min-width: 64px;
+ }
+
+ .serverBuffBar.is-collapsed .serverBuffBar__body {
+   display: none;
+ }
+
+ .serverBuffBar__body {
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+ }
+
+ .bulletin__fold {
+   border: none;
+ }
+
+ .bulletin__summary {
+   font-weight: 750;
+   cursor: pointer;
+   list-style: none;
+   padding: 2px 0;
+ }
+
+ .bulletin__summary::-webkit-details-marker {
+   display: none;
+ }
+
+ .bulletin__summary::before {
+   content: "▶ ";
+   font-size: 11px;
+   opacity: 0.7;
+ }
+
+ .bulletin__fold[open] > .bulletin__summary::before {
+   content: "▼ ";
+ }
+
  .serverBuffBar__slot {
    position: relative;
    display: flex;
@@ -665,17 +718,17 @@ body {
 .resources {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .resrow {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 5px 8px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -1734,16 +1787,35 @@ body {
 
 /* ========== 训练家等级条 ========== */
 .trainerLevel {
-  padding: 6px 10px 8px;
+  padding: 4px 8px 6px;
   margin-bottom: 4px;
   background: rgba(255,255,255,0.04);
   border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.trainerLevel__summary {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent, #f8c800);
+  cursor: pointer;
+  list-style: none;
+}
+.trainerLevel__summary::-webkit-details-marker {
+  display: none;
+}
+.trainerLevel__summary::before {
+  content: "▶ ";
+  font-size: 10px;
+  opacity: 0.65;
+  color: rgba(255,255,255,0.7);
+}
+.trainerLevel[open] > .trainerLevel__summary::before {
+  content: "▼ ";
 }
 .trainerLevel__row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 4px;
+  margin: 4px 0;
   gap: 6px;
 }
 .trainerLevel__name {
@@ -1956,11 +2028,20 @@ body {
     position: static;
     width: auto;
     transform: none;
-    flex-direction: row;
+    flex-direction: column;
     flex-wrap: wrap;
     gap: 6px;
     padding: 8px;
     border-radius: 12px;
+  }
+  .serverBuffBar__toggle {
+    width: auto;
+    align-self: flex-start;
+    padding: 6px 10px;
+  }
+  .serverBuffBar__body {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
   .serverBuffBar__btn {
     width: 40px;

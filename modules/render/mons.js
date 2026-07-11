@@ -18,6 +18,8 @@ export function createRenderMons({
   clampStar,
   renderStars,
   getStarUpgradeNeed,
+  getStarUpgradeGate,
+  meetsStarUpgradeGate,
   isSameEvoFamily,
   getMonCurrentStats,
   expNeedForLevel,
@@ -288,10 +290,13 @@ export function createRenderMons({
 
           const starUpOpen = ui.starUpTargetId === m.id;
           const need = getStarUpgradeNeed(stars);
+          const gate = getStarUpgradeGate(stars);
+          const gateOk = meetsStarUpgradeGate(m, stars);
           const candidates = (state.mons?.list ?? []).filter((x) => x && x.id !== m.id && isSameEvoFamily(x.pid, m.pid));
           const selIds = Array.isArray(ui.starUpSelectedIds) ? ui.starUpSelectedIds : [];
           const validSel = selIds.filter((id) => candidates.some((x) => x.id === id));
-          const canStarUp = stars < 5 && Number.isFinite(need) && need > 0 && validSel.length === need;
+          const canStarUp =
+            stars < 5 && Number.isFinite(need) && need > 0 && gateOk && validSel.length === need;
 
           rows.push(`
             <div class="row">
@@ -330,16 +335,19 @@ export function createRenderMons({
               .join("");
 
             const title = `升星：${m.name}`;
-            const sub = `选择材料精灵（下一星需要 ${need} 只同进化系材料）`;
+            const gateText = gate ? `需 Lv.${gate.lvl}+ 且亲密度 ${gate.aff}+` : "";
+            const sub = `选择材料精灵（下一星需要 ${need} 只同进化系材料${gateText ? `；${gateText}` : ""}）`;
             const empty = candidates.length === 0 ? `<div class="badge badge--muted">暂无可用材料</div>` : "";
             const disabledReason =
               stars >= 5
                 ? `<div class="badge badge--muted">已满星</div>`
-                : candidates.length === 0
-                  ? ""
-                  : validSel.length !== need
-                    ? `<div class="badge badge--muted">材料不足（下一星需要 ${need} 只）</div>`
-                    : "";
+                : !gateOk && gate
+                  ? `<div class="badge badge--muted">未达门槛（当前 Lv.${m.lvl} / 亲密度 ${aff}，需要 Lv.${gate.lvl}+ 且亲密度 ${gate.aff}+）</div>`
+                  : candidates.length === 0
+                    ? ""
+                    : validSel.length !== need
+                      ? `<div class="badge badge--muted">材料不足（下一星需要 ${need} 只）</div>`
+                      : "";
 
             starUpModalHtml = `
               <div class="modalOverlay" data-mon-starup-overlay="1">
