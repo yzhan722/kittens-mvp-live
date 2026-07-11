@@ -6,13 +6,13 @@
 
 ## 进行中
 
-- [ ] **SAVE-006** selfcheck + deploy + commit/push `size:S`
+（空）
 
 ---
 
 ## 待做
 
-（空）
+（可执行队列已空）
 
 ---
 
@@ -25,11 +25,12 @@
 | SAVE-003 | visibility/pagehide keepalive 推 slot0 | 2026-07-11 |
 | SAVE-004 | 槽位 0+1 文档化；2–3 预留 | 2026-07-11 |
 | SAVE-005 | 同步失败提示 + 导出/导入 JSON | 2026-07-11 |
+| SAVE-006 | deploy + commit `273df87` + push；线上 409 冒烟 OK | 2026-07-11 |
 
 ---
 
 ## Loop Prompt
 
 ```text
-SAVE-006：允许 deploy + commit + push。不 wipe D1。不轮换 token。
+队列空。不 wipe D1。不轮换 token。
 ```
