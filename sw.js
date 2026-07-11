@@ -1,7 +1,7 @@
-// Service Worker v0.39.6
+// Service Worker v0.39.7
 // 策略：HTML/JS/CSS Network First（确保F5刷新时强制获取最新版本），数据文件 Cache First
 
-const CACHE_VERSION = 'kittens-v0.39.6';
+const CACHE_VERSION = 'kittens-v0.39.7';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 

@@ -5,20 +5,29 @@ export function createPvpBattle() {
 
   function simulateBattle(team1, team2, player1Name, player2Name) {
     const battleLog = [];
+    const t1 = Array.isArray(team1) ? team1 : [];
+    const t2 = Array.isArray(team2) ? team2 : [];
 
-    const fighters1 = team1.map(mon => ({
+    if (t1.length === 0 || t2.length === 0) {
+      battleLog.push("对战取消：至少一方队伍为空");
+      return { winner: 0, battleLog, rounds: 0 };
+    }
+
+    const fighters1 = t1.map(mon => ({
       ...mon,
       currentHp: mon.hp || mon.stats?.hp || 100,
+      maxHp: mon.hp || mon.stats?.hp || 100,
       types: Array.isArray(mon.types) ? mon.types : [],
-      name: mon.name,
+      name: mon.name || "未知",
       owner: player1Name,
     }));
 
-    const fighters2 = team2.map(mon => ({
+    const fighters2 = t2.map(mon => ({
       ...mon,
       currentHp: mon.hp || mon.stats?.hp || 100,
+      maxHp: mon.hp || mon.stats?.hp || 100,
       types: Array.isArray(mon.types) ? mon.types : [],
-      name: mon.name,
+      name: mon.name || "未知",
       owner: player2Name,
     }));
 
@@ -91,8 +100,10 @@ export function createPvpBattle() {
       battleLog.push(`${player2Name} 获胜！`);
       winner = 2;
     } else {
-      const hp1Pct = fighters1[idx1].currentHp / fighters1[idx1].hp;
-      const hp2Pct = fighters2[idx2].currentHp / fighters2[idx2].hp;
+      const cur1 = fighters1[Math.min(idx1, fighters1.length - 1)];
+      const cur2 = fighters2[Math.min(idx2, fighters2.length - 1)];
+      const hp1Pct = (cur1?.currentHp ?? 0) / Math.max(1, cur1?.maxHp ?? cur1?.hp ?? 1);
+      const hp2Pct = (cur2?.currentHp ?? 0) / Math.max(1, cur2?.maxHp ?? cur2?.hp ?? 1);
       if (hp1Pct > hp2Pct) {
         battleLog.push(`战斗超时，${player1Name} 血量优势获胜！`);
         winner = 1;

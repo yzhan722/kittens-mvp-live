@@ -1,9 +1,37 @@
 // 社交标签页
 import { escapeHtml } from "../utils.js";
 
-export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friendsSystem, state, createPvpBattle }) {
+export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friendsSystem, state, createPvpBattle, getMonCurrentStats, getPokeApiDataByDex }) {
   
-  let selectedTeam = []; // 当前选中的队伍
+  let selectedTeam = []; // 当前选中的队伍（已归一化为 PVP 战报字段）
+
+  function monTypes(mon) {
+    const api = typeof getPokeApiDataByDex === "function" ? getPokeApiDataByDex(mon.dex) : null;
+    return Array.isArray(api?.types) ? api.types.slice() : [];
+  }
+
+  function toPvpFighter(mon) {
+    if (!mon) return null;
+    const stats = typeof getMonCurrentStats === "function" ? getMonCurrentStats(mon) : null;
+    const hp = Math.max(1, Math.floor(stats?.hp ?? mon.baseStats?.hp ?? 100));
+    const attack = Math.max(1, Math.floor(stats?.atk ?? mon.baseStats?.atk ?? 50));
+    const defense = Math.max(1, Math.floor(stats?.def ?? mon.baseStats?.def ?? 50));
+    const speed = Math.max(1, Math.floor(stats?.spe ?? mon.baseStats?.spe ?? 50));
+    const level = Math.max(1, Math.floor(typeof mon.lvl === "number" && Number.isFinite(mon.lvl) ? mon.lvl : 1));
+    return {
+      id: mon.id,
+      name: mon.name,
+      dex: mon.dex,
+      isShiny: Boolean(mon.isShiny),
+      level,
+      hp,
+      attack,
+      defense,
+      speed,
+      types: monTypes(mon),
+      stats: { hp, atk: attack, def: defense, spe: speed },
+    };
+  }
   
   // 渲染 PVP 邀请列表
   async function renderPvpInvites() {
@@ -43,7 +71,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
           <div class="row__left">
             <div class="row__title">${escapeHtml(invite.from_name || invite.from_uid)} 向你发起挑战</div>
             <div class="row__desc">
-              队伍：${invite.team_data.map(m => escapeHtml(m.name)).join(", ")}
+              队伍：${(Array.isArray(invite.team_data) ? invite.team_data : []).map(m => escapeHtml(m?.name || "?")).join(", ") || "未知"}
               <br>剩余时间：${expiresIn} 分钟
             </div>
           </div>
@@ -393,12 +421,16 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
 
   // 打开队伍选择器
   function openTeamSelector() {
-    if (!state || !state.mons || !state.mons.list) {
+    const list = state?.mons?.list;
+    if (!Array.isArray(list) || list.length === 0) {
       addLog("没有可用的精灵", true);
       return;
     }
 
-    const mons = state.mons.list.filter(m => m && m.hp > 0);
+    // 游戏内精灵没有 mon.hp 字段；用当前能力值筛可用单位
+    const mons = list
+      .map((m) => toPvpFighter(m))
+      .filter((m) => m && m.hp > 0);
     if (mons.length === 0) {
       addLog("没有可用的精灵", true);
       return;
@@ -406,19 +438,19 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
 
     // 创建模态框
     const modal = document.createElement("div");
-    modal.className = "modal";
+    modal.className = "modalOverlay";
     modal.innerHTML = `
-      <div class="modal__content">
+      <div class="modal">
         <div class="modal__header">
-          <h3>选择队伍（最多6只）</h3>
-          <button class="modal__close">&times;</button>
+          <div class="modal__title">选择队伍（最多6只）</div>
+          <button type="button" class="btn btn--small" data-action="cancel">关闭</button>
         </div>
         <div class="modal__body">
           <div id="monSelector" class="mon-selector"></div>
         </div>
-        <div class="modal__footer">
-          <button class="btn btn--ghost" data-action="cancel">取消</button>
-          <button class="btn btn--primary" data-action="confirm">确认</button>
+        <div class="actions">
+          <button type="button" class="btn btn--ghost" data-action="cancel">取消</button>
+          <button type="button" class="btn btn--primary" data-action="confirm">确认</button>
         </div>
       </div>
     `;
@@ -428,13 +460,13 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     // 渲染精灵列表
     const monSelector = modal.querySelector("#monSelector");
     let html = "";
-    for (const mon of mons.slice(0, 20)) {
-      const shinyIcon = mon.isShiny ? "✨" : "";
-      const isSelected = selectedTeam.some(m => m.id === mon.id);
+    for (const mon of mons.slice(0, 30)) {
+      const shinyIcon = mon.isShiny ? "闪光 " : "";
+      const isSelected = selectedTeam.some((m) => m.id === mon.id);
       html += `
-        <div class="mon-selector-item ${isSelected ? 'selected' : ''}" data-mon-id="${mon.id}">
-          <input type="checkbox" ${isSelected ? 'checked' : ''} />
-          <span>${shinyIcon} ${escapeHtml(mon.name)} Lv.${mon.level}</span>
+        <div class="mon-selector-item ${isSelected ? "selected" : ""}" data-mon-id="${mon.id}">
+          <input type="checkbox" ${isSelected ? "checked" : ""} />
+          <span>${shinyIcon}${escapeHtml(mon.name)} Lv.${mon.level}</span>
           <small>HP:${mon.hp} ATK:${mon.attack} DEF:${mon.defense}</small>
         </div>
       `;
@@ -447,14 +479,13 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
       if (!item) return;
 
       const checkbox = item.querySelector("input[type=checkbox]");
-      const monId = Number(item.dataset.monId);
+      if (!checkbox) return;
 
       // 切换选中状态
       if (checkbox.checked) {
         checkbox.checked = false;
         item.classList.remove("selected");
       } else {
-        // 检查是否已达到上限
         const selectedCount = monSelector.querySelectorAll("input[type=checkbox]:checked").length;
         if (selectedCount >= 6) {
           addLog("最多只能选择6只精灵", true);
@@ -465,27 +496,28 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
       }
     });
 
-    modal.querySelector('[data-action="cancel"]').addEventListener("click", () => {
-      document.body.removeChild(modal);
-    });
+    const close = () => {
+      if (modal.parentNode) modal.parentNode.removeChild(modal);
+    };
 
-    modal.querySelector(".modal__close").addEventListener("click", () => {
-      document.body.removeChild(modal);
+    modal.querySelectorAll('[data-action="cancel"]').forEach((btn) => {
+      btn.addEventListener("click", close);
     });
 
     modal.querySelector('[data-action="confirm"]').addEventListener("click", () => {
-      const selectedIds = Array.from(monSelector.querySelectorAll("input[type=checkbox]:checked"))
-        .map(cb => Number(cb.closest(".mon-selector-item").dataset.monId));
+      const selectedIds = Array.from(monSelector.querySelectorAll("input[type=checkbox]:checked")).map((cb) =>
+        Number(cb.closest(".mon-selector-item").dataset.monId)
+      );
 
       if (selectedIds.length === 0) {
         addLog("请至少选择一只精灵", true);
         return;
       }
 
-      selectedTeam = mons.filter(m => selectedIds.includes(m.id));
+      selectedTeam = mons.filter((m) => selectedIds.includes(m.id));
       renderMyTeam();
       addLog(`已选择 ${selectedTeam.length} 只精灵`, true);
-      document.body.removeChild(modal);
+      close();
     });
   }
 

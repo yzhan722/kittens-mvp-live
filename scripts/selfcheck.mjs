@@ -152,6 +152,18 @@ assert(meetsStarUpgradeGate({ lvl: 5, affection: 10, stars: 0 }, 0), "gate met f
 assert(clampStar(9) === 5, "clamp star");
 assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
 
+import { createPvpBattle } from "../modules/pvp_battle.js";
+const pvp = createPvpBattle();
+const empty = pvp.simulateBattle([], [{ name: "A", hp: 10, attack: 5, defense: 5, speed: 5, types: [] }], "P1", "P2");
+assert(empty.winner === 0 && empty.rounds === 0, "pvp empty team");
+const win = pvp.simulateBattle(
+  [{ name: "Strong", hp: 200, attack: 80, defense: 40, speed: 60, level: 50, types: ["fire"] }],
+  [{ name: "Weak", hp: 30, attack: 10, defense: 10, speed: 10, level: 5, types: ["grass"] }],
+  "P1",
+  "P2"
+);
+assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
+
 if (failed) {
   console.error(`selfcheck: ${failed} failed`);
   process.exit(1);
