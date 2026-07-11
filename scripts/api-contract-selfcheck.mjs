@@ -3,6 +3,7 @@
 import { buffLevel, decayedRemaining, clampBuffKey, SERVER_BUFF_KEYS } from "../functions/api/_buffs.js";
 import { applyBossRegen, bossAttackDamage, buildBossRewards, parseRewards, BOSS_MAX_HP } from "../functions/api/_boss.js";
 import { clampUid, clampName, clampUsername } from "../functions/api/_uid.js";
+import { isSessionExpired, SESSION_TTL_MS } from "../functions/api/_auth.js";
 
 let failed = 0;
 function assert(cond, msg) {
@@ -11,6 +12,12 @@ function assert(cond, msg) {
     console.error("FAIL:", msg);
   }
 }
+
+assert(SESSION_TTL_MS === 90 * 24 * 60 * 60 * 1000, "session ttl 90d");
+assert(isSessionExpired(Date.now()) === false, "fresh session");
+assert(isSessionExpired(Date.now() - SESSION_TTL_MS - 1) === true, "expired session");
+assert(isSessionExpired(0) === true, "bad created_at");
+assert(isSessionExpired(null) === true, "null created_at");
 
 assert(SERVER_BUFF_KEYS.length === 6, "buff keys");
 assert(buffLevel(0) === 0, "buff lvl 0");

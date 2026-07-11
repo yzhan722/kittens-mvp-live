@@ -8,6 +8,7 @@ export const GAME_CONFIG = {
     SAVE_KEY: "kittens_mvp_save_v1",
     SAVE_BACKUP_KEY: "kittens_mvp_save_v1_bak",
     SAVE_SLOTS: [
+      // Cloud slot1 only; API slots 2–3 reserved/unused
       "kittens_mvp_save_slot_1"
     ],
     DAILY_LOGIN_KEY: "kittens_mvp_daily_login_reward_v1",

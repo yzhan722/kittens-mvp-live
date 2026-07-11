@@ -22,7 +22,20 @@
 |------|------|
 | 健康检查 | `GET /api/health` |
 | 鉴权 | `POST /api/auth/{register,login,logout}` |
-| 云存档 | `GET /api/save/meta` · `GET|PUT /api/save?slot=` |
+| 云存档 | `GET /api/save/meta` · `GET|PUT /api/save?slot=`（乐观锁：PUT 若客户端 `updatedAt` < 库内 → 409） |
+
+### 存档槽约定
+
+| slot | 用途 |
+|------|------|
+| 0 | 自动存（`kittens_mvp_save_v1`） |
+| 1 | 可选手动键（`kittens_mvp_save_slot_1`，当前 UI 未暴露，仍参与云同步） |
+| 2–3 | API 预留，前端未接线 |
+
+- 本机：localStorage + `_bak`；切后台/关页会 `keepalive` 推 slot0
+- Session：Bearer，TTL **90 天**（按 `sessions.created_at`，过期删会话）
+- 选项页：导出/导入 JSON 文件（灾难恢复）
+
 | 排行榜 | `POST /api/score/submit` · `GET /api/leaderboard/:board` |
 | 跑马灯 | `GET /api/events/pull` · `POST /api/events/push` |
 | 全服 Buff | `GET /api/server/buffs` · `POST /api/server/buffs/buy` |

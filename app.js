@@ -836,6 +836,9 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   const elBtnCloudLogout = document.getElementById("btnCloudLogout");
   const elBtnCloudSyncNow = document.getElementById("btnCloudSyncNow");
   const elCloudStatus = document.getElementById("cloudStatus");
+  const elBtnSaveExport = document.getElementById("btnSaveExport");
+  const elBtnSaveImport = document.getElementById("btnSaveImport");
+  const elSaveImportFile = document.getElementById("saveImportFile");
 
   const elAutoResearchToggle = document.getElementById("autoResearchToggle");
   const elAutoResearchMode = document.getElementById("autoResearchMode");
@@ -2160,11 +2163,67 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       setCloudStatus("同步中...");
       await cloudSave.syncAll();
       cloudSave.startAutoSync();
-      setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（已同步）`);
-    } catch {
-      // 同步失败时静默降级，仍显示已登录状态，不打扰用户
-      refreshCloudUI();
+      const st = cloudSave.getSyncStatus();
+      if (st.status === "error") {
+        setCloudStatus(`同步失败：${st.error || "未知错误"}`);
+      } else if (st.status === "partial") {
+        setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（部分同步：${st.error || "有冲突"}）`);
+      } else if (!cloudSave.getToken()) {
+        setCloudStatus("登录已过期，请重新登录");
+      } else {
+        setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（已同步）`);
+      }
+    } catch (e) {
+      const msg = typeof e?.message === "string" ? e.message : "同步失败";
+      if (!cloudSave.getToken()) setCloudStatus("登录已过期，请重新登录");
+      else setCloudStatus(`同步失败：${msg}`);
     }
+  }
+
+  function exportSaveJson() {
+    try {
+      save();
+      const raw = getAutosaveRawJson();
+      if (!raw) {
+        setCloudStatus("无存档可导出");
+        return;
+      }
+      const blob = new Blob([raw], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `kittens-save-${formatLocalYmd()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setCloudStatus("已导出存档文件");
+    } catch (e) {
+      setCloudStatus(`导出失败：${e?.message || "unknown"}`);
+    }
+  }
+
+  function importSaveJsonFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || "");
+        const s = loadFromRaw(text);
+        if (!s) {
+          setCloudStatus("导入失败：存档损坏或不兼容");
+          return;
+        }
+        state = s;
+        ui.dexDirty = true;
+        save();
+        render();
+        setCloudStatus("已导入本地存档");
+        if (cloudSave.getToken()) doCloudSyncNow();
+      } catch (e) {
+        setCloudStatus(`导入失败：${e?.message || "unknown"}`);
+      }
+    };
+    reader.onerror = () => setCloudStatus("导入失败：无法读取文件");
+    reader.readAsText(file);
   }
 
   function saveToKey(key) {
@@ -2924,6 +2983,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     ui.bossDirty = true;
 
     refreshCloudUI();
+    cloudSave.installLifecycleFlush();
     if (cloudSave.getToken()) {
       doCloudSyncNow();
     }
@@ -2996,6 +3056,18 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     if (elBtnCloudSyncNow) {
       elBtnCloudSyncNow.addEventListener("click", async () => {
         await doCloudSyncNow();
+      });
+    }
+
+    if (elBtnSaveExport) {
+      elBtnSaveExport.addEventListener("click", () => exportSaveJson());
+    }
+    if (elBtnSaveImport && elSaveImportFile) {
+      elBtnSaveImport.addEventListener("click", () => elSaveImportFile.click());
+      elSaveImportFile.addEventListener("change", () => {
+        const f = elSaveImportFile.files && elSaveImportFile.files[0];
+        elSaveImportFile.value = "";
+        importSaveJsonFile(f);
       });
     }
 

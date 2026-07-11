@@ -94,8 +94,12 @@ export function createCloudSave({
     }
 
     if (!res.ok) {
-      const err = data && typeof data.error === "string" ? data.error : `http ${res.status}`;
-      throw new Error(err);
+      const errMsg = data && typeof data.error === "string" ? data.error : `http ${res.status}`;
+      const err = new Error(errMsg);
+      err.status = res.status;
+      err.data = data;
+      if (res.status === 401) clearToken();
+      throw err;
     }
 
     return data;
@@ -250,12 +254,19 @@ export function createCloudSave({
     const t = localUpdatedAt(key);
     if (t <= 0) return { applied: false, updatedAt: 0 };
 
-    const data = await apiFetch(`/api/save?slot=${slot}`, { method: "PUT", body: { saveJson: raw, updatedAt: t } });
-    const applied = !!(data && data.applied);
-    return { applied, updatedAt: t };
+    try {
+      const data = await apiFetch(`/api/save?slot=${slot}`, { method: "PUT", body: { saveJson: raw, updatedAt: t } });
+      const applied = !!(data && data.applied);
+      return { applied, updatedAt: t };
+    } catch (e) {
+      if (e && e.status === 409) {
+        return { applied: false, updatedAt: t, conflict: true, remoteAt: e.data?.updatedAt };
+      }
+      throw e;
+    }
   }
 
-  // 改进的同步逻辑：更好的冲突处理和状态跟踪
+  // Wired slots: 0=autosave, 1=optional manual key. API accepts 0–3; 2–3 unused.
   async function syncAll() {
     lastSyncStatus = "syncing";
     lastSyncError = null;
@@ -279,32 +290,44 @@ export function createCloudSave({
         const remoteT = meta.get(it.slot) || 0;
 
         if (remoteT > localT) {
-          // 远端时间戳更新，检查游戏时长
           try {
             const remoteData = await fetchSlotJson(it.slot);
             if (!remoteData) {
-              // 远端数据解析失败，记录冲突但保持本地
               hasConflict = true;
               lastSyncError = `存档槽 ${it.slot} 远端数据解析失败`;
-              console.warn(`[CloudSave] 存档槽 ${it.slot} 远端数据解析失败，保持本地存档`);
               continue;
             }
             const remotePlay = typeof remoteData.totalPlayMs === "number" ? remoteData.totalPlayMs : 0;
             if (remotePlay >= localPlay) {
               await pullSlot(it.slot, it.key);
             } else {
-              // 本地游戏时长更长，推送
-              await pushSlot(it.slot, it.key);
-              if (it.slot === 0) lastPushedAutosaveAt = localT;
+              const pushed = await pushSlot(it.slot, it.key);
+              if (pushed.conflict) {
+                hasConflict = true;
+                lastSyncError = `存档槽 ${it.slot} 冲突，已改拉远端`;
+                await pullSlot(it.slot, it.key);
+              } else if (it.slot === 0 && pushed.applied) {
+                lastPushedAutosaveAt = localT;
+              }
             }
           } catch (e) {
             hasConflict = true;
             lastSyncError = `存档槽 ${it.slot} 同步失败: ${e.message}`;
-            console.warn(`[CloudSave] 存档槽 ${it.slot} 同步失败:`, e);
           }
         } else if (localT > remoteT) {
-          await pushSlot(it.slot, it.key);
-          if (it.slot === 0) lastPushedAutosaveAt = localT;
+          try {
+            const pushed = await pushSlot(it.slot, it.key);
+            if (pushed.conflict) {
+              hasConflict = true;
+              lastSyncError = `存档槽 ${it.slot} 冲突，已改拉远端`;
+              await pullSlot(it.slot, it.key);
+            } else if (it.slot === 0 && pushed.applied) {
+              lastPushedAutosaveAt = localT;
+            }
+          } catch (e) {
+            hasConflict = true;
+            lastSyncError = `存档槽 ${it.slot} 推送失败: ${e.message}`;
+          }
         }
       }
 
@@ -313,7 +336,37 @@ export function createCloudSave({
     } catch (e) {
       lastSyncStatus = "error";
       lastSyncError = e.message || "同步失败";
-      console.error("[CloudSave] 同步失败:", e);
+    }
+  }
+
+  /** Flush autosave on hide/close. keepalive so the request can outlive the page. */
+  async function pushAutosaveFlush() {
+    const token = getToken();
+    if (!token) return { applied: false };
+    const raw = localRawJson(autosaveKey);
+    const t = localUpdatedAt(autosaveKey);
+    if (!raw || t <= 0 || t <= lastPushedAutosaveAt) return { applied: false };
+    try {
+      const res = await fetch(`/api/save?slot=0`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ saveJson: raw, updatedAt: t }),
+        keepalive: true,
+      });
+      if (res.status === 401) {
+        clearToken();
+        return { applied: false };
+      }
+      if (res.ok) {
+        lastPushedAutosaveAt = t;
+        return { applied: true };
+      }
+      return { applied: false };
+    } catch {
+      return { applied: false };
     }
   }
 
@@ -325,8 +378,8 @@ export function createCloudSave({
         if (!token) return;
         const t = localUpdatedAt(autosaveKey);
         if (t > 0 && t > lastPushedAutosaveAt) {
-          await pushSlot(0, autosaveKey);
-          lastPushedAutosaveAt = t;
+          const pushed = await pushSlot(0, autosaveKey);
+          if (pushed.applied) lastPushedAutosaveAt = t;
         }
       } catch {}
     }, 30000);
@@ -341,6 +394,21 @@ export function createCloudSave({
     syncTimer = 0;
   }
 
+  let lifecycleInstalled = false;
+  function installLifecycleFlush() {
+    if (lifecycleInstalled || typeof window === "undefined") return;
+    lifecycleInstalled = true;
+    const flush = () => {
+      try {
+        pushAutosaveFlush();
+      } catch {}
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flush();
+    });
+    window.addEventListener("pagehide", flush);
+  }
+
   return {
     getToken,
     getUsername,
@@ -351,5 +419,7 @@ export function createCloudSave({
     startAutoSync,
     stopAutoSync,
     getSyncStatus,
+    pushAutosaveFlush,
+    installLifecycleFlush,
   };
 }

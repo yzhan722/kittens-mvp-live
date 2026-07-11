@@ -40,6 +40,16 @@ export async function onRequest(context) {
       return json({ error: "save too large" }, { status: 413, req });
     }
     const updatedAt = intOr(body?.updatedAt, nowMs());
+    const existing = await dbFirst(
+      db,
+      "SELECT updated_at AS updatedAt FROM saves WHERE user_id = ? AND slot = ?",
+      [user.id, slot]
+    );
+    const remoteAt = existing ? Number(existing.updatedAt) || 0 : 0;
+    // Optimistic lock: refuse stale client clocks so dual-device cannot clobber a newer cloud save.
+    if (remoteAt > updatedAt) {
+      return json({ error: "conflict", applied: false, updatedAt: remoteAt }, { status: 409, req });
+    }
     await dbRun(
       db,
       `INSERT INTO saves(user_id, slot, save_json, updated_at) VALUES(?, ?, ?, ?)

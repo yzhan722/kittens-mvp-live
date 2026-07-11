@@ -73,18 +73,32 @@ export function bearerToken(req) {
   return m ? clampStr(m[1], 256) : "";
 }
 
+// ponytail: 90d TTL via created_at only — no schema migration; upgrade = expires_at column if need revoke-before-TTL
+export const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+export function isSessionExpired(createdAt, now = nowMs()) {
+  const t = Number(createdAt);
+  if (!Number.isFinite(t) || t <= 0) return true;
+  return now - t > SESSION_TTL_MS;
+}
+
 export async function requireUser(db, req) {
   const token = bearerToken(req);
   if (!token) return null;
   const row = await dbFirst(
     db,
-    `SELECT u.id, u.uid, u.username
+    `SELECT u.id, u.uid, u.username, s.created_at AS sessionCreatedAt
      FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.token = ?`,
     [token]
   );
-  return row || null;
+  if (!row) return null;
+  if (isSessionExpired(row.sessionCreatedAt)) {
+    await destroySession(db, token);
+    return null;
+  }
+  return { id: row.id, uid: row.uid, username: row.username };
 }
 
 export async function createSession(db, userId) {
