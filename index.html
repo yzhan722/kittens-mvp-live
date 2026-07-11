@@ -21,7 +21,7 @@
 
     <meta http-equiv="Expires" content="0" />
 
-    <title>宝可梦放置冒险 v0.39.2</title>
+    <title>宝可梦放置冒险 v0.39.3</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,7 +29,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Rajdhani:wght@600;700&display=swap" />
 
-    <link rel="stylesheet" href="./styles.css?v=0.39.2" />
+    <link rel="stylesheet" href="./styles.css?v=0.39.3" />
 
   </head>
 
@@ -43,7 +43,7 @@
 
         <div class="brand__title">宝可梦放置冒险</div>
 
-        <div class="brand__subtitle" id="topbarStatus">v0.39.2 · 挂机冒险</div>
+        <div class="brand__subtitle" id="topbarStatus">v0.39.3 · 挂机冒险</div>
 
     </header>
 
@@ -60,19 +60,17 @@
 
         </div>
 
-                <div class="bulletin__body">
+                <div class="bulletin__body" id="bulletinBody">
 
-          <div class="bulletin__line">【v0.39.2】门控优化：捕捉/社交 Tab 始终可见；精灵球基础降门槛并完成赠球×5；未来商店/挑战门槛下调；修复社交 Tab 永不可见。</div>
+          <div class="bulletin__line">【玩法】研究「精灵球基础」约 40 树果即可解锁捕捉，完成赠送精灵球×5；采集 → 研究 → 抓第一只。</div>
 
-          <div class="bulletin__line">【v0.39.1】后端重建上线：Pages Functions 全量重写 + D1 schema v2（排行榜/云存档/社交已清库重置）；本地/线上 API 冒烟通过。</div>
+          <div class="bulletin__line">【玩法】主栏精简为篝火 / 研究 / 捕捉 / 精灵 / 任务，其余入口在「更多」；捕捉页默认只显示下一区域。</div>
 
-          <div class="bulletin__line">【v0.39.1】代码优化：排行榜端点去重(-351行)；好友API重构(-82行)；事件监听器去重(-67行)；复合索引修复；版本号统一。</div>
-
-          <div class="bulletin__line">【v0.38.21】深度平衡：消除建筑双重缩放系数；workshop补充碎片产出；捕捉概率递减边际+稀有度差异化上限（common≤75%/rare≤92%/epic≤98%）；精灵球上限修复。</div>
-
-          <div class="bulletin__line">【v0.38.20】平衡优化：修复球果堆场/采石场无产量bug；优化精灵经验曲线；hyperGrowth1倍率×2.5；孵蛋时间缩短；星级★5 +150%；PVE复刷奖励+50%；区域解锁门槛降低。</div>
-
-          <div class="bulletin__line">【v0.38.19】架构优化：app.js加入SECTION注释；新增modules/systems/纯函数模块；新增.cursor/rules协作规范。</div>
+          <details class="bulletin__eng">
+            <summary class="bulletin__engSummary">工程更新（开发笔记）</summary>
+            <div class="bulletin__line">【v0.39.3】门控优化：捕捉/社交可见；精灵球基础降门槛；社交 Tab 永隐修复。</div>
+            <div class="bulletin__line">【v0.39.1】后端重建：Pages Functions + D1 schema v2（曾清库）。</div>
+          </details>
 
         </div>
 
@@ -126,7 +124,7 @@
 
           <button class="tab" data-tab="functions" role="tab" aria-selected="false">功能</button>
 
-          <button class="tab" data-tab="future" role="tab" aria-selected="false">未来商店</button>
+          <button class="tab" data-tab="future" role="tab" aria-selected="false">任务</button>
 
           <button class="tab" data-tab="dex" role="tab" aria-selected="false">图鉴</button>
 
@@ -314,7 +312,20 @@
 
           <div class="panel" id="panel-future" role="tabpanel" hidden>
 
+            <div class="row futureShopIntro">
+              <div class="row__left">
+                <div class="row__title">任务与商店</div>
+                <div class="row__desc">完成每日任务领奖；下方用未来币购买增益与自动化（远征等产出未来币）。</div>
+              </div>
+              <div class="row__right">
+                <div class="badge" id="futureCoinBadge">未来币 —</div>
+              </div>
+            </div>
+
             <div id="dailyTasks" class="daily-tasks"></div>
+
+            <div class="sidebar__divider"></div>
+            <div class="panel__title">未来币商店</div>
 
             <div id="futureShop" class="list"></div>
 
@@ -1038,19 +1049,19 @@
 
 
 
-    <script src="./data/pokemon_zh.js?v=0.39.2" defer></script>
+    <script src="./data/pokemon_zh.js?v=0.39.3" defer></script>
 
-    <script src="./data/pokemon_tier.js?v=0.39.2" defer></script>
+    <script src="./data/pokemon_tier.js?v=0.39.3" defer></script>
 
-    <script src="./data/pokemon_catch_rate.js?v=0.39.2" defer></script>
+    <script src="./data/pokemon_catch_rate.js?v=0.39.3" defer></script>
 
-    <script src="./data/pokemon_evo.js?v=0.39.2" defer></script>
+    <script src="./data/pokemon_evo.js?v=0.39.3" defer></script>
 
-    <script src="./data/pokemon_evo_req.js?v=0.39.2" defer></script>
+    <script src="./data/pokemon_evo_req.js?v=0.39.3" defer></script>
 
-    <script src="./data/pokemon_types.js?v=0.39.2" defer></script>
+    <script src="./data/pokemon_types.js?v=0.39.3" defer></script>
 
-    <script type="module" src="./main.js?v=0.39.2"></script>
+    <script type="module" src="./main.js?v=0.39.3"></script>
 
     <script>
 
@@ -1060,7 +1071,7 @@
 
         window.addEventListener('load', function() {
 
-          navigator.serviceWorker.register('./sw.js?v=0.39.2', { updateViaCache: 'none' });
+          navigator.serviceWorker.register('./sw.js?v=0.39.3', { updateViaCache: 'none' });
 
         });
 

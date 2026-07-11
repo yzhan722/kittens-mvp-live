@@ -89,8 +89,38 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     if (!panelSocial) return;
 
     // 初始化社交面板HTML
+    const cloudTok = (() => {
+      try {
+        return localStorage.getItem("kittens_mvp_cloud_token_v1") || "";
+      } catch {
+        return "";
+      }
+    })();
+    const needCloud = !cloudTok;
+
     panelSocial.innerHTML = `
       <div class="social-container">
+        ${
+          needCloud
+            ? `<div class="row social-cta">
+          <div class="row__left">
+            <div class="row__title">先登录云存档</div>
+            <div class="row__desc">好友、消息与跨设备进度需要云账号。点下方前往设置注册/登录。</div>
+          </div>
+          <div class="row__right">
+            <button type="button" class="btn btn--primary btn--small" data-social-goto-options>前往设置</button>
+          </div>
+        </div>`
+            : ""
+        }
+        <div class="social-section">
+          <h3>好友</h3>
+          <div class="row">
+            <div class="row__left">
+              <div class="row__desc">在下方查看动态与消息；添加好友后可发起对战。</div>
+            </div>
+          </div>
+        </div>
         <div class="social-section">
           <h3>PVP 对战</h3>
           <div id="pvpInvites"></div>
@@ -127,6 +157,12 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
         </div>
       </div>
     `;
+
+    panelSocial.querySelector("[data-social-goto-options]")?.addEventListener("click", () => {
+      try {
+        document.querySelector('.tab[data-tab="options"]')?.click();
+      } catch {}
+    });
 
     // 加载好友列表到下拉框
     loadFriendsList();

@@ -1,4 +1,4 @@
-export function createRenderHelp({ elHelp, ui, escapeHtml }) {
+﻿export function createRenderHelp({ elHelp, ui, escapeHtml }) {
   return function renderHelp() {
     if (!elHelp) return;
     if (ui.activeTab !== "help") return;
@@ -12,7 +12,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
     const h = (t) => `<strong>${t}</strong>`;
     const br = '<br/>';
     const gap = '<div style="margin-top:8px"></div>';
-    const tip = (t) => `<div class="muted" style="font-size:11px;margin-top:6px">💡 ${t}</div>`;
+    const tip = (t) => `<div class="muted" style="font-size:11px;margin-top:6px">提示：${t}</div>`;
 
     const rows = [];
 
@@ -20,23 +20,23 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       <div class="row">
         <div class="row__left">
           <div class="row__title">帮助文档</div>
-          <div class="row__desc muted">版本 v0.39.2 · 点击各节标题展开详情</div>
+          <div class="row__desc muted">版本 v0.39.3 · 点击各节标题展开详情</div>
         </div>
       </div>
     `);
 
-    rows.push(block("🚀 快速开始", `
+    rows.push(block("快速开始", `
       <div style="line-height:1.9">
         <b>① 营地（篝火）</b>：点【采集】获取树果 → 尽快研究${h('精灵球基础')}（完成赠送精灵球×5）→ 去捕捉${br}
         <b>② 扩产</b>：建造${h('树果田')}和${h('球果营地')}，资源自动产出后再研究扩产科技${br}
-        <b>③ 捕捉</b>：有球就抓精灵，组建队伍；图鉴有记录后开放未来商店等玩法${br}
-        <b>④ 功能</b>：训练精灵提升等级，送精灵远征赚未来币${br}
+        <b>③ 捕捉</b>：有球就抓精灵，组建队伍；图鉴有记录后开放「任务」页玩法${br}
+        <b>④ 功能</b>：训练精灵提升等级，送精灵远征赚未来币（入口在「更多」）${br}
         <b>⑤ 循环</b>：用未来币购买全服Buff → 资源更多 → 建筑更强 → 继续收集
       </div>
       ${tip('精灵球不够？建球果营地产球果，或研究「精灵球容量」科技。')}
     `, true));
 
-    rows.push(block("🔥 营地（篝火页）", `
+    rows.push(block("营地（篝火页）", `
       <div style="line-height:1.8">
         ${h('采集按钮')}：最多储存 1000 次，每 10 秒回充 1 次。点击消耗次数换取资源。${br}
         ${h('建筑系统')}：建造后自动产出资源，每级提升产量/上限，费用随等级增长。
@@ -44,10 +44,10 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       ${gap}
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <tr style="opacity:0.6"><td>建筑</td><td>主要效果</td></tr>
-        <tr><td>🌿 树果田</td><td>每秒产出树果（基础资源）</td></tr>
-        <tr><td>🏕️ 球果营地</td><td>产出球果，提升精灵球上限</td></tr>
-        <tr><td>⚒️ 工坊</td><td>解锁并加速精灵球制作</td></tr>
-        <tr><td>🏋️ 训练场</td><td>每级 +1 训练槽，上限 10 只</td></tr>
+        <tr><td>树果田</td><td>每秒产出树果（基础资源）</td></tr>
+        <tr><td>球果营地</td><td>产出球果，提升精灵球上限</td></tr>
+        <tr><td>工坊</td><td>解锁并加速精灵球制作</td></tr>
+        <tr><td>训练场</td><td>每级 +1 训练槽，上限 10 只</td></tr>
         <tr><td>🥚 饲养屋</td><td>解锁生蛋，支持孵化</td></tr>
         <tr><td>🗺️ 远征所</td><td>解锁远征，完成任务获经验+未来币</td></tr>
         <tr><td>💎 碎片矿场</td><td>持续产出进化石碎片</td></tr>
@@ -55,7 +55,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       ${tip('资源不够用？先升级树果田和球果营地，再研究提升上限的科技。')}
     `));
 
-    rows.push(block("🔬 研究（科技页）", `
+    rows.push(block("研究（科技页）", `
       <div style="line-height:1.8">
         ${h('前置条件')}：部分科技需要先完成其他科技或建造特定建筑。灰色=未解锁，蓝色=可研究。${br}
         ${h('研究进度')}：每次只能研究一项，显示进度条和剩余时间。${br}
@@ -65,7 +65,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       ${tip('有多余资源时可以点击「优先研究成本低」排序，效率更高。')}
     `));
 
-    rows.push(block("🎣 捕捉系统", `
+    rows.push(block("捕捉系统", `
       <div style="line-height:1.8">
         ${h('稀有度')}：普通(80%) · 少见(15%) · 稀有(4%) · 史诗(1%)${br}
         ${h('闪光精灵')}：极小概率，出现时有全屏特效提示${br}
@@ -87,7 +87,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       ${tip('龙系精灵技能可临时提升捕获率，抓神兽前先用！')}
     `));
 
-    rows.push(block("⭐ 精灵培育", `
+    rows.push(block("精灵培育", `
       <div style="line-height:1.9">
         ${h('训练')}：放入训练场自动升级。训练场等级 = 同时训练数量（最多10只）。${br}
         ${h('生蛋')}：选两只精灵放入饲养屋，亲密度越高越快生蛋，火系技能可加速。${br}
@@ -98,7 +98,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       ${tip('远征是最稳定的未来币来源，建议全天候保持远征队在线。')}
     `));
 
-    rows.push(block("✨ 精灵技能一览", `
+    rows.push(block("精灵技能一览", `
       <div class="muted" style="margin-bottom:8px">技能消耗饱腹度，低于阈值会失败。技能有冷却时间，部分技能有前置状态要求。</div>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         
@@ -120,7 +120,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       </table>
     `));
 
-    rows.push(block("💰 未来币与全服 Buff", `
+    rows.push(block("未来币与全服 Buff", `
       <div style='line-height:1.8'>
         <strong>未来币来源</strong>：远征完成、每日签到、林佬奖励<br/>
         <strong>用途</strong>：购买全服Buff（1币≈1分钟），兑换道具
@@ -134,10 +134,10 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
         <tr><td>全服捕获率</td><td>+5% 捕获成功率</td></tr>
         <tr><td>全服亲密度</td><td>+5% 亲密度增长</td></tr>
       </table>
-      <div class='muted' style='font-size:11px;margin-top:6px'>💡 全服Buff全服共享——你买了大家受益。</div>
+      <div class='muted' style='font-size:11px;margin-top:6px'>提示：全服Buff全服共享——你买了大家受益。</div>
     `));
 
-    rows.push(block("📅 每日签到", `
+    rows.push(block("每日签到", `
       <table style='width:100%;border-collapse:collapse;font-size:12px'>
         <tr style='opacity:0.6'><td>天数</td><td>奖励</td></tr>
         <tr><td>第1天</td><td>未来币x5 + 树果x500</td></tr>
@@ -148,29 +148,29 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
         <tr><td>第6天</td><td>未来币x20 + 进化能量x2</td></tr>
         <tr><td>第7天</td><td>未来币x50 + 进化石x1 + 稀有糖果x3</td></tr>
       </table>
-      <div class='muted' style='font-size:11px;margin-top:6px'>💡 每天登录即可签到，7天后重新循环。</div>
+      <div class='muted' style='font-size:11px;margin-top:6px'>提示：每天登录即可签到，7天后重新循环。</div>
     `));
 
-    rows.push(block("📖 图鉴与排行榜", `
+    rows.push(block("图鉴与排行榜", `
       <div style='line-height:1.8'>
         <strong>图鉴加成</strong>：每登记一种新精灵，全局资源产量永久提升。<br/>
         <strong>排行榜</strong>：展示全服玩家精灵战斗力排名，需在设置页注册昵称才能上榜。<br/>
         <strong>筛选功能</strong>：图鉴页支持按地区/属性/稀有度筛选。
       </div>
-      <div class='muted' style='font-size:11px;margin-top:6px'>💡 同种精灵重复收集不增加图鉴加成，但可用于进化和远征。</div>
+      <div class='muted' style='font-size:11px;margin-top:6px'>提示：同种精灵重复收集不增加图鉴加成，但可用于进化和远征。</div>
     `));
 
-    rows.push(block("☁️ 云存档与设置", `
+    rows.push(block("云存档与设置", `
       <div style='line-height:1.8'>
         <strong>注册账号</strong>：在设置页输入用户名/密码注册。<br/>
         <strong>立即同步</strong>：点击按钮手动上传当前存档到云端。<br/>
         <strong>自动同步</strong>：游戏每30秒自动同步一次。<br/>
         <strong>换设备</strong>：登录同一账号后点立即同步拉取云端存档。
       </div>
-      <div class='muted' style='font-size:11px;margin-top:6px'>💡 换设备前务必手动同步一次，避免进度丢失。</div>
+      <div class='muted' style='font-size:11px;margin-top:6px'>提示：换设备前务必手动同步一次，避免进度丢失。</div>
     `));
 
-    rows.push(block("❓ 常见问题", `
+    rows.push(block("常见问题", `
       <div style='line-height:1.9'>
         <b>Q: 按钮点了没反应？</b><br/>
         A: 检查：①资源是否足够 ②是否在冷却中 ③前置条件是否满足<br/>

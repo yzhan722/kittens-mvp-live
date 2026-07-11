@@ -384,6 +384,73 @@ body {
   text-shadow: 0 0 12px rgba(250, 204, 21, 0.30);
 }
 
+.tab--more.is-open {
+  color: rgba(255, 255, 255, 0.92);
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.main {
+  position: relative;
+}
+
+.tabsMoreMenu {
+  position: absolute;
+  z-index: 40;
+  left: 10px;
+  margin-top: 4px;
+  min-width: 140px;
+  max-width: min(240px, 90vw);
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #121826;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tabsMoreMenu__item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.tabsMoreMenu__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bulletin__eng {
+  margin-top: 6px;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.bulletin__engSummary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.futureShopIntro {
+  margin-bottom: 8px;
+}
+
+.social-cta {
+  margin-bottom: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(250, 204, 21, 0.06);
+}
+
 .panels {
   padding: 12px;
 }

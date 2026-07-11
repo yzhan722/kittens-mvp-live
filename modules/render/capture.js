@@ -69,18 +69,41 @@ export function createRenderCapture({
     }
 
     const unique = dexCaughtUnique();
-    const lockTips = areas
-      .filter((a) => !a.unlocked)
-      .map((a) => {
-        const need = a.unlockReq;
-        const pct = Math.min(1, unique / need);
-        const filled = Math.round(pct * 10);
-        const bar = "█".repeat(filled) + "░".repeat(10 - filled);
-        const nearUnlock = pct >= 0.9 && pct < 1;
-        const suffix = nearUnlock ? " ★即将解锁！" : "";
-        return `- ${a.name}\n  [${bar}] ${unique}/${need}${suffix}`;
-      })
-      .join("\n");
+    const lockedAreas = areas.filter((a) => !a.unlocked);
+    const nextArea = lockedAreas.slice().sort((a, b) => a.unlockReq - b.unlockReq)[0] || null;
+    const restLocked = lockedAreas.filter((a) => nextArea && a.id !== nextArea.id);
+    const fmtLock = (a) => {
+      const need = a.unlockReq;
+      const pct = Math.min(1, unique / need);
+      const filled = Math.round(pct * 10);
+      const bar = "█".repeat(filled) + "░".repeat(10 - filled);
+      const nearUnlock = pct >= 0.9 && pct < 1;
+      const suffix = nearUnlock ? " · 即将解锁" : "";
+      return `${a.name}  [${bar}] ${unique}/${need}${suffix}`;
+    };
+    const showAllLocked = Boolean(ui.captureShowAllLocked);
+    let lockHtml = "";
+    if (nextArea) {
+      lockHtml = `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">下一区域</div>
+            <div class="row__desc">${escapeHtml(fmtLock(nextArea))}</div>
+            ${
+              restLocked.length
+                ? `<button type="button" class="btn btn--ghost btn--small" data-capture-locked-toggle>${
+                    showAllLocked ? "收起其他地区" : `展开其他 ${restLocked.length} 个地区`
+                  }</button>`
+                : ""
+            }
+            ${
+              showAllLocked && restLocked.length
+                ? `<pre class="pre">${escapeHtml(restLocked.map(fmtLock).join("\n"))}</pre>`
+                : ""
+            }
+          </div>
+        </div>`;
+    }
 
     elCaptureInfo.innerHTML = `
       <div class="row">
@@ -98,7 +121,7 @@ export function createRenderCapture({
         </div>
       </div>
       ${preview && !previewHiddenEffective ? `<div class="row"><div class="row__left"><div class="row__title">本区域预览</div></div><div class="row__right" style="justify-content:flex-start;flex:1 1 auto;width:100%;"><div class="iconGrid iconGrid--full">${preview}</div></div></div>` : ""}
-      ${lockTips ? `<div class="row"><div class="row__left"><div class="row__title">未解锁区域</div><div class="row__desc"><pre class="pre">${escapeHtml(lockTips)}</pre></div></div></div>` : ""}
+      ${lockHtml}
     `;
 
     const rows = [];

@@ -1,11 +1,11 @@
 ﻿import { legacyIdMap, pokemon, getPokemonTier } from "./modules/pokemon_defs.js";
-import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.39.2";
-import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.39.2";
-import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.39.2";
-import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.39.2";
-import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.39.2";
+import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.39.3";
+import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.39.3";
+import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.39.3";
+import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.39.3";
+import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.39.3";
 import { createPokeApiClient } from "./modules/pokeapi_client.js";
-import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.39.2";
+import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.39.3";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js";
@@ -13,29 +13,29 @@ import { clampStar, getStarBonusMul, getStarUpgradeNeed, renderStars } from "./m
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
-import { createTick } from "./modules/tick.js?v=0.39.2";
-import { createRenderResources } from "./modules/render/resources.js?v=0.39.2";
-import { createRenderLog } from "./modules/render/log.js?v=0.39.2";
-import { createRenderBuildings } from "./modules/render/buildings.js?v=0.39.2";
-import { createRenderTech } from "./modules/render/tech.js?v=0.39.2";
-import { createRenderCapture } from "./modules/render/capture.js?v=0.39.2";
-import { createRenderMons } from "./modules/render/mons.js?v=0.39.2";
-import { createRenderDex } from "./modules/render/dex.js?v=0.39.2";
-import { createRenderFutureShop } from "./modules/render/future.js?v=0.39.2";
-import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.39.2";
+import { createTick } from "./modules/tick.js?v=0.39.3";
+import { createRenderResources } from "./modules/render/resources.js?v=0.39.3";
+import { createRenderLog } from "./modules/render/log.js?v=0.39.3";
+import { createRenderBuildings } from "./modules/render/buildings.js?v=0.39.3";
+import { createRenderTech } from "./modules/render/tech.js?v=0.39.3";
+import { createRenderCapture } from "./modules/render/capture.js?v=0.39.3";
+import { createRenderMons } from "./modules/render/mons.js?v=0.39.3";
+import { createRenderDex } from "./modules/render/dex.js?v=0.39.3";
+import { createRenderFutureShop } from "./modules/render/future.js?v=0.39.3";
+import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.39.3";
 import { createDailySignin } from "./modules/daily_signin.js";
 import { createMonthlyCard } from "./modules/monthly_card.js";
 import { createDailyTasks } from "./modules/daily_tasks.js";
-import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.39.2";
-import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.39.2";
-import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.39.2";
-import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.39.2";
-import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.39.2";
-import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.39.2";
-import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.39.2";
-import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.39.2";
+import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.39.3";
+import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.39.3";
+import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.39.3";
+import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.39.3";
+import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.39.3";
+import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.39.3";
+import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.39.3";
+import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.39.3";
 import { createItemUsage } from "./modules/item_usage.js";
-import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.39.2";
+import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.39.3";
 import { createRenderDailyTasks } from "./modules/render/daily_tasks.js";
 import { createRenderFunctions, initFunctionsTab } from "./modules/tabs/functions_tab.js";
 import { getExpLevelDef } from "./modules/expedition_defs.js";
@@ -69,8 +69,8 @@ import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
 import { createSocialSystem } from "./modules/social.js";
 import { createRenderSocial } from "./modules/render/social.js";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js";
-import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.39.2";
-import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.39.2";
+import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.39.3";
+import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.39.3";
 import {
   SERVER_BUFF_KEYS,
   SERVER_BUFF_BUY_MAX_MINUTES,
@@ -80,7 +80,7 @@ import {
   serverBuffMul as serverBuffMul0,
   serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
   serverBuffEffectText as serverBuffEffectText0,
-} from "./modules/systems/server_buffs.js?v=0.39.2";
+} from "./modules/systems/server_buffs.js?v=0.39.3";
 import { createSocialTab } from "./modules/tabs/social_tab.js";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
@@ -1108,6 +1108,13 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
 
   function activateTab(name) {
     tabController.activateTab(name);
+  }
+
+  // Initial chrome before first render tick
+  try {
+    document.querySelectorAll(".tab[data-tab]").forEach((t) => t.setAttribute("data-unlocked", "1"));
+    tabController.refreshTabChrome();
+  } catch {
   }
 
   renderHelp = createRenderHelp({
@@ -2931,16 +2938,13 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         const pokeballUnlocked = Boolean(state.unlocks?.pokeball);
         const hasMons = (state.mons?.list?.length ?? 0) > 0;
         const tabRules = {
-          // Always show capture so guide + lock copy can steer new players
           capture:     true,
-          // Show team tabs once balls unlock (empty state) or once you have mons
           mons:        pokeballUnlocked || hasMons,
           functions:   pokeballUnlocked || hasMons,
           items:       pokeballUnlocked || hasMons,
           pve:         unique >= 5,
           dex:         true,
           future:      unique >= 1,
-          // cloudUid was never written — social was permanently hidden; always show
           social:      true,
           leaderboard: true,
           science:     true,
@@ -2951,8 +2955,11 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         document.querySelectorAll(".tab[data-tab]").forEach((tabEl) => {
           const tabName = tabEl.getAttribute("data-tab");
           const visible = tabRules[tabName] !== false;
-          tabEl.style.display = visible ? "" : "none";
+          tabEl.setAttribute("data-unlocked", visible ? "1" : "0");
         });
+        if (typeof tabController?.refreshTabChrome === "function") {
+          tabController.refreshTabChrome();
+        }
       })();
       if (ui.bonfireDirty) renderBonfireActions();
       if (ui.activeTab === "bonfire") renderBuildings();

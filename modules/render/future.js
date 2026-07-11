@@ -5,6 +5,12 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
     if (ui.activeTab !== "future") return;
     if (!ui.futureDirty) return;
 
+    const badge = document.getElementById("futureCoinBadge");
+    if (badge) {
+      const fc = Math.max(0, Math.floor(state.res?.futurecoin?.value ?? 0));
+      badge.textContent = `未来币 ${typeof fmt === "function" ? fmt(fc) : fc}`;
+    }
+
     const fmtRemain = (sec) => {
       const s = Math.max(0, Math.ceil(typeof sec === "number" && Number.isFinite(sec) ? sec : 0));
       const hh = Math.floor(s / 3600);

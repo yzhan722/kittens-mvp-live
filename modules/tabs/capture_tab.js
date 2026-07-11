@@ -34,6 +34,13 @@ export function initCaptureTab({
 
   if (elCaptureInfo) {
     elCaptureInfo.addEventListener("click", (ev) => {
+      const lockedToggle = ev.target?.closest?.("button[data-capture-locked-toggle]");
+      if (lockedToggle && elCaptureInfo.contains(lockedToggle)) {
+        ui.captureShowAllLocked = !Boolean(ui.captureShowAllLocked);
+        markCaptureDirty();
+        render();
+        return;
+      }
       const btn = ev.target?.closest?.("button[data-capture-preview-toggle]");
       if (!btn || !elCaptureInfo.contains(btn)) return;
       ui.capturePreviewHidden = !Boolean(ui.capturePreviewHidden);
