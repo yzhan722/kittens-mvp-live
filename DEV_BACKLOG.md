@@ -1,6 +1,6 @@
-# Dev Backlog — PVP QA Sprint E
+# Dev Backlog — Design Sprint F
 
-> 队列空 · v0.39.7 · 2026-07-11
+> 队列空 · v0.39.8 · 2026-07-11
 
 ---
 
@@ -14,10 +14,15 @@
 
 | ID | 摘要 |
 |----|------|
-| QA-010 | health/pvp-invites 200；社交 Tab 空态可见 |
-| QA-011 | 修选队 `mon.hp`；归一化战报字段；空队/超时除零；selfcheck |
-| QA-012 | v0.39.7 deploy+push；双开实战仍需两账号好友（阻因） |
+| DES-001 | tokens + focus-visible + reduced-motion |
+| DES-002 | 顶栏资源筹码统一；采集琥珀/就绪青绿 |
+| DES-003 | Tab 底指示条 |
+| DES-004 | 行卡/徽章节奏；日志空态 |
+| DES-005 | 移动端日志高度与主舞台优先 |
+| DES-006 | DESIGN.md + v0.39.8 ship |
 
-## 阻因 / 下轮
+## 下轮可选
 
-- 双浏览器邀请→接受：需要两套已互加好友的云账号，本轮无凭据未跑通端到端
+- 建筑进度条对比度  
+- 分类标题视觉锚点  
+- PVP 双账号 E2E
