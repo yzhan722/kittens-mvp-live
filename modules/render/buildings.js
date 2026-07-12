@@ -48,7 +48,7 @@ export function createRenderBuildings({ elBuildings, defs, canAfford, getBuildin
           <div class="row__right">
             <div class="badge ${isMax ? "badge--muted" : ok ? "badge--ok" : ""}">拥有：${owned}${isMax ? " / 满级" : ""}</div>
             <div class="badge">${isMax ? "已满级" : `花费：${costText}`}</div>
-            <button class="btn btn--primary btn--small" data-buy="${bid}" ${ok ? "" : "disabled"}>${isMax ? "已满级" : "建造"}</button>
+            <button class="btn btn--primary btn--small" data-buy="${bid}" aria-label="${isMax ? `${bdef.name} 已满级` : `建造 ${bdef.name}`}" ${ok ? "" : "disabled"}>${isMax ? "已满级" : "建造"}</button>
           </div>
         </div>
       `);

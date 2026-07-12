@@ -21,7 +21,7 @@
 
     <meta http-equiv="Expires" content="0" />
 
-    <title>宝可梦放置冒险 v0.39.9</title>
+    <title>宝可梦放置冒险 v0.39.10</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,18 +29,20 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Rajdhani:wght@600;700&display=swap" />
 
-    <link rel="stylesheet" href="./styles.css?v=0.39.9" />
+    <link rel="stylesheet" href="./styles.css?v=0.39.10" />
 
   </head>
 
   <body>
+
+    <a class="skip-link" href="#mainStage">跳到主要内容</a>
 
     <div id="ticker" class="ticker" aria-live="polite"></div>
 
     <header class="topbar">
       <div class="brand">
         <div class="brand__title">宝可梦放置冒险</div>
-        <div class="brand__subtitle" id="topbarStatus">v0.39.9 · 挂机冒险</div>
+        <div class="brand__subtitle" id="topbarStatus">v0.39.10 · 挂机冒险</div>
       </div>
       <div class="topbar__res" aria-label="资源">
         <button id="btnGather" class="btn btn--primary btn--small">采集</button>
@@ -65,9 +67,10 @@
             <div class="bulletin__line">【玩法】升星需等级+亲密度门槛，并消耗更多同进化系材料；满星偏后期。</div>
             <div class="bulletin__line">【玩法】树果等核心资源与采集按钮已移到顶栏，侧栏专注日志。</div>
             <div class="bulletin__line">【玩法】PVP 选队已对齐精灵真实属性；可在社交页选择队伍后应战/邀请。</div>
-            <div class="bulletin__line">【玩法】建筑分类有琥珀标题线；等级条更清晰，满级变青绿。</div>
+            <div class="bulletin__line">【玩法】无障碍：可跳到主内容；Tab 与面板已关联；建造按钮带建筑名。</div>
             <details class="bulletin__eng">
               <summary class="bulletin__engSummary">工程更新（开发笔记）</summary>
+              <div class="bulletin__line">【v0.39.10】A11y：skip-link、tab/panel 关联、建造 aria-label、云登录 sr-only label。</div>
               <div class="bulletin__line">【v0.39.9】建筑等级条直出 + 分类锚点；移除损坏的 DOM inject。</div>
               <div class="bulletin__line">【v0.39.8】Design Sprint F：DESIGN.md + CTA/Tab/筹码/焦点环/空日志。</div>
               <div class="bulletin__line">【v0.39.7】修 PVP 选队（误用 mon.hp）；战斗空队/超时除零；selfcheck 覆盖模拟战。</div>
@@ -95,35 +98,35 @@
 
 
 
-      <section class="main">
+      <section class="main" id="mainStage">
 
-        <div class="tabs" role="tablist" aria-label="Game Tabs">
+        <div class="tabs" role="tablist" aria-label="主界面">
 
-          <button class="tab is-active" data-tab="bonfire" role="tab" aria-selected="true">篝火</button>
+          <button class="tab is-active" id="tab-bonfire" data-tab="bonfire" role="tab" aria-selected="true" aria-controls="panel-bonfire">篝火</button>
 
-          <button class="tab" data-tab="science" role="tab" aria-selected="false">研究</button>
+          <button class="tab" id="tab-science" data-tab="science" role="tab" aria-selected="false" aria-controls="panel-science">研究</button>
 
-          <button class="tab" data-tab="capture" role="tab" aria-selected="false">捕捉</button>
+          <button class="tab" id="tab-capture" data-tab="capture" role="tab" aria-selected="false" aria-controls="panel-capture">捕捉</button>
 
-          <button class="tab" data-tab="mons" role="tab" aria-selected="false">精灵</button>
+          <button class="tab" id="tab-mons" data-tab="mons" role="tab" aria-selected="false" aria-controls="panel-mons">精灵</button>
 
-          <button class="tab" data-tab="functions" role="tab" aria-selected="false">功能</button>
+          <button class="tab" id="tab-functions" data-tab="functions" role="tab" aria-selected="false" aria-controls="panel-functions">功能</button>
 
-          <button class="tab" data-tab="future" role="tab" aria-selected="false">任务</button>
+          <button class="tab" id="tab-future" data-tab="future" role="tab" aria-selected="false" aria-controls="panel-future">任务</button>
 
-          <button class="tab" data-tab="dex" role="tab" aria-selected="false">图鉴</button>
+          <button class="tab" id="tab-dex" data-tab="dex" role="tab" aria-selected="false" aria-controls="panel-dex">图鉴</button>
 
-          <button class="tab" data-tab="pve" role="tab" aria-selected="false">挑战</button>
+          <button class="tab" id="tab-pve" data-tab="pve" role="tab" aria-selected="false" aria-controls="panel-pve">挑战</button>
 
-          <button class="tab" data-tab="items" role="tab" aria-selected="false">道具</button>
+          <button class="tab" id="tab-items" data-tab="items" role="tab" aria-selected="false" aria-controls="panel-items">道具</button>
 
-          <button class="tab" data-tab="social" role="tab" aria-selected="false">社交</button>
+          <button class="tab" id="tab-social" data-tab="social" role="tab" aria-selected="false" aria-controls="panel-social">社交</button>
 
-          <button class="tab" data-tab="help" role="tab" aria-selected="false">帮助</button>
+          <button class="tab" id="tab-help" data-tab="help" role="tab" aria-selected="false" aria-controls="panel-help">帮助</button>
 
-          <button class="tab" data-tab="options" role="tab" aria-selected="false">设置</button>
+          <button class="tab" id="tab-options" data-tab="options" role="tab" aria-selected="false" aria-controls="panel-options">设置</button>
 
-          <button class="tab" data-tab="leaderboard" role="tab" aria-selected="false">排行榜</button>
+          <button class="tab" id="tab-leaderboard" data-tab="leaderboard" role="tab" aria-selected="false" aria-controls="panel-leaderboard">排行榜</button>
 
         </div>
 
@@ -131,7 +134,7 @@
 
         <div class="panels">
 
-          <div class="panel is-active" id="panel-bonfire" role="tabpanel">
+          <div class="panel is-active" id="panel-bonfire" role="tabpanel" aria-labelledby="tab-bonfire">
 
             <div id="bonfireActions" class="list"></div>
 
@@ -141,7 +144,7 @@
 
 
 
-          <div class="panel" id="panel-science" role="tabpanel" hidden>
+          <div class="panel" id="panel-science" role="tabpanel" aria-labelledby="tab-science" hidden>
 
             <div class="actions">
 
@@ -171,7 +174,7 @@
 
 
 
-          <div class="panel" id="panel-capture" role="tabpanel" hidden>
+          <div class="panel" id="panel-capture" role="tabpanel" aria-labelledby="tab-capture" hidden>
 
             <div class="actions">
 
@@ -189,7 +192,7 @@
 
 
 
-          <div class="panel" id="panel-mons" role="tabpanel" hidden>
+          <div class="panel" id="panel-mons" role="tabpanel" aria-labelledby="tab-mons" hidden>
 
             <div class="actions">
 
@@ -287,7 +290,7 @@
 
 
 
-          <div class="panel" id="panel-functions" role="tabpanel" hidden>
+          <div class="panel" id="panel-functions" role="tabpanel" aria-labelledby="tab-functions" hidden>
 
             <div class="list" id="functionsTraining"></div>
 
@@ -295,7 +298,7 @@
 
 
 
-          <div class="panel" id="panel-future" role="tabpanel" hidden>
+          <div class="panel" id="panel-future" role="tabpanel" aria-labelledby="tab-future" hidden>
 
             <div class="row futureShopIntro">
               <div class="row__left">
@@ -318,7 +321,7 @@
 
 
 
-          <div class="panel" id="panel-dex" role="tabpanel" hidden>
+          <div class="panel" id="panel-dex" role="tabpanel" aria-labelledby="tab-dex" hidden>
 
             <div class="actions">
 
@@ -360,7 +363,7 @@
 
 
 
-          <div class="panel" id="panel-pve" role="tabpanel" hidden>
+          <div class="panel" id="panel-pve" role="tabpanel" aria-labelledby="tab-pve" hidden>
 
             <div id="pveList" class="list"></div>
 
@@ -368,7 +371,7 @@
 
 
 
-          <div class="panel" id="panel-items" role="tabpanel" hidden>
+          <div class="panel" id="panel-items" role="tabpanel" aria-labelledby="tab-items" hidden>
 
             <div id="items" class="list"></div>
 
@@ -376,7 +379,7 @@
 
 
 
-          <div class="panel" id="panel-social" role="tabpanel" hidden>
+          <div class="panel" id="panel-social" role="tabpanel" aria-labelledby="tab-social" hidden>
 
             <!-- 社交功能由 social_tab.js 渲染 -->
 
@@ -384,7 +387,7 @@
 
 
 
-          <div class="panel" id="panel-help" role="tabpanel" hidden>
+          <div class="panel" id="panel-help" role="tabpanel" aria-labelledby="tab-help" hidden>
 
             <div id="help" class="list"></div>
 
@@ -392,7 +395,7 @@
 
 
 
-          <div class="panel" id="panel-options" role="tabpanel" hidden>
+          <div class="panel" id="panel-options" role="tabpanel" aria-labelledby="tab-options" hidden>
 
             <div class="sidebar__divider"></div>
 
@@ -402,9 +405,9 @@
 
             <div class="actions">
 
-              <input class="input" id="cloudUsername" placeholder="用户名" autocomplete="username" />
+              <label class="sr-only" for="cloudUsername">用户名</label><input class="input" id="cloudUsername" placeholder="用户名" autocomplete="username" />
 
-              <input class="input" id="cloudPassword" placeholder="密码" type="password" autocomplete="current-password" />
+              <label class="sr-only" for="cloudPassword">密码</label><input class="input" id="cloudPassword" placeholder="密码" type="password" autocomplete="current-password" />
 
               <button class="btn btn--small" id="btnCloudLogin">登录</button>
 
@@ -440,7 +443,7 @@
 
 
 
-          <div class="panel" id="panel-leaderboard" role="tabpanel" hidden>
+          <div class="panel" id="panel-leaderboard" role="tabpanel" aria-labelledby="tab-leaderboard" hidden>
 
             <div class="list" id="leaderboard"></div>
 
@@ -944,19 +947,19 @@
 
 
 
-    <script src="./data/pokemon_zh.js?v=0.39.9" defer></script>
+    <script src="./data/pokemon_zh.js?v=0.39.10" defer></script>
 
-    <script src="./data/pokemon_tier.js?v=0.39.9" defer></script>
+    <script src="./data/pokemon_tier.js?v=0.39.10" defer></script>
 
-    <script src="./data/pokemon_catch_rate.js?v=0.39.9" defer></script>
+    <script src="./data/pokemon_catch_rate.js?v=0.39.10" defer></script>
 
-    <script src="./data/pokemon_evo.js?v=0.39.9" defer></script>
+    <script src="./data/pokemon_evo.js?v=0.39.10" defer></script>
 
-    <script src="./data/pokemon_evo_req.js?v=0.39.9" defer></script>
+    <script src="./data/pokemon_evo_req.js?v=0.39.10" defer></script>
 
-    <script src="./data/pokemon_types.js?v=0.39.9" defer></script>
+    <script src="./data/pokemon_types.js?v=0.39.10" defer></script>
 
-    <script type="module" src="./main.js?v=0.39.9"></script>
+    <script type="module" src="./main.js?v=0.39.10"></script>
 
     <script>
 
@@ -966,7 +969,7 @@
 
         window.addEventListener('load', function() {
 
-          navigator.serviceWorker.register('./sw.js?v=0.39.9', { updateViaCache: 'none' });
+          navigator.serviceWorker.register('./sw.js?v=0.39.10', { updateViaCache: 'none' });
 
         });
 

@@ -1,41 +1,41 @@
 import { legacyIdMap, pokemon, getPokemonTier } from "./modules/pokemon_defs.js";
-import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.39.9";
-import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.39.9";
-import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.39.9";
-import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.39.9";
-import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.39.9";
+import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.39.10";
+import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.39.10";
+import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.39.10";
+import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.39.10";
+import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.39.10";
 import { createPokeApiClient } from "./modules/pokeapi_client.js";
-import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.39.9";
+import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.39.10";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js";
-import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.39.9";
+import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.39.10";
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
-import { createTick } from "./modules/tick.js?v=0.39.9";
-import { createRenderResources } from "./modules/render/resources.js?v=0.39.9";
-import { createRenderLog } from "./modules/render/log.js?v=0.39.9";
-import { createRenderBuildings } from "./modules/render/buildings.js?v=0.39.9";
-import { createRenderTech } from "./modules/render/tech.js?v=0.39.9";
-import { createRenderCapture } from "./modules/render/capture.js?v=0.39.9";
-import { createRenderMons } from "./modules/render/mons.js?v=0.39.9";
-import { createRenderDex } from "./modules/render/dex.js?v=0.39.9";
-import { createRenderFutureShop } from "./modules/render/future.js?v=0.39.9";
-import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.39.9";
+import { createTick } from "./modules/tick.js?v=0.39.10";
+import { createRenderResources } from "./modules/render/resources.js?v=0.39.10";
+import { createRenderLog } from "./modules/render/log.js?v=0.39.10";
+import { createRenderBuildings } from "./modules/render/buildings.js?v=0.39.10";
+import { createRenderTech } from "./modules/render/tech.js?v=0.39.10";
+import { createRenderCapture } from "./modules/render/capture.js?v=0.39.10";
+import { createRenderMons } from "./modules/render/mons.js?v=0.39.10";
+import { createRenderDex } from "./modules/render/dex.js?v=0.39.10";
+import { createRenderFutureShop } from "./modules/render/future.js?v=0.39.10";
+import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.39.10";
 import { createDailySignin } from "./modules/daily_signin.js";
 import { createMonthlyCard } from "./modules/monthly_card.js";
 import { createDailyTasks } from "./modules/daily_tasks.js";
-import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.39.9";
-import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.39.9";
-import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.39.9";
-import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.39.9";
-import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.39.9";
-import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.39.9";
-import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.39.9";
-import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.39.9";
+import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.39.10";
+import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.39.10";
+import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.39.10";
+import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.39.10";
+import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.39.10";
+import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.39.10";
+import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.39.10";
+import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.39.10";
 import { createItemUsage } from "./modules/item_usage.js";
-import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.39.9";
+import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.39.10";
 import { createRenderDailyTasks } from "./modules/render/daily_tasks.js";
 import { createRenderFunctions, initFunctionsTab } from "./modules/tabs/functions_tab.js";
 import { getExpLevelDef } from "./modules/expedition_defs.js";
@@ -69,8 +69,8 @@ import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
 import { createSocialSystem } from "./modules/social.js";
 import { createRenderSocial } from "./modules/render/social.js";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js";
-import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.39.9";
-import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.39.9";
+import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.39.10";
+import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.39.10";
 import {
   SERVER_BUFF_KEYS,
   SERVER_BUFF_BUY_MAX_MINUTES,
@@ -80,7 +80,7 @@ import {
   serverBuffMul as serverBuffMul0,
   serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
   serverBuffEffectText as serverBuffEffectText0,
-} from "./modules/systems/server_buffs.js?v=0.39.9";
+} from "./modules/systems/server_buffs.js?v=0.39.10";
 import { createSocialTab } from "./modules/tabs/social_tab.js";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";

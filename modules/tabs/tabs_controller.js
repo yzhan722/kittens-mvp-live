@@ -24,6 +24,7 @@ export function createTabController({
     moreBtn.setAttribute("data-tab-more", "1");
     moreBtn.setAttribute("aria-haspopup", "true");
     moreBtn.setAttribute("aria-expanded", "false");
+    moreBtn.setAttribute("aria-controls", "tabsMoreMenu");
     moreBtn.textContent = "更多";
     elTabs.appendChild(moreBtn);
 
@@ -31,6 +32,8 @@ export function createTabController({
     moreMenu.id = "tabsMoreMenu";
     moreMenu.className = "tabsMoreMenu";
     moreMenu.hidden = true;
+    moreMenu.setAttribute("role", "menu");
+    moreMenu.setAttribute("aria-label", "更多功能");
     elTabs.insertAdjacentElement("afterend", moreMenu);
 
     moreBtn.addEventListener("click", (e) => {
@@ -129,12 +132,18 @@ export function createTabController({
       const isActive = t.getAttribute("data-tab") === name;
       t.classList.toggle("is-active", isActive);
       t.setAttribute("aria-selected", isActive ? "true" : "false");
+      t.tabIndex = isActive ? 0 : -1;
+      const controls = t.getAttribute("aria-controls") || `panel-${t.getAttribute("data-tab")}`;
+      if (!t.id) t.id = `tab-${t.getAttribute("data-tab")}`;
+      if (!t.getAttribute("aria-controls")) t.setAttribute("aria-controls", controls);
     });
 
     elPanels.querySelectorAll(".panel").forEach((p) => {
       const isActive = p.id === `panel-${name}`;
       p.classList.toggle("is-active", isActive);
       p.toggleAttribute("hidden", !isActive);
+      const tabId = p.id?.replace(/^panel-/, "tab-");
+      if (tabId && !p.getAttribute("aria-labelledby")) p.setAttribute("aria-labelledby", tabId);
     });
 
     if (name === "dex") renderDex();
