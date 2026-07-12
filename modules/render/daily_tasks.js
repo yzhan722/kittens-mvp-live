@@ -1,5 +1,5 @@
 // 每日任务渲染模块
-export function createRenderDailyTasks({ elDailyTasks, ui, fmt }) {
+export function createRenderDailyTasks({ elDailyTasks, fmt, dailyTasks }) {
   let currentTasksState = null;
 
   function render(tasksState) {
@@ -60,40 +60,23 @@ export function createRenderDailyTasks({ elDailyTasks, ui, fmt }) {
     // 绑定领取按钮事件
     const claimBtn = elDailyTasks.querySelector("#dailyTasksClaim");
     if (claimBtn) {
-      claimBtn.onclick = async () => {
+      claimBtn.onclick = () => {
         if (!canClaim) return;
-        try {
-          const res = await ui.fetch("/api/daily_tasks/claim", { method: "POST" });
-          if (res.ok) {
-            render(await getTasksState());
-          } else if (res.error === "ALREADY_CLAIMED") {
-            alert("已经领取过今天的任务奖励了");
-          } else {
-            alert("领取失败");
-          }
-        } catch (e) {
-          console.error(e);
-          alert("领取失败：" + e.message);
-        }
+        const res = dailyTasks.claimRewards();
+        if (res.ok) render(dailyTasks.getTasksState());
+        else if (res.error === "ALREADY_CLAIMED") alert("已经领取过今天的任务奖励了");
+        else alert("领取失败");
       };
     }
   }
 
-  // 获取任务状态（调用 API）
-  async function getTasksState() {
-    try {
-      const res = await ui.fetch("/api/daily_tasks", { method: "GET" });
-      return res;
-    } catch (e) {
-      console.error("Failed to load tasks:", e);
-      return null;
-    }
+  function getTasksState() {
+    return dailyTasks.getTasksState();
   }
 
   // 刷新任务状态
-  async function refresh() {
-    const state = await getTasksState();
-    if (state) render(state);
+  function refresh() {
+    render(getTasksState());
   }
 
   return { render, refresh, getTasksState };

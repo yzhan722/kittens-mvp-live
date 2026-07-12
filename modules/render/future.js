@@ -272,7 +272,7 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
     boostRows.push(`
       <div class="row">
         <div class="row__left">
-          <div class="row__title">双倍经验（限时）</div>
+          <div class="row__title">经验加成（全局双倍，限时）</div>
           <div class="row__desc">价格：${expBoostPrice1} 未来币/1小时 · ${expBoostPrice10} 未来币/10小时</div>
           <div class="row__desc">生效期：所有精灵获得双倍经验。可叠加累积时长。</div>
           <div class="row__desc">剩余时间：${expBoostRem > 0 ? fmtRemain(expBoostRem) : "无"}</div>
@@ -527,13 +527,12 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
     // 特殊功能道具
     const shinyCharmPrice = 100000;
     const canBuyShinyCharm = (state.res.futurecoin?.value ?? 0) >= shinyCharmPrice;
-    const hasShinyCharm = (state.res.shinyCharm?.value ?? 0) > 0;
     itemRows.push(`
       <div class="row">
         <div class="row__left">
           <div class="row__title">闪耀护符</div>
           <div class="row__desc">价格：${shinyCharmPrice} 未来币/个</div>
-          <div class="row__desc">效果：持有时闪光精灵出现率 x2（可叠加）</div>
+          <div class="row__desc">效果：使用后消耗1个，闪光精灵出现率 x2（持续24小时）</div>
         </div>
         <div class="row__right">
           <div class="badge">当前：${fmt(state.res.shinyCharm?.value ?? 0)}</div>
@@ -549,7 +548,7 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
         <div class="row__left">
           <div class="row__title">幸运蛋</div>
           <div class="row__desc">价格：${luckyEggPrice} 未来币/个</div>
-          <div class="row__desc">效果：使用后精灵获得经验 x1.5（持续1小时）</div>
+          <div class="row__desc">效果：对指定精灵使用，1小时经验 x1.5（与上方「全局双倍」可叠加）</div>
         </div>
         <div class="row__right">
           <div class="badge">当前：${fmt(state.res.luckyEgg?.value ?? 0)}</div>
@@ -685,6 +684,23 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
         </div>
         <div class="row__right">
           <button class="btn btn--primary" data-fc-perm="encPlusMax" data-fc-price="${permEncPlusPrice}" ${canUpPermEncPlus ? "" : "disabled"}>${permEncPlusLvl >= 20 ? "已满级" : "升级"}</button>
+        </div>
+      </div>
+    `);
+
+    // 合成进化石
+    const bigBerryCost = 50;
+    const canCraftBigBerry = (state.res.catnip?.value ?? 0) >= bigBerryCost;
+    craftRows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">制作大树果</div>
+          <div class="row__desc">消耗：树果 x${bigBerryCost} → 大树果 x1（立即完成）</div>
+        </div>
+        <div class="row__right">
+          <div class="badge">当前树果：${fmt(state.res.catnip?.value ?? 0)}</div>
+          <div class="badge">当前大树果：${fmt(state.res.bigBerry?.value ?? 0)}</div>
+          <button class="btn btn--primary" data-craft="bigBerry" ${canCraftBigBerry ? "" : "disabled"}>制作</button>
         </div>
       </div>
     `);

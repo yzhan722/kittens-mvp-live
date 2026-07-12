@@ -33,6 +33,7 @@ export function initMonsTab({
   lbFetchJson,
   lbBaseUrl,
   onBossBullyMaybeReward,
+  onEvolve,
 }) {
   if (elMonRegion) {
     elMonRegion.value = ui.monRegion;
@@ -108,6 +109,11 @@ export function initMonsTab({
         "ice",
         "fairy",
         "dragon",
+        "poison",
+        "flying",
+        "psychic",
+        "rock",
+        "dark",
       ]);
 
       const monId = Number(skillBtn.getAttribute("data-mon-skill-mon"));
@@ -780,9 +786,13 @@ export function initMonsTab({
           m.statBonus = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
         }
 
-        state.res[rid].value = Math.max(0, have - 1);
         const cur = typeof m.statBonus[key] === "number" && Number.isFinite(m.statBonus[key]) ? m.statBonus[key] : 0;
-        m.statBonus[key] = cur + 5;
+        if (cur >= 50) {
+          addLog(`药剂强化失败：${m.name} ${key.toUpperCase()} 已达到上限 +50`, true);
+          return;
+        }
+        state.res[rid].value = Math.max(0, have - 1);
+        m.statBonus[key] = Math.min(50, cur + 5);
         addLog(`药剂强化：${m.name} ${key.toUpperCase()} +5（累计 +${m.statBonus[key]}）`, true);
         markMonsDirty();
         render();
@@ -858,6 +868,7 @@ export function initMonsTab({
 
         const ok = evolveMon(m, toPid);
         if (ok) {
+          if (typeof onEvolve === "function") onEvolve();
           addLog(`进化成功：变为 ${m.name}`, true);
           if (typeof pushTickerEvent === "function") pushTickerEvent("evolve", `进化成功 ${beforeName} → ${m.name}`);
           ui.dexDirty = true;

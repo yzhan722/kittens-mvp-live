@@ -10,6 +10,8 @@ import { BUILDING_DEFS } from "./defs_buildings.js";
 
 import { EXTRA_TECH_FLAGS } from "./tech_defs.js?v=0.31.4";
 
+import { ensureEra } from "./systems/era.js";
+
 
 
 export const BASE_TECH_FLAGS = {
@@ -155,6 +157,8 @@ export const defaultState = () => ({
   shinyCount: 0,
 
   catchCount: 0,
+
+  era: null,
 
   resourceProduced: 0,
 
@@ -375,6 +379,7 @@ export const defaultState = () => ({
     autoExchangeLevel: 0,
 
     autoExchangeCarrySec: 0,
+    autoFeedBigBerry: false,
 
     autoCraft: {
 
@@ -390,6 +395,7 @@ export const defaultState = () => ({
 
   },
   expBoostRemainingSec: 0,
+  shinyCharmRemainingSec: 0,
   captureBoostRemainingSec: 0,
   prodBoostRemainingSec: 0,
   permanentBoosts: {
@@ -788,6 +794,9 @@ export function loadFromRaw(raw) {
   if (typeof data.expBoostRemainingSec === "number" && Number.isFinite(data.expBoostRemainingSec)) {
     s.expBoostRemainingSec = Math.max(0, data.expBoostRemainingSec);
   }
+  if (typeof data.shinyCharmRemainingSec === "number" && Number.isFinite(data.shinyCharmRemainingSec)) {
+    s.shinyCharmRemainingSec = Math.max(0, data.shinyCharmRemainingSec);
+  }
 
   if (typeof data.captureBoostRemainingSec === "number" && Number.isFinite(data.captureBoostRemainingSec)) {
     s.captureBoostRemainingSec = Math.max(0, data.captureBoostRemainingSec);
@@ -985,6 +994,7 @@ export function loadFromRaw(raw) {
     autoExchangeLevel: 0,
 
     autoExchangeCarrySec: 0,
+    autoFeedBigBerry: false,
 
     autoCraft: {
 
@@ -1029,6 +1039,7 @@ export function loadFromRaw(raw) {
       s.auto.autoExchangeCarrySec = Math.max(0, data.auto.autoExchangeCarrySec);
 
     }
+    if (typeof data.auto.autoFeedBigBerry === "boolean") s.auto.autoFeedBigBerry = data.auto.autoFeedBigBerry;
 
     const ac = data.auto.autoCraft;
 
@@ -1798,6 +1809,16 @@ export function loadFromRaw(raw) {
     }
 
   }
+
+
+
+  if (data.era && typeof data.era === "object") {
+
+    s.era = data.era;
+
+  }
+
+  ensureEra(s);
 
 
 

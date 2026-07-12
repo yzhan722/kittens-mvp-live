@@ -11,9 +11,9 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
       luxuryball: "捕获后亲密度 +20",
       masterball: "用于捕捉精灵（必定成功）",
       futurecoin: "用于未来币商店兑换/升级",
-      evolutionStone: "用于进化（消耗 x1）",
-      megaStone: "用于MEGA进化",
-      linkRope: "用于通信进化",
+      evolutionStone: "用于进化页的石之进化（消耗 x1）",
+      megaStone: "超级觉醒：1小时内 PvE 能力+20%",
+      linkRope: "用于精灵页的通信进化（消耗 x1）",
       rareCandy: "喂食精灵 +1Lv",
       bigBerry: "使用：全体精灵饱腹度 +50",
       hugeBerry: "使用：获得 24 小时巨大树果加成",
@@ -22,21 +22,29 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
       expCandyXL: "使用：精灵获得 20000 经验",
       affectionTreat: "使用：精灵亲密度 +5",
       friendshipBracelet: "使用：精灵亲密度直接达到 100",
-      shinyCharm: "持有：闪光率 x2（可叠加）",
-      luckyEgg: "使用：精灵获得1小时经验加成（1.5倍）",
+      shinyCharm: "使用：消耗1个，闪光率 x2（24小时）",
+      luckyEgg: "使用：指定精灵 1小时经验 x1.5（与商店全局双倍可叠加）",
       bottleCap: "使用：精灵单项个体值提升至31",
       goldBottleCap: "使用：精灵所有个体值提升至31（6V）",
-      hpPotion: "使用：HP 永久 +5",
-      atkPotion: "使用：攻击 永久 +5",
-      defPotion: "使用：防御 永久 +5",
-      spaPotion: "使用：特攻 永久 +5",
-      spdPotion: "使用：特防 永久 +5",
-      spePotion: "使用：速度 永久 +5",
+      hpPotion: "使用：HP 永久 +5（单项上限 +50）",
+      atkPotion: "使用：攻击 永久 +5（单项上限 +50）",
+      defPotion: "使用：防御 永久 +5（单项上限 +50）",
+      spaPotion: "使用：特攻 永久 +5（单项上限 +50）",
+      spdPotion: "使用：特防 永久 +5（单项上限 +50）",
+      spePotion: "使用：速度 永久 +5（单项上限 +50）",
     };
 
     if (!elItems.dataset.itemsInited) {
       elItems.dataset.itemsInited = "1";
       elItems.addEventListener("click", (ev) => {
+        const autoFeedChk = ev.target?.closest?.("input[data-auto-feed-big-berry]");
+        if (autoFeedChk && elItems.contains(autoFeedChk)) {
+          if (!state.auto || typeof state.auto !== "object") state.auto = {};
+          state.auto.autoFeedBigBerry = Boolean(autoFeedChk.checked);
+          render();
+          return;
+        }
+
         // 使用道具按钮
         const useBtn = ev.target?.closest?.("button[data-item-use]");
         if (useBtn && elItems.contains(useBtn)) {
@@ -74,11 +82,18 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
             return;
           }
 
+          if (rid === "shinyCharm") {
+            const result = itemUsage.useShinyCharm();
+            if (!result.success) alert(result.message);
+            render();
+            return;
+          }
+
           // 需要选择精灵的道具
           const needMonSelection = [
             "expCandy", "expCandyL", "expCandyXL",
             "affectionTreat", "friendshipBracelet",
-            "luckyEgg", "bottleCap", "goldBottleCap"
+            "luckyEgg", "bottleCap", "goldBottleCap", "megaStone"
           ];
 
           if (needMonSelection.includes(rid)) {
@@ -138,6 +153,8 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
             result = itemUsage.useLuckyEgg(monId);
           } else if (["bottleCap", "goldBottleCap"].includes(itemType)) {
             result = itemUsage.useBottleCap(monId, itemType, ui.itemUseStatType);
+          } else if (itemType === "megaStone") {
+            result = itemUsage.useMegaStone(monId);
           }
 
           if (result.success) {
@@ -202,21 +219,27 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
     };
 
     for (const { rid, category } of items) {
-      const v = state.res?.[rid]?.value ?? 0;
-      if (typeof v === "number" && Number.isFinite(v) && v > 0) {
-        if (categories[category]) {
-          categories[category].push(rid);
-        }
+      if (categories[category]) {
+        categories[category].push(rid);
       }
     }
 
     const renderCategory = (catName, rids) => {
-      if (rids.length === 0) return "";
       const rows = rids.map((rid) => {
         const def = defs.resources[rid];
         const r = state.res?.[rid];
         const name = def?.name ?? rid;
-        const effect = typeof effectTextByRid[rid] === "string" ? effectTextByRid[rid] : "";
+        const ctaByCategory = {
+          "捕捉": "获取：前往捕捉页制作或购买。",
+          "货币": "获取：前往商店兑换。",
+          "进化": "获取：前往商店合成。",
+          "培养": "获取：前往商店购买。",
+          "消耗品": "获取：前往远征或商店。",
+          "特殊": "获取：前往商店购买。",
+          "药剂": "获取：前往远征。",
+        };
+        const effect0 = typeof effectTextByRid[rid] === "string" ? effectTextByRid[rid] : "";
+        const effect = Number(r?.value ?? 0) > 0 ? effect0 : `${effect0} · ${ctaByCategory[catName] ?? ""}`;
         const val = r ? fmtInt(r.value ?? 0) : "0";
         const explicitNoCap = Boolean(def?.noCap);
         const capN = r && typeof r.cap === "number" ? r.cap : def?.baseCap;
@@ -227,9 +250,9 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
         const needMonSelection = [
           "expCandy", "expCandyL", "expCandyXL",
           "affectionTreat", "friendshipBracelet",
-          "luckyEgg", "bottleCap", "goldBottleCap"
+          "luckyEgg", "bottleCap", "goldBottleCap", "megaStone"
         ];
-        const simpleUse = ["bigBerry", "hugeBerry"];
+        const simpleUse = ["bigBerry", "hugeBerry", "shinyCharm"];
         const canUse = (r?.value ?? 0) >= 1;
         const showUseBtn = simpleUse.includes(rid) || needMonSelection.includes(rid);
         const useBtn = showUseBtn
@@ -250,6 +273,9 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
         `;
       }).join("");
 
+      const autoFeedRow = catName === "消耗品"
+        ? `<div class="row"><div class="row__left"><div class="row__title">自动喂食大树果</div><div class="row__desc"><input class="chk" type="checkbox" data-auto-feed-big-berry ${Boolean(state.auto?.autoFeedBigBerry) ? "checked" : ""} /> 任一精灵饱腹度低于 30 时，消耗1个大树果为全体 +50</div></div></div>`
+        : "";
       return `
         <div class="row">
           <div class="row__left">
@@ -257,10 +283,17 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
           </div>
         </div>
         ${rows}
+        ${autoFeedRow}
       `;
     };
 
-    let html = "";
+    const fmtRemain = (sec) => {
+      const s = Math.max(0, Math.ceil(Number.isFinite(sec) ? sec : 0));
+      return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+    };
+    const globalExpRem = state.expBoostRemainingSec ?? 0;
+    const shinyCharmRem = state.shinyCharmRemainingSec ?? 0;
+    let html = `<div class="row"><div class="row__left"><div class="row__title">道具状态</div><div class="row__desc">全局双倍经验：${globalExpRem > 0 ? fmtRemain(globalExpRem) : "未激活"}${shinyCharmRem > 0 ? ` · 闪耀护符：${fmtRemain(shinyCharmRem)}` : ""}</div></div></div>`;
     for (const [catName, rids] of Object.entries(categories)) {
       html += renderCategory(catName, rids);
     }
@@ -277,13 +310,14 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
         luckyEgg: "幸运蛋",
         bottleCap: "银色王冠",
         goldBottleCap: "金色王冠",
+        megaStone: "MEGA进化石",
       };
       const itemName = itemNames[itemType] || itemType;
 
       // 获取精灵列表
       const monList = state.mons?.list ?? [];
       const monsHtml = monList.map(m => {
-        const selected = ui.itemUseSelectedMon === m.id;
+        const selected = Number(ui.itemUseSelectedMon) === Number(m.id);
         return `
           <button class="btn ${selected ? "btn--primary" : "btn--ghost"} btn--small" data-select-mon="${m.id}">
             ${m.name} Lv.${m.lvl}
@@ -294,8 +328,8 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
       // 如果是银色王冠，显示属性选择
       let statSelectHtml = "";
       if (itemType === "bottleCap" && ui.itemUseSelectedMon) {
-        const mon = monList.find(m => m.id === ui.itemUseSelectedMon);
-        if (mon && mon.ivs) {
+        const mon = monList.find(m => Number(m.id) === Number(ui.itemUseSelectedMon));
+        if (mon && mon.iv) {
           const statNames = {
             hp: "HP",
             atk: "攻击",
@@ -311,7 +345,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
               </div>
               <div class="row__right">
                 ${Object.entries(statNames).map(([key, name]) => {
-                  const iv = mon.ivs[key] || 0;
+                  const iv = mon.iv[key] || 0;
                   const selected = ui.itemUseStatType === key;
                   const maxed = iv >= 31;
                   return `

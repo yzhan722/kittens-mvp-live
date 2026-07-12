@@ -1,5 +1,6 @@
 import { clamp, randFloat } from "./utils.js";
 import { runAutomation } from "./automation.js?v=0.31.4";
+import { eraEncounterRechargeMul } from "./systems/era.js";
 
 export function createTick(ctx) {
   const ui = ctx.ui;
@@ -19,6 +20,7 @@ export function createTick(ctx) {
   const pay = ctx.pay;
   const getPokeballMakeCost = ctx.getPokeballMakeCost;
   const getState = ctx.getState;
+  const onResearchComplete = ctx.onResearchComplete;
 
   // Cached monById/aliveSet — only rebuilt when mons list changes
   let __cachedMonById = null;
@@ -265,6 +267,16 @@ export function createTick(ctx) {
     return out;
   };
 
+  const applyPsychicCraftBoost = (state, sec) => {
+    const charges0 =
+      typeof state.skills?.psychicCraftBoostCharges === "number" && Number.isFinite(state.skills.psychicCraftBoostCharges)
+        ? Math.max(0, Math.floor(state.skills.psychicCraftBoostCharges))
+        : 0;
+    if (charges0 <= 0) return sec;
+    state.skills.psychicCraftBoostCharges = charges0 - 1;
+    return Math.max(1, Math.ceil(sec * 0.8));
+  };
+
   return function tick(dtSec, opts = null) {
     const offline = Boolean(opts && typeof opts === "object" && opts.offline);
     const state = getState();
@@ -361,13 +373,19 @@ export function createTick(ctx) {
     }
     const expBoostOn = expBoost1 > 0;
 
+    const shinyCharm0 =
+      typeof state.shinyCharmRemainingSec === "number" && Number.isFinite(state.shinyCharmRemainingSec) ? state.shinyCharmRemainingSec : 0;
+    const shinyCharm1 = shinyCharm0 > 0 ? Math.max(0, shinyCharm0 - dtSec) : 0;
+    if (shinyCharm0 !== shinyCharm1) state.shinyCharmRemainingSec = shinyCharm1;
+
     const encPlusCharges0 =
       typeof state.encounterPlusCharges === "number" && Number.isFinite(state.encounterPlusCharges) ? state.encounterPlusCharges : 1;
     const encPlusCd0 =
       typeof state.encounterPlusCdSec === "number" && Number.isFinite(state.encounterPlusCdSec) ? state.encounterPlusCdSec : 0;
     const encPlusMaxBonus = typeof state.permanentBoosts?.encPlusMax === "number" ? Math.max(0, Math.min(20, Math.floor(state.permanentBoosts.encPlusMax))) : 0;
     const maxCharges = 10 + encPlusMaxBonus;
-    const rechargeSec = 600;
+    const eraRechargeMul = eraEncounterRechargeMul(state);
+    const rechargeSec = 600 * eraRechargeMul;
 
     let encPlusCharges1 = Math.max(0, Math.min(maxCharges, Math.floor(encPlusCharges0)));
     let encPlusCd1 = Math.max(0, encPlusCd0);
@@ -456,7 +474,7 @@ export function createTick(ctx) {
     const encCharges0 = typeof state.encounterCharges === "number" && Number.isFinite(state.encounterCharges) ? state.encounterCharges : 100;
     const encCd0 = typeof state.encounterCdSec === "number" && Number.isFinite(state.encounterCdSec) ? state.encounterCdSec : 0;
     const encMax = 100;
-    const encRechargeSec = 60;
+    const encRechargeSec = 60 * eraRechargeMul;
     let encCharges1 = Math.max(0, Math.min(encMax, Math.floor(encCharges0)));
     let encCd1 = Math.max(0, encCd0);
 
@@ -507,6 +525,7 @@ export function createTick(ctx) {
         if (tdef && !state.tech[tid]) {
           state.tech[tid] = true;
           addLog(`研究完成：${tdef.name}`);
+          if (typeof onResearchComplete === "function") onResearchComplete(tid);
           // Starter balls granted in computeDerived via meta.starterBallsGranted
           tryAutoResearch();
         }
@@ -561,7 +580,8 @@ export function createTick(ctx) {
               return !(t && typeof t === "object" && typeof t.remainingSec === "number" && t.remainingSec > 0);
             };
             const startTask = (k, totalSec) => {
-              craftObj[k] = { remainingSec: totalSec, totalSec };
+              const boostedSec = applyPsychicCraftBoost(state, totalSec);
+              craftObj[k] = { remainingSec: boostedSec, totalSec: boostedSec };
               if (ui && ui.activeTab === "future") ui.futureDirty = true;
             };
 
@@ -736,6 +756,18 @@ export function createTick(ctx) {
     }
 
     const mons = Array.isArray(state.mons?.list) ? state.mons.list : [];
+    if (
+      Boolean(state.auto?.autoFeedBigBerry) &&
+      (state.res.bigBerry?.value ?? 0) >= 1 &&
+      mons.some((m) => m && typeof m === "object" && (typeof m.satiety === "number" ? m.satiety : 100) < 30)
+    ) {
+      state.res.bigBerry.value = Math.max(0, state.res.bigBerry.value - 1);
+      for (const m of mons) {
+        if (!m || typeof m !== "object") continue;
+        const sat0 = clamp(typeof m.satiety === "number" && Number.isFinite(m.satiety) ? m.satiety : 100, 0, 100);
+        m.satiety = clamp(sat0 + 50, 0, 100);
+      }
+    }
     let monById = null;
     let aliveSet = null;
     if (mons.length > 0) {
@@ -801,6 +833,14 @@ export function createTick(ctx) {
             m.skillActiveRemainingSec = 0;
             skillTimerChanged = true;
           }
+        }
+
+        const mega0 =
+          typeof m.megaAuraRemainingSec === "number" && Number.isFinite(m.megaAuraRemainingSec) ? m.megaAuraRemainingSec : 0;
+        const mega1 = mega0 > 0 ? Math.max(0, mega0 - dtSec) : 0;
+        if (mega1 !== mega0) {
+          m.megaAuraRemainingSec = mega1;
+          skillTimerChanged = true;
         }
 
         const isTraining = trainingSet ? trainingSet.has(m.id) : false;

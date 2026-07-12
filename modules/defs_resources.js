@@ -55,16 +55,8 @@ export const RESOURCE_DEFS = {
     name: "高级球",
     baseCap: 999,
   },
-  greatball: {
-    name: "超级球",
-    baseCap: 999,
-  },
   quickball: {
     name: "先机球",
-    baseCap: 999,
-  },
-  timerball: {
-    name: "时间球",
     baseCap: 999,
   },
   luxuryball: {
@@ -119,16 +111,8 @@ export const RESOURCE_DEFS = {
     name: "闪耀护符",
     baseCap: 99,
   },
-  ovalCharm: {
-    name: "圆形护符",
-    baseCap: 99,
-  },
   luckyEgg: {
     name: "幸运蛋",
-    baseCap: 99,
-  },
-  abilityCapsule: {
-    name: "特性胶囊",
     baseCap: 99,
   },
   bottleCap: {

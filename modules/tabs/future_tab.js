@@ -1,5 +1,15 @@
-export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog, render, dailySignin, monthlyCard }) {
+export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog, render, dailySignin, monthlyCard, dailyTasks }) {
   if (!elFutureShop) return;
+
+  const applyPsychicCraftBoost = (state, sec) => {
+    const charges0 =
+      typeof state.skills?.psychicCraftBoostCharges === "number" && Number.isFinite(state.skills.psychicCraftBoostCharges)
+        ? Math.max(0, Math.floor(state.skills.psychicCraftBoostCharges))
+        : 0;
+    if (charges0 <= 0) return sec;
+    state.skills.psychicCraftBoostCharges = charges0 - 1;
+    return Math.max(1, Math.ceil(sec * 0.8));
+  };
 
   const FUTURE_SHOP_FOLD_KEY = "kittens_mvp_future_shop_fold_v1";
   if (!ui.futureShopFold || typeof ui.futureShopFold !== "object") {
@@ -393,6 +403,18 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       const craftType = craftBtn.getAttribute("data-craft");
       const state = getState();
 
+      if (craftType === "bigBerry") {
+        const cost = 50;
+        if ((state.res.catnip?.value ?? 0) < cost) return;
+        state.res.catnip.value = Math.max(0, state.res.catnip.value - cost);
+        addRes("bigBerry", 1);
+        dailyTasks?.onEvent("craft", { item: "bigBerry" });
+        addLog(`制作：树果 -${cost} → 大树果 +1`, true);
+        ui.futureDirty = true;
+        render();
+        return;
+      }
+
       if (!state.crafting || typeof state.crafting !== "object" || state.crafting.type) {
         state.crafting = {
           evolutionEnergy: null,
@@ -436,7 +458,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
             ? Math.max(0, Math.floor(state.evolutionStoneMade))
             : 0;
         const stoneCost = Math.min(10000, 500 + made0 * 10);
-        const stoneTime = 1800; // 30分钟
+        const stoneTime = applyPsychicCraftBoost(state, 1800); // 30分钟
         if ((state.res.minerals?.value ?? 0) < stoneCost) {
           addLog("合成失败：进化石碎片不足。", true);
           return;
@@ -454,7 +476,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
 
       if (craftType === "linkRope") {
         const ropeCostStone = 3;
-        const ropeTime = 3600; // 60分钟
+        const ropeTime = applyPsychicCraftBoost(state, 3600); // 60分钟
         if ((state.res.evolutionStone?.value ?? 0) < ropeCostStone) {
           addLog("合成失败：进化石不足。", true);
           return;
@@ -473,7 +495,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       if (craftType === "hugeBerry") {
         const hugeCostCatnip = 5000;
         const hugeCostBig = 30;
-        const hugeTime = 7200; // 2小时
+        const hugeTime = applyPsychicCraftBoost(state, 7200); // 2小时
         if ((state.res.catnip?.value ?? 0) < hugeCostCatnip) {
           addLog("合成失败：树果不足。", true);
           return;
@@ -496,7 +518,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
 
       if (craftType === "megaStone") {
         const megaCostStone = 10;
-        const megaTime = 7200; // 2小时
+        const megaTime = applyPsychicCraftBoost(state, 7200); // 2小时
         if ((state.res.evolutionStone?.value ?? 0) < megaCostStone) {
           addLog("合成失败：进化石不足。", true);
           return;
