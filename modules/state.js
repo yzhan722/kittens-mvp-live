@@ -92,7 +92,7 @@ export const defaultState = () => ({
 
   res: {
 
-    catnip: { value: 0, cap: 80 },
+    catnip: { value: 12, cap: 80 },
 
     wood: { value: 0, cap: 0 },
 
@@ -208,7 +208,7 @@ export const defaultState = () => ({
 
   buildings: {
 
-    field: { owned: 0 },
+    field: { owned: 1 },
 
     hut: { owned: 0 },
 

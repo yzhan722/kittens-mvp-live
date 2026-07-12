@@ -1,6 +1,6 @@
-# Dev Backlog — A11y follow-up
+# Dev Backlog — 前期留存数值 Sprint H
 
-> 队列空 · v0.39.10 · 2026-07-12
+> 队列空 · v0.40.0 · 2026-07-12
 
 ---
 
@@ -14,12 +14,7 @@
 
 | ID | 摘要 |
 |----|------|
-| A11Y-001 | skip-link → #mainStage |
-| A11Y-002 | Tab id + aria-controls / panel aria-labelledby + tabindex |
-| A11Y-003 | 建造按钮 aria-label（含建筑名） |
-| A11Y-004 | 云登录 sr-only label；更多菜单 aria-controls |
-| A11Y-005 | v0.39.10 ship |
-
-## 来源
-
-[a11y audit](f23160d0-1a61-480e-9217-303ea7744280) · focus/reduced-motion 已在 v0.39.8
+| BAL-001 | 研究时间 soft-cap + 分级保底 |
+| BAL-002 | 前期科技 timeSec/降本；树果田产量× |
+| BAL-003 | 起步田+树果；采集加量；未抓存档补齐 |
+| BAL-004 | v0.40.0 ship |

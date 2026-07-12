@@ -183,8 +183,13 @@ export function computeResearchTimeSec(tdef, state, ui) {
   const n50 = Math.min(50, n);
   const reduce = Math.min(0.9, 0.02 * n40 + 0.01 * Math.max(0, n50 - 40));
   const timeMul = typeof tdef?.timeMul === "number" && tdef.timeMul > 0 ? tdef.timeMul : 1;
-  const t = base * mul * (1 - reduce) * timeMul * sbTimeMul;
-  return clamp(Math.ceil(t), 60, Number.MAX_SAFE_INTEGER);
+  let t = base * mul * (1 - reduce) * timeMul * sbTimeMul;
+  // Soft-cap early research so cheap unlocks aren't a 1–3 minute sit
+  if (eq < 80) t = Math.min(t, 25);
+  else if (eq < 200) t = Math.min(t, 55);
+  else if (eq < 500) t = Math.min(t, 120);
+  const minT = eq < 80 ? 8 : eq < 200 ? 20 : eq < 500 ? 40 : 60;
+  return clamp(Math.ceil(t), minT, Number.MAX_SAFE_INTEGER);
 }
 
 /**

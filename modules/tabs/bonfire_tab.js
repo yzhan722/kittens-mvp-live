@@ -59,9 +59,10 @@ export function initBonfireTab({ elBonfireActions, elBtnGather, ui, getPokeballM
       const tierFast = Math.floor((clicks - 1) / 100);
       const tier = tierFast <= 9 ? tierFast : 9 + Math.floor((clicks - 1 - 9 * 100) / 1000);
 
-      const cat = Math.min(100, 1 + tier * 1);
-      const wood = Math.min(100, 0.5 + tier * 0.5);
-      const min = Math.min(100, 0.25 + tier * 0.25);
+      // Early clicks are fatter so the first research isn't a click marathon
+      const cat = Math.min(100, 3 + tier * 2);
+      const wood = Math.min(100, 1 + tier * 0.75);
+      const min = Math.min(100, 0.5 + tier * 0.35);
 
       const parts = [];
       addRes("catnip", cat);

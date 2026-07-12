@@ -5,6 +5,7 @@ import {
   computeDexEffects,
   getPokeballMakeCost,
   getResearchCost,
+  computeResearchTimeSec,
 } from "../modules/systems/effects.js";
 import {
   accumulateBuildingEffects,
@@ -151,6 +152,19 @@ assert(!meetsStarUpgradeGate({ lvl: 1, affection: 0, stars: 0 }, 0), "fresh catc
 assert(meetsStarUpgradeGate({ lvl: 5, affection: 10, stars: 0 }, 0), "gate met for ★1");
 assert(clampStar(9) === 5, "clamp star");
 assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
+
+// early research pacing: cheap tech should not sit on a 60s floor
+{
+  const cheap = { cost: { catnip: 20 } };
+  const tCheap = computeResearchTimeSec(cheap, { buildings: { researchLab: { owned: 0 } } }, {});
+  assert(tCheap >= 8 && tCheap <= 25, "cheap research soft-capped");
+  const forced = computeResearchTimeSec(
+    { cost: { catnip: 20 }, timeSec: 10 },
+    { buildings: { researchLab: { owned: 0 } } },
+    {}
+  );
+  assert(forced === 10, "forced timeSec");
+}
 
 import { createPvpBattle } from "../modules/pvp_battle.js";
 const pvp = createPvpBattle();

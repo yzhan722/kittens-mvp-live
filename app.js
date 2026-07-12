@@ -1,41 +1,41 @@
 import { legacyIdMap, pokemon, getPokemonTier } from "./modules/pokemon_defs.js";
-import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.39.10";
-import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.39.10";
-import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.39.10";
-import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.39.10";
-import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.39.10";
+import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.40.0";
+import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.40.0";
+import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.40.0";
+import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.40.0";
+import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.40.0";
 import { createPokeApiClient } from "./modules/pokeapi_client.js";
-import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.39.10";
+import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.40.0";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js";
-import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.39.10";
+import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.40.0";
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
-import { createTick } from "./modules/tick.js?v=0.39.10";
-import { createRenderResources } from "./modules/render/resources.js?v=0.39.10";
-import { createRenderLog } from "./modules/render/log.js?v=0.39.10";
-import { createRenderBuildings } from "./modules/render/buildings.js?v=0.39.10";
-import { createRenderTech } from "./modules/render/tech.js?v=0.39.10";
-import { createRenderCapture } from "./modules/render/capture.js?v=0.39.10";
-import { createRenderMons } from "./modules/render/mons.js?v=0.39.10";
-import { createRenderDex } from "./modules/render/dex.js?v=0.39.10";
-import { createRenderFutureShop } from "./modules/render/future.js?v=0.39.10";
-import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.39.10";
+import { createTick } from "./modules/tick.js?v=0.40.0";
+import { createRenderResources } from "./modules/render/resources.js?v=0.40.0";
+import { createRenderLog } from "./modules/render/log.js?v=0.40.0";
+import { createRenderBuildings } from "./modules/render/buildings.js?v=0.40.0";
+import { createRenderTech } from "./modules/render/tech.js?v=0.40.0";
+import { createRenderCapture } from "./modules/render/capture.js?v=0.40.0";
+import { createRenderMons } from "./modules/render/mons.js?v=0.40.0";
+import { createRenderDex } from "./modules/render/dex.js?v=0.40.0";
+import { createRenderFutureShop } from "./modules/render/future.js?v=0.40.0";
+import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.40.0";
 import { createDailySignin } from "./modules/daily_signin.js";
 import { createMonthlyCard } from "./modules/monthly_card.js";
 import { createDailyTasks } from "./modules/daily_tasks.js";
-import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.39.10";
-import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.39.10";
-import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.39.10";
-import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.39.10";
-import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.39.10";
-import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.39.10";
-import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.39.10";
-import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.39.10";
+import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.40.0";
+import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.40.0";
+import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.40.0";
+import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.40.0";
+import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.40.0";
+import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.40.0";
+import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.40.0";
+import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.40.0";
 import { createItemUsage } from "./modules/item_usage.js";
-import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.39.10";
+import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.40.0";
 import { createRenderDailyTasks } from "./modules/render/daily_tasks.js";
 import { createRenderFunctions, initFunctionsTab } from "./modules/tabs/functions_tab.js";
 import { getExpLevelDef } from "./modules/expedition_defs.js";
@@ -69,8 +69,8 @@ import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
 import { createSocialSystem } from "./modules/social.js";
 import { createRenderSocial } from "./modules/render/social.js";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js";
-import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.39.10";
-import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.39.10";
+import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.40.0";
+import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.40.0";
 import {
   SERVER_BUFF_KEYS,
   SERVER_BUFF_BUY_MAX_MINUTES,
@@ -80,7 +80,7 @@ import {
   serverBuffMul as serverBuffMul0,
   serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
   serverBuffEffectText as serverBuffEffectText0,
-} from "./modules/systems/server_buffs.js?v=0.39.10";
+} from "./modules/systems/server_buffs.js?v=0.40.0";
 import { createSocialTab } from "./modules/tabs/social_tab.js";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
@@ -172,9 +172,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       berryCultivation: {
         name: "树果培育",
         desc: "树果产量 +50%，树果上限 +25。",
-        cost: { catnip: 30 },
+        cost: { catnip: 20 },
         prereq: [],
         req: () => true,
+        timeSec: 10,
         effects: {
           catnipPerSecMul: 1.5,
           capCatnipAdd: 25,
@@ -183,9 +184,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       composting: {
         name: "堆肥技术",
         desc: "树果产量 +20%，树果上限 +30。",
-        cost: { catnip: 60 },
+        cost: { catnip: 45 },
         prereq: ["berryCultivation"],
         req: () => true,
+        timeSec: 15,
         effects: {
           catnipPerSecMul: 1.2,
           capCatnipAdd: 30,
@@ -194,9 +196,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       irrigation: {
         name: "灌溉改良",
         desc: "树果产量 +25%，树果上限 +40。",
-        cost: { catnip: 120 },
+        cost: { catnip: 100 },
         prereq: ["composting"],
-        req: (state) => state.buildings.field.owned >= 3,
+        req: (state) => state.buildings.field.owned >= 2,
+        timeSec: 25,
         effects: {
           catnipPerSecMul: 1.25,
           capCatnipAdd: 40,
@@ -205,9 +208,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       greenhouse: {
         name: "温室栽培",
         desc: "树果产量 +35%，树果上限 +80。",
-        cost: { catnip: 300, wood: 40 },
+        cost: { catnip: 240, wood: 30 },
         prereq: ["irrigation"],
-        req: (state) => state.buildings.hut.owned >= 2,
+        req: (state) => state.buildings.hut.owned >= 1,
+        timeSec: 40,
         effects: {
           catnipPerSecMul: 1.35,
           capCatnipAdd: 80,
@@ -216,9 +220,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       backpackWeaving: {
         name: "背包编织",
         desc: "树果上限 +60。",
-        cost: { catnip: 90 },
+        cost: { catnip: 70 },
         prereq: ["berryCultivation"],
         req: () => true,
+        timeSec: 12,
         effects: {
           capCatnipAdd: 60,
         },
@@ -226,9 +231,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       campLogistics: {
         name: "营地后勤",
         desc: "营地建筑成本 -3%，球果上限 +30。",
-        cost: { catnip: 140, wood: 10 },
+        cost: { catnip: 110, wood: 8 },
         prereq: ["backpackWeaving"],
         req: (state) => state.buildings.hut.owned > 0,
+        timeSec: 18,
         effects: {
           buildingCostMul: 0.97,
           capWoodAdd: 30,
@@ -237,9 +243,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       trainerDrills: {
         name: "训练家操练",
         desc: "树果/球果/碎片产量 +10%。",
-        cost: { catnip: 160 },
+        cost: { catnip: 130 },
         prereq: ["campLogistics"],
         req: () => true,
+        timeSec: 22,
         effects: {
           catnipPerSecMul: 1.1,
           woodRateMul: 1.1,
@@ -249,11 +256,11 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       pokeballBasics: {
         name: "精灵球基础",
         desc: "营地建筑成本 -5%，并解锁精灵球制作与捕捉。",
-        // After TECH researchCostMul(~2): ~40 catnip — reachable after a short gather burst
-        cost: { catnip: 20 },
+        // After TECH researchCostMul(~2): ~30 catnip — short gather burst
+        cost: { catnip: 15 },
         prereq: [],
         req: () => true,
-        timeSec: 5,
+        timeSec: 4,
         effects: {
           buildingCostMul: 0.95,
           catchChanceAdd: 0.02,
@@ -262,9 +269,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       ballMolds: {
         name: "球壳模具",
         desc: "捕捉成功率 +1%。",
-        cost: { catnip: 180, wood: 40 },
+        cost: { catnip: 140, wood: 30 },
         prereq: ["pokeballBasics"],
         req: (state) => state.buildings.hut.owned > 0,
+        timeSec: 18,
         effects: {
           catchChanceAdd: 0.01,
         },
@@ -2451,6 +2459,19 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     state.unlocks.wood = Boolean(eff.unlockWood);
     state.unlocks.minerals = Boolean(eff.unlockMinerals);
     state.unlocks.pokeball = Boolean(eff.unlockPokeball);
+
+    // Soft early-game boost for brand-new / pre-catch saves (one-time)
+    if (!state.meta || typeof state.meta !== "object") state.meta = {};
+    if (!state.meta.earlyPaceGranted && (state.catchCount || 0) === 0) {
+      state.meta.earlyPaceGranted = true;
+      if ((state.buildings?.field?.owned ?? 0) < 1) {
+        if (!state.buildings.field) state.buildings.field = { owned: 0 };
+        state.buildings.field.owned = 1;
+      }
+      if ((state.res.catnip?.value ?? 0) < 12) {
+        state.res.catnip.value = Math.max(Number(state.res.catnip.value) || 0, 12);
+      }
+    }
 
     // After caps applied: one-time starter pack so first catch isn't blocked by wood/hut farm.
     // (Previously granting inside tick lost balls when pokeball.cap was reset to 0 here.)

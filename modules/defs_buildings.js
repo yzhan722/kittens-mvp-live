@@ -10,7 +10,8 @@ export const BUILDING_DEFS = {
     effects: (state) => {
       const n = state.buildings.field.owned;
       return {
-        catnipPerSec: 0.0625 * n, // 原0.25 × 0.25
+        // 0.15 raw → ×0.5 finalize ≈ 0.075/s/田（原约 0.031）
+        catnipPerSec: 0.15 * n,
       };
     },
     visible: () => true,
@@ -29,7 +30,7 @@ export const BUILDING_DEFS = {
         capWoodAdd: 10 * n,       // 原40 × 0.25
       };
     },
-    visible: (state) => state.res.catnip.value >= 10 || state.buildings.hut.owned > 0,
+    visible: (state) => state.res.catnip.value >= 5 || state.buildings.hut.owned > 0,
   },
   workshop: {
     name: "碎片工坊",
