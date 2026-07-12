@@ -91,6 +91,8 @@ export function createRenderMons({
         if (region === "sinnoh") return m.dex >= 387 && m.dex <= 493;
         if (region === "unova") return m.dex >= 494 && m.dex <= 649;
         if (region === "kalos") return m.dex >= 650 && m.dex <= 721;
+        if (region === "alola") return m.dex >= 722 && m.dex <= 809;
+        if (region === "galar") return m.dex >= 810 && m.dex <= 905;
         return true;
       };
 

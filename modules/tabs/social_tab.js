@@ -51,6 +51,18 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     }
 
     const invites = await socialSystem.getPvpInvites();
+    if (invites === null && ui.lbUid) {
+      elPvpInvites.innerHTML = `
+        <div class="row is-locked">
+          <div class="row__left">
+            <div class="row__title">社交服务暂时不可用</div>
+            <div class="row__desc">社交服务暂时不可用（可继续离线游玩）</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     if (!invites || invites.length === 0) {
       elPvpInvites.innerHTML = `
         <div class="row">

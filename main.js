@@ -1,10 +1,11 @@
-﻿const BOOT_PANEL_ID = "bootStatus";
+const BOOT_PANEL_ID = "bootStatus";
 const MAX_RETRY = 5;
 const RELOAD_GUARD_KEY = "bootReloadCount";
 const VERSION_CHECK_KEY = "lastKnownVersion";
 const CURRENT_VERSION = "0.40.1";
 
-// 鐗堟湰妫€娴嬶細鐗堟湰鍙樺寲鏃舵竻缂撳瓨骞跺埛鏂?(function checkVersion() {
+// 版本检测：版本变化时清缓存并刷新
+(function checkVersion() {
   const lastVersion = localStorage.getItem(VERSION_CHECK_KEY);
   if (lastVersion && lastVersion !== CURRENT_VERSION) {
     localStorage.setItem(VERSION_CHECK_KEY, CURRENT_VERSION);
@@ -68,7 +69,7 @@ function renderBootPanel({ loading, detail, attempt }) {
 
   const row1 = document.createElement("div");
   row1.style.fontWeight = "700";
-  row1.textContent = loading ? "姝ｅ湪鍔犺浇娓告垙璧勬簮鈥? : "璧勬簮鍔犺浇閬囧埌闂锛屾鍦ㄨ嚜鍔ㄩ噸璇?;
+  row1.textContent = loading ? "正在加载游戏资源…" : "资源加载遇到问题，正在自动重试";
   el.appendChild(row1);
 
   if (!loading && typeof attempt === "number") {
@@ -76,7 +77,7 @@ function renderBootPanel({ loading, detail, attempt }) {
     rowAttempt.style.opacity = "0.75";
     rowAttempt.style.marginTop = "4px";
     rowAttempt.style.fontSize = "12px";
-    rowAttempt.textContent = `绗?${attempt + 1} / ${MAX_RETRY} 娆″皾璇昤;
+    rowAttempt.textContent = `第 ${attempt + 1} / ${MAX_RETRY} 次尝试`;
     el.appendChild(rowAttempt);
   }
 
@@ -90,13 +91,14 @@ function renderBootPanel({ loading, detail, attempt }) {
     el.appendChild(row2);
   }
 
-  // 鍙湪鏈€鍚庝竴娆″け璐ユ椂鎵嶅睍绀烘墜鍔ㄩ噸璇曟寜閽?  if (!loading && attempt >= MAX_RETRY - 1) {
+  // 只在最后一次失败时才展示手动重试按钒
+  if (!loading && attempt >= MAX_RETRY - 1) {
     const actions = document.createElement("div");
     actions.style.cssText = "margin-top:10px;display:flex;gap:8px;flex-wrap:wrap";
 
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = "鎵嬪姩閲嶈瘯";
+    btn.textContent = "手动重试";
     btn.style.cssText = "cursor:pointer;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:#fff";
     btn.addEventListener("click", () => forceReloadPage());
     actions.appendChild(btn);
@@ -129,7 +131,7 @@ async function boot(force = false) {
 
       renderBootPanel({ loading: false, detail, attempt });
 
-      // 缃戠粶閿欒鏃惰嚜鍔ㄥ埛鏂伴〉闈紙鏈€澶?娆★紝閬垮厤姝诲惊鐜級
+      // 网络错误时自动刷新页面（最多3次，避免死循环）
       const canAutoReload = getReloadGuardCount() < 2;
       const isFetchLike = /failed to fetch|dynamically imported module|importing a module script failed/i.test(detail);
       if (!force && attempt >= 1 && canAutoReload && isFetchLike) {
@@ -144,7 +146,7 @@ async function boot(force = false) {
   }
 }
 
-// 鍏ㄥ眬閿欒鎹曡幏
+// 全局错误捕获
 window.addEventListener('error', (event) => {
   console.error('[Global Error]', {
     message: event.message,

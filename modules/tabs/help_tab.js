@@ -20,7 +20,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       <div class="row">
         <div class="row__left">
           <div class="row__title">帮助文档</div>
-          <div class="row__desc muted">版本 v0.40.0 · 点击各节标题展开详情</div>
+          <div class="row__desc muted">版本 v0.40.1 · 时代纪元 / PvE / 道具 / 社交鉴权 · 点击各节标题展开详情</div>
         </div>
       </div>
     `);
@@ -31,7 +31,8 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
         <b>② 扩产</b>：建造${h('树果田')}和${h('球果营地')}，资源自动产出后再研究扩产科技${br}
         <b>③ 捕捉</b>：有球就抓精灵，组建队伍；图鉴有记录后开放「任务」页玩法${br}
         <b>④ 功能</b>：训练精灵提升等级，送精灵远征赚未来币（入口在「更多」）${br}
-        <b>⑤ 循环</b>：用未来币购买全服Buff → 资源更多 → 建筑更强 → 继续收集
+        <b>⑤ 循环</b>：用未来币购买全服Buff → 资源更多 → 建筑更强 → 继续收集${br}
+        <b>⑥ 挑战</b>：图鉴≥5解锁道馆关卡；按推荐属性组队（能打又抗），失败也耗次数
       </div>
       ${tip('精灵球不够？建球果营地产球果，或研究「精灵球容量」科技。')}
     `, true));
@@ -69,7 +70,8 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       <div style="line-height:1.8">
         ${h('稀有度')}：普通(80%) · 少见(15%) · 稀有(4%) · 史诗(1%)${br}
         ${h('闪光精灵')}：极小概率，出现时有全屏特效提示${br}
-        ${h('神兽/传说')}：特殊区域，捕获率极低，建议配合龙系技能和捕获Buff
+        ${h('神兽/传说')}：特殊区域，捕获率极低，建议配合龙系技能和捕获Buff${br}
+        捕捉页有「时代」主线任务；完成条件后可迈入下一时代，规则加成会叠加，存档资源/精灵不重置。
       </div>
       ${gap}
       <table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -82,7 +84,6 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
         <tr><td>卡洛斯花田</td><td>280种</td><td>650-721</td></tr>
         <tr><td>阿罗拉海岛</td><td>350种</td><td>722-809</td></tr>
         <tr><td>伽勒尔旷野</td><td>430种</td><td>810-905</td></tr>
-        <tr><td>帕底亚平原</td><td>510种</td><td>906-1025</td></tr>
       </table>
       ${tip('龙系精灵技能可临时提升捕获率，抓神兽前先用！')}
     `));
@@ -109,9 +110,13 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
         <tr><td>火</td><td>生蛋加速</td><td>饲养屋生蛋中</td></tr>
         <tr><td>电</td><td>当前研究减少冷却时间</td><td>有科技研究中</td></tr>
         <tr><td>地面</td><td>进入挖矿状态（产进化能量）</td><td>无</td></tr>
+        <tr><td>毒</td><td>资源消耗减少20%（60分钟）</td><td>无</td></tr>
+        <tr><td>飞行</td><td>探险剩余时间 -30分钟</td><td>有探险任务</td></tr>
+        <tr><td>超能力</td><td>合成时间 -20%（下10次）</td><td>无</td></tr>
+        <tr><td>岩石</td><td>建筑成本降低20%（60分钟）</td><td>无</td></tr>
         <tr><td>冰</td><td>饱腹度下降减慢60分钟</td><td>无</td></tr>
         <tr><td>龙</td><td>捕获率提升10分钟</td><td>无</td></tr>
-        <tr><td>恶</td><td>随机一只精灵技能冷却减半</td><td>无</td></tr>
+        <tr><td>恶</td><td>PVE伤害+50% 10分钟</td><td>无</td></tr>
         <tr><td>钢</td><td>精灵球制作成本-10%（100次）</td><td>无</td></tr>
         <tr><td>妖精</td><td>亲密度增长加速60分钟</td><td>无</td></tr>
         <tr><td>一般</td><td>全队资源产量提升（可叠加）</td><td>无</td></tr>

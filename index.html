@@ -21,7 +21,7 @@
 
     <meta http-equiv="Expires" content="0" />
 
-    <title>宝可梦放置冒险 v0.40.0</title>
+    <title>宝可梦放置冒险 v0.40.1</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,7 +29,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Rajdhani:wght@600;700&display=swap" />
 
-    <link rel="stylesheet" href="./styles.css?v=0.40.0" />
+    <link rel="stylesheet" href="./styles.css?v=0.40.1" />
 
   </head>
 
@@ -42,7 +42,7 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand__title">宝可梦放置冒险</div>
-        <div class="brand__subtitle" id="topbarStatus">v0.40.0 · 挂机冒险</div>
+        <div class="brand__subtitle" id="topbarStatus">v0.40.1 · 挂机冒险</div>
       </div>
       <div class="topbar__res" aria-label="资源">
         <button id="btnGather" class="btn btn--primary btn--small">采集</button>
@@ -64,14 +64,14 @@
           <div class="bulletin__body" id="bulletinBody">
             <div class="bulletin__line">【玩法】研究「精灵球基础」约 30 树果即可解锁捕捉，完成赠送精灵球×5；新档自带树果田×1。</div>
           <div class="bulletin__line">【玩法】前期研究更快、采集更肥，减少空等；采集 → 研究 → 抓第一只。</div>
-            <div class="bulletin__line">【玩法】主栏精简为篝火 / 研究 / 捕捉 / 精灵 / 任务，其余入口在「更多」；捕捉页默认只显示下一区域。</div>
+            <div class="bulletin__line">【玩法】主栏包含篝火 / 研究 / 捕捉 / 精灵 / 商店与合成，其余入口在「更多」；捕捉页默认只显示下一区域。</div>
             <div class="bulletin__line">【玩法】升星需等级+亲密度门槛，并消耗更多同进化系材料；满星偏后期。</div>
             <div class="bulletin__line">【玩法】树果等核心资源与采集按钮已移到顶栏，侧栏专注日志。</div>
             <div class="bulletin__line">【玩法】PVP 选队已对齐精灵真实属性；可在社交页选择队伍后应战/邀请。</div>
             <div class="bulletin__line">【玩法】无障碍：可跳到主内容；Tab 与面板已关联；建造按钮带建筑名。</div>
             <details class="bulletin__eng">
               <summary class="bulletin__engSummary">工程更新（开发笔记）</summary>
-              <div class="bulletin__line">【v0.40.0】前期留存：研究保底时间分级、树果田更快、起步田+采集加量。</div>
+              <div class="bulletin__line">【v0.40.1】前期留存：研究保底时间分级、树果田更快、起步田+采集加量。</div>
               <div class="bulletin__line">【v0.39.10】A11y：skip-link、tab/panel 关联、建造 aria-label、云登录 sr-only label。</div>
               <div class="bulletin__line">【v0.39.9】建筑等级条直出 + 分类锚点；移除损坏的 DOM inject。</div>
               <div class="bulletin__line">【v0.39.8】Design Sprint F：DESIGN.md + CTA/Tab/筹码/焦点环/空日志。</div>
@@ -114,7 +114,7 @@
 
           <button class="tab" id="tab-functions" data-tab="functions" role="tab" aria-selected="false" aria-controls="panel-functions">功能</button>
 
-          <button class="tab" id="tab-future" data-tab="future" role="tab" aria-selected="false" aria-controls="panel-future">任务</button>
+          <button class="tab" id="tab-future" data-tab="future" role="tab" aria-selected="false" aria-controls="panel-future">商店与合成</button>
 
           <button class="tab" id="tab-dex" data-tab="dex" role="tab" aria-selected="false" aria-controls="panel-dex">图鉴</button>
 
@@ -304,8 +304,8 @@
 
             <div class="row futureShopIntro">
               <div class="row__left">
-                <div class="row__title">任务与商店</div>
-                <div class="row__desc">完成每日任务领奖；下方用未来币购买增益与自动化（远征等产出未来币）。</div>
+                <div class="row__title">商店与合成</div>
+                <div class="row__desc">完成每日任务领奖；用未来币购买增益与自动化，并在下方合成道具。</div>
               </div>
               <div class="row__right">
                 <div class="badge" id="futureCoinBadge">未来币 —</div>
@@ -949,19 +949,19 @@
 
 
 
-    <script src="./data/pokemon_zh.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_zh.js?v=0.40.1" defer></script>
 
-    <script src="./data/pokemon_tier.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_tier.js?v=0.40.1" defer></script>
 
-    <script src="./data/pokemon_catch_rate.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_catch_rate.js?v=0.40.1" defer></script>
 
-    <script src="./data/pokemon_evo.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_evo.js?v=0.40.1" defer></script>
 
-    <script src="./data/pokemon_evo_req.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_evo_req.js?v=0.40.1" defer></script>
 
-    <script src="./data/pokemon_types.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_types.js?v=0.40.1" defer></script>
 
-    <script type="module" src="./main.js?v=0.40.0"></script>
+    <script type="module" src="./main.js?v=0.40.1"></script>
 
     <script>
 
@@ -971,7 +971,7 @@
 
         window.addEventListener('load', function() {
 
-          navigator.serviceWorker.register('./sw.js?v=0.40.0', { updateViaCache: 'none' });
+          navigator.serviceWorker.register('./sw.js?v=0.40.1', { updateViaCache: 'none' });
 
         });
 

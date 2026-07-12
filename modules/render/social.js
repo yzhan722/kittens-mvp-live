@@ -1,6 +1,16 @@
 // 社交功能渲染模块
 
 export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime }) {
+  function socialUnavailableRow(title) {
+    return `
+      <div class="row is-locked">
+        <div class="row__left">
+          <div class="row__title">${escapeHtml(title)}</div>
+          <div class="row__desc">社交服务暂时不可用（可继续离线游玩）</div>
+        </div>
+      </div>
+    `;
+  }
   
   // 渲染好友动态（成就分享）
   async function renderFriendFeed() {
@@ -20,6 +30,11 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     }
 
     const achievements = await socialSystem.getAchievements();
+    if (achievements === null && ui.lbUid) {
+      elFeed.innerHTML = socialUnavailableRow("好友动态加载失败");
+      return;
+    }
+
     if (!achievements || achievements.length === 0) {
       elFeed.innerHTML = `
         <div class="row">
@@ -95,6 +110,11 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     }
 
     const messages = await socialSystem.getMessages();
+    if (messages === null && ui.lbUid) {
+      elMessages.innerHTML = socialUnavailableRow("好友消息加载失败");
+      return;
+    }
+
     if (!messages || messages.length === 0) {
       elMessages.innerHTML = `
         <div class="row">

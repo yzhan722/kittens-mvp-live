@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 // Minimal self-check for pure modules (no test framework)
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import {
   computeTechEffects,
   computeDexEffects,
@@ -48,6 +51,8 @@ function assert(cond, msg) {
 // expedition_defs
 assert(EXP_LEVELS.length === 5, "EXP_LEVELS length");
 assert(getExpLevelDef("master").req === 30000, "master req");
+assert(getExpLevelDef("super").coin === 300, "super expedition coin");
+assert(getExpLevelDef("master").coin === 800, "master expedition coin");
 assert(getExpLevelDef("nope").key === "basic", "fallback basic");
 
 // type / expedition
@@ -56,6 +61,12 @@ assert(expeditionTypeMulFromTypes(["water"], "fire") === 1.5, "exp mul SE");
 assert(expeditionTypeMulFromTypes(["fire"], "water") === 0.5, "exp mul weak");
 assert(expeditionTypeMulFromTypes(["electric"], "ground") === 0.5, "exp mul immune path");
 assert(expeditionTypeMulFromTypes(["normal"], "normal") === 1, "exp mul neutral");
+{
+  const clamp0 = (n, a, b) => Math.max(a, Math.min(b, n));
+  const rewardMul = (muls) => clamp0(muls.reduce((s, x) => s + x, 0) / muls.length, 0.75, 1.5);
+  assert(rewardMul([expeditionTypeMulFromTypes(["fire"], "water")]) === 0.75, "exp reward mul clamps weak");
+  assert(rewardMul([expeditionTypeMulFromTypes(["water"], "fire")]) === 1.5, "exp reward mul keeps SE");
+}
 
 // server_buffs
 assert(SERVER_BUFF_KEYS.includes("capture"), "sbuff keys");
@@ -177,6 +188,12 @@ const win = pvp.simulateBattle(
   "P2"
 );
 assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const era = spawnSync(process.execPath, [path.join(__dirname, "era-selfcheck.mjs")], { stdio: "inherit" });
+if (era.status !== 0) failed += 1;
+const pve = spawnSync(process.execPath, [path.join(__dirname, "pve-selfcheck.mjs")], { stdio: "inherit" });
+if (pve.status !== 0) failed += 1;
 
 if (failed) {
   console.error(`selfcheck: ${failed} failed`);

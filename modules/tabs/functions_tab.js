@@ -267,6 +267,10 @@ export function createRenderFunctions({
       if (d >= 152 && d <= 251) return "johto";
       if (d >= 252 && d <= 386) return "hoenn";
       if (d >= 387 && d <= 493) return "sinnoh";
+      if (d >= 494 && d <= 649) return "unova";
+      if (d >= 650 && d <= 721) return "kalos";
+      if (d >= 722 && d <= 809) return "alola";
+      if (d >= 810 && d <= 905) return "galar";
       return "other";
     };
     const regionLabel = (k) => {
@@ -274,6 +278,10 @@ export function createRenderFunctions({
       if (k === "johto") return "城都";
       if (k === "hoenn") return "丰缘";
       if (k === "sinnoh") return "神奥";
+      if (k === "unova") return "合众";
+      if (k === "kalos") return "卡洛斯";
+      if (k === "alola") return "阿罗拉";
+      if (k === "galar") return "伽勒尔";
       return "其他";
     };
     const getMonTypesSimple = (m) => {
@@ -315,7 +323,7 @@ export function createRenderFunctions({
       const qLower = q.toLowerCase();
 
       const region0 = typeof ui.trainingModalRegion === "string" ? ui.trainingModalRegion : "all";
-      const region = ["all", "kanto", "johto", "hoenn", "sinnoh"].includes(region0) ? region0 : "all";
+      const region = ["all", "kanto", "johto", "hoenn", "sinnoh", "unova", "kalos", "alola", "galar"].includes(region0) ? region0 : "all";
       const type0 = typeof ui.trainingModalType === "string" ? ui.trainingModalType : "all";
       const type = type0 === "all" || TYPE_KEYS_UI.includes(type0) ? type0 : "all";
       const sort0 = typeof ui.trainingModalSort === "string" ? ui.trainingModalSort : "power";
@@ -348,6 +356,10 @@ export function createRenderFunctions({
         { k: "johto", n: "城都" },
         { k: "hoenn", n: "丰缘" },
         { k: "sinnoh", n: "神奥" },
+        { k: "unova", n: "合众" },
+        { k: "kalos", n: "卡洛斯" },
+        { k: "alola", n: "阿罗拉" },
+        { k: "galar", n: "伽勒尔" },
       ]
         .map((x) => `<option value="${x.k}" ${region === x.k ? "selected" : ""}>${x.n}</option>`)
         .join("");
@@ -442,7 +454,7 @@ export function createRenderFunctions({
       const qLower = q.toLowerCase();
 
       const region0 = typeof ui.breedingModalRegion === "string" ? ui.breedingModalRegion : "all";
-      const region = ["all", "kanto", "johto", "hoenn", "sinnoh"].includes(region0) ? region0 : "all";
+      const region = ["all", "kanto", "johto", "hoenn", "sinnoh", "unova", "kalos", "alola", "galar"].includes(region0) ? region0 : "all";
       const type0 = typeof ui.breedingModalType === "string" ? ui.breedingModalType : "all";
       const type = type0 === "all" || TYPE_KEYS_UI.includes(type0) ? type0 : "all";
       const sort0 = typeof ui.breedingModalSort === "string" ? ui.breedingModalSort : "power";
@@ -475,6 +487,10 @@ export function createRenderFunctions({
         { k: "johto", n: "城都" },
         { k: "hoenn", n: "丰缘" },
         { k: "sinnoh", n: "神奥" },
+        { k: "unova", n: "合众" },
+        { k: "kalos", n: "卡洛斯" },
+        { k: "alola", n: "阿罗拉" },
+        { k: "galar", n: "伽勒尔" },
       ]
         .map((x) => `<option value="${x.k}" ${region === x.k ? "selected" : ""}>${x.n}</option>`)
         .join("");
@@ -565,7 +581,7 @@ export function createRenderFunctions({
       <div class="row">
         <div class="row__left">
           <div class="row__title">远征所</div>
-          <div class="row__desc">派遣精灵下副本：完成后获得经验与未来币，并概率掉落药剂。</div>
+          <div class="row__desc">派遣精灵下副本：完成后获得经验与未来币，并概率掉落药剂。属性克制可提高远征收益。</div>
         </div>
         <div class="row__right">
           <button class="btn btn--small btn--ghost" data-func-toggle="expedition">${hideExpedition ? "▸" : "▾"}</button>
@@ -600,6 +616,11 @@ export function createRenderFunctions({
     const TYPE_KEYS = Object.keys(typeMap);
     const getMonTypes = (m) => getMonTypesForExpedition(m, getPokeApiDataByDex);
     const typeMul = (m, dungeonType) => expeditionTypeMul(m, dungeonType, getPokeApiDataByDex);
+    const expeditionRewardMul = (mons, dungeonType) => {
+      if (!Array.isArray(mons) || mons.length === 0) return 1;
+      const avg = mons.reduce((acc, m) => acc + typeMul(m, dungeonType), 0) / mons.length;
+      return clamp(avg, 0.75, 1.5);
+    };
 
     const regenAllDungeons = () => {
       if (!Array.isArray(TYPE_KEYS) || TYPE_KEYS.length === 0) return;
@@ -709,12 +730,15 @@ export function createRenderFunctions({
         const baseSec = 7200;
         const excessPct = canStartExp ? Math.max(0, (effPower - lvlDef.req) / lvlDef.req) : 0;
         const totalSec = canStartExp ? Math.max(60, Math.ceil(baseSec / Math.pow(1.01, excessPct * 100))) : baseSec;
+        const rewardMul = expeditionRewardMul(selectedMons, dungeonType);
+        const rewardExp = Math.floor(lvlDef.exp * rewardMul);
+        const rewardCoin = Math.floor(lvlDef.coin * rewardMul);
 
         rows.push(`
       <div class="row">
         <div class="row__left">
           <div class="row__title">远征队伍</div>
-          <div class="row__desc">已选：${selectedMons.length} / 20 · 总战力：${Math.floor(effPower)} / ${lvlDef.req} · 预计用时：${fmtDuration(totalSec)}</div>
+          <div class="row__desc">已选：${selectedMons.length} / 20 · 总战力：${Math.floor(effPower)} / ${lvlDef.req} · 预计用时：${fmtDuration(totalSec)} · 属性相性 x${rewardMul.toFixed(2)}</div>
         </div>
         <div class="row__right">
           <button class="btn btn--small" data-exp-team-open ${expOn ? "disabled" : ""}>选择队员</button>
@@ -759,13 +783,14 @@ export function createRenderFunctions({
             .map(({ m, effPower }) => {
               const checked = selSetNow.has(m.id);
               const power = Math.floor(effPower);
+              const mul = typeMul(m, dungeonType);
               const disabled = expOn || (!checked && selNow.length >= 20);
               const rightText = expOn ? "远征中" : "";
               return `
             <div class="row">
               <div class="row__left">
                 <div class="row__title">${escapeHtml(m.name)}</div>
-                <div class="row__desc">Lv.${m.lvl} · 战力 ${power}${rightText ? ` · ${escapeHtml(rightText)}` : ""}</div>
+                <div class="row__desc">Lv.${m.lvl} · 战力 ${power} · 属性相性 x${mul.toFixed(2)}${rightText ? ` · ${escapeHtml(rightText)}` : ""}</div>
               </div>
               <div class="row__right">
                 <input class="chk" type="checkbox" data-exp-team-check="${m.id}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />
@@ -799,7 +824,7 @@ export function createRenderFunctions({
         <div class="row">
           <div class="row__left">
             <div class="row__title">开始远征</div>
-            <div class="row__desc">奖励：经验 +${lvlDef.exp}（每只参与精灵）· 未来币 +${lvlDef.coin} · 药剂掉落总数 ${lvlDef.pot}</div>
+            <div class="row__desc">奖励：经验 +${rewardExp}（每只参与精灵）· 未来币 +${rewardCoin} · 药剂掉落总数 ${lvlDef.pot} · 属性相性 x${rewardMul.toFixed(2)}</div>
           </div>
           <div class="row__right">
             <button class="btn btn--primary" data-exp-start ${canStartExp ? "" : "disabled"}>出征</button>
@@ -1415,13 +1440,15 @@ export function initFunctionsTab({
       const baseSec = 7200;
       const excessPct = Math.max(0, (effPower - lvlDef.req) / lvlDef.req);
       const totalSec = Math.max(60, Math.ceil(baseSec / Math.pow(1.01, excessPct * 100)));
+      const rewardMul0 = selMonsSorted.reduce((acc, m) => acc + typeMul(m, d.type), 0) / selMonsSorted.length;
+      const rewardMul = Math.max(0.75, Math.min(1.5, rewardMul0));
 
       state.expedition.on = true;
       state.expedition.activeIds = selMonsSorted.map((m) => m.id);
       state.expedition.remainingSec = totalSec;
       state.expedition.totalSec = totalSec;
-      state.expedition.rewardExp = lvlDef.exp;
-      state.expedition.rewardCoin = lvlDef.coin;
+      state.expedition.rewardExp = Math.floor(lvlDef.exp * rewardMul);
+      state.expedition.rewardCoin = Math.floor(lvlDef.coin * rewardMul);
       state.expedition.rewardPotionTotal = lvlDef.pot;
       state.expedition.dungeonType = d.type;
       addLog("开始远征", true);

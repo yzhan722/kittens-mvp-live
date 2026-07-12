@@ -1,4 +1,4 @@
-﻿import { handleOptions, json } from "./_db.js";
+import { handleOptions, json } from "./_db.js";
 
 export async function onRequest(context) {
   const req = context.request;
