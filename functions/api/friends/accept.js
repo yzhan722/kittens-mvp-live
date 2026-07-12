@@ -1,5 +1,6 @@
+import { requireUser } from "../_auth.js";
 import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
-import { clampUid, intOr } from "../_uid.js";
+import { intOr } from "../_uid.js";
 
 function pair(a, b) {
   return a < b ? [a, b] : [b, a];
@@ -11,12 +12,15 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
+  const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+  const uid = user.uid;
+
   const body = await readJson(req);
   const requestId = intOr(body?.requestId, 0);
-  const uid = clampUid(body?.uid);
-  if (!requestId || !uid) return json({ error: "bad request" }, { status: 400, req });
+  if (!requestId) return json({ error: "bad request" }, { status: 400, req });
 
-  const db = getDb(context.env);
   const row = await dbFirst(
     db,
     "SELECT id, from_uid, to_uid, status FROM friend_requests WHERE id = ?",

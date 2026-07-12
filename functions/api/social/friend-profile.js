@@ -1,3 +1,4 @@
+import { requireUser } from "../_auth.js";
 import { dbFirst, getDb, handleOptions, json } from "../_db.js";
 import { clampUid } from "../_uid.js";
 
@@ -8,12 +9,20 @@ export async function onRequest(context) {
   if (req.method !== "GET") return json({ error: "method not allowed" }, { status: 405, req });
 
   const url = new URL(req.url);
-  const uid = clampUid(url.searchParams.get("uid") || "");
   const friendUid = clampUid(url.searchParams.get("friendUid") || "");
-  if (!uid || !friendUid) return json({ error: "uid required" }, { status: 400, req });
+  if (!friendUid) return json({ error: "friend uid required" }, { status: 400, req });
 
   const db = getDb(context.env);
-  const user = await dbFirst(db, "SELECT username FROM users WHERE uid = ?", [friendUid]);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+  const viewer = user.uid;
+  const friendship = await dbFirst(
+    db,
+    "SELECT id FROM friends WHERE (uid1 = ? AND uid2 = ?) OR (uid1 = ? AND uid2 = ?)",
+    [viewer, friendUid, friendUid, viewer]
+  );
+  if (!friendship) return json({ error: "not friends" }, { status: 403, req });
+  const profileUser = await dbFirst(db, "SELECT username FROM users WHERE uid = ?", [friendUid]);
   const score = await dbFirst(
     db,
     "SELECT name, dexCount, shinyCount, catchCount, profile_json, topMonsJson FROM scores WHERE uid = ?",
@@ -54,7 +63,7 @@ export async function onRequest(context) {
 
   return json(
     {
-      user: { name: user?.username || score?.name || friendUid },
+      user: { name: profileUser?.username || score?.name || friendUid },
       stats,
       mons,
     },

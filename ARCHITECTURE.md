@@ -41,8 +41,8 @@
 | 全服 Buff | `GET /api/server/buffs` · `POST /api/server/buffs/buy` |
 | Boss | `GET /api/server/boss/bully` · `POST .../attack|claim` |
 | 好友 | `/api/friends/{list,request,accept,gift}` |
-| 社交 | `/api/social/{messages,pvp-*,achievements,friend-profile}` |
-| 每日任务 | `GET /api/daily_tasks` · `POST /api/daily_tasks/claim` |
+| 社交 | `/api/social/{messages,pvp-*,achievements,friend-profile}`（需 Bearer；actor=session uid） |
+| 每日任务 | **客户端本地** `modules/daily_tasks.js`（`/api/daily_tasks*` 已 410 退役） |
 
 共享模块：`_db.js` · `_auth.js` · `_uid.js` · `_buffs.js` · `_boss.js`。
 

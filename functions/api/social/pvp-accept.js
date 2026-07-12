@@ -1,5 +1,6 @@
+import { requireUser } from "../_auth.js";
 import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
-import { clampUid, intOr } from "../_uid.js";
+import { intOr } from "../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;
@@ -7,13 +8,16 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
+  const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+  const uid = user.uid;
+
   const body = await readJson(req);
   const inviteId = intOr(body?.inviteId, 0);
-  const uid = clampUid(body?.uid);
   const teamData = Array.isArray(body?.teamData) ? body.teamData : [];
-  if (!inviteId || !uid) return json({ error: "bad request" }, { status: 400, req });
+  if (!inviteId) return json({ error: "bad request" }, { status: 400, req });
 
-  const db = getDb(context.env);
   const inv = await dbFirst(db, "SELECT * FROM pvp_invites WHERE id = ?", [inviteId]);
   if (!inv || inv.to_uid !== uid || inv.status !== "pending") {
     return json({ error: "invite not found" }, { req });

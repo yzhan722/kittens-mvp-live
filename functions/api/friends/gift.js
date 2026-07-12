@@ -1,3 +1,4 @@
+import { requireUser } from "../_auth.js";
 import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
 import { clampStr, clampUid, intOr } from "../_uid.js";
 
@@ -7,14 +8,17 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
+  const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+  const fromUid = user.uid;
+
   const body = await readJson(req);
-  const fromUid = clampUid(body?.fromUid);
   const toUid = clampUid(body?.toUid);
   const itemType = clampStr(body?.itemType, 64);
   const quantity = Math.max(1, intOr(body?.quantity, 1));
-  if (!fromUid || !toUid || !itemType) return json({ error: "bad request" }, { status: 400, req });
+  if (!toUid || !itemType) return json({ error: "bad request" }, { status: 400, req });
 
-  const db = getDb(context.env);
   const friendship = await dbFirst(
     db,
     `SELECT id FROM friends WHERE (uid1 = ? AND uid2 = ?) OR (uid1 = ? AND uid2 = ?)`,

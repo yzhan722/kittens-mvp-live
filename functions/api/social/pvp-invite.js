@@ -1,3 +1,4 @@
+import { requireUser } from "../_auth.js";
 import { dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
 import { clampUid } from "../_uid.js";
 
@@ -9,13 +10,16 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
+  const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+
   const body = await readJson(req);
-  const fromUid = clampUid(body?.fromUid);
+  const fromUid = user.uid;
   const toUid = clampUid(body?.toUid);
   const teamData = Array.isArray(body?.teamData) ? body.teamData : [];
-  if (!fromUid || !toUid) return json({ error: "bad request" }, { status: 400, req });
+  if (!toUid || toUid === fromUid) return json({ error: "bad request" }, { status: 400, req });
 
-  const db = getDb(context.env);
   const now = nowMs();
   await dbRun(
     db,

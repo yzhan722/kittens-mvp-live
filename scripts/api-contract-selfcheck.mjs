@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Pure-function contract checks for rebuilt functions/ helpers
+import { readFile } from "node:fs/promises";
 import { buffLevel, decayedRemaining, clampBuffKey, SERVER_BUFF_KEYS } from "../functions/api/_buffs.js";
 import { applyBossRegen, bossAttackDamage, buildBossRewards, parseRewards, BOSS_MAX_HP } from "../functions/api/_boss.js";
 import { clampUid, clampName, clampUsername } from "../functions/api/_uid.js";
@@ -69,6 +70,25 @@ const BOARD_COL = {
   catch: "catchCount",
 };
 assert(Object.keys(BOARD_COL).length === 9, "9 boards");
+
+const actorBoundEndpoints = [
+  "social/messages.js",
+  "social/pvp-invites.js",
+  "social/pvp-invite.js",
+  "social/pvp-accept.js",
+  "social/pvp-result.js",
+  "social/friend-profile.js",
+  "social/achievements.js",
+  "friends/list.js",
+  "friends/accept.js",
+  "friends/request.js",
+  "friends/gift.js",
+];
+for (const endpoint of actorBoundEndpoints) {
+  const source = await readFile(new URL(`../functions/api/${endpoint}`, import.meta.url), "utf8");
+  assert(source.includes("requireUser"), `${endpoint} requires authenticated user`);
+  assert(!source.includes('searchParams.get("uid")'), `${endpoint} does not trust query uid`);
+}
 
 if (failed) {
   console.error(`api-contract-selfcheck: ${failed} failed`);
