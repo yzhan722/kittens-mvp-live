@@ -1,3 +1,5 @@
+import { applyEncounterBias, eraEncounterRechargeMul, eraPokeballBonusCrafted } from "../systems/era.js";
+
 export function initCaptureTab({
   elCaptureArea,
   elCaptureInfo,
@@ -22,8 +24,16 @@ export function initCaptureTab({
   awardCaughtPokemon,
   doCatch,
   pushTickerEvent,
+  onPokeballCraft,
+  onEraAdvance,
 }) {
   const CAPTURE_PREVIEW_KEY = "kittens_mvp_capture_preview_hidden_v1";
+  const rareWeight = (p, base, rareWeightMul) =>
+    (p?.tier === "rare" || p?.tier === "epic") ? base * rareWeightMul : base;
+  const getMonTypesForBias = (p) => {
+    const localTypes = globalThis.POKEMON_TYPES;
+    return localTypes && typeof localTypes === "object" ? localTypes[p?.dex] : null;
+  };
 
   if (elCaptureArea) {
     elCaptureArea.addEventListener("change", () => {
@@ -34,6 +44,15 @@ export function initCaptureTab({
 
   if (elCaptureInfo) {
     elCaptureInfo.addEventListener("click", (ev) => {
+      const eraAdvanceBtn = ev.target?.closest?.("button[data-era-advance]");
+      if (eraAdvanceBtn && elCaptureInfo.contains(eraAdvanceBtn)) {
+        if (eraAdvanceBtn.disabled) return;
+        if (typeof onEraAdvance === "function") onEraAdvance();
+        markCaptureDirty();
+        render();
+        return;
+      }
+
       const lockedToggle = ev.target?.closest?.("button[data-capture-locked-toggle]");
       if (lockedToggle && elCaptureInfo.contains(lockedToggle)) {
         ui.captureShowAllLocked = !Boolean(ui.captureShowAllLocked);
@@ -155,7 +174,7 @@ export function initCaptureTab({
           typeof state.encounterCharges === "number" && Number.isFinite(state.encounterCharges) ? state.encounterCharges : 100;
         const cd0 = typeof state.encounterCdSec === "number" && Number.isFinite(state.encounterCdSec) ? state.encounterCdSec : 0;
         const maxCharges = 100;
-        const rechargeSec = 60;
+        const rechargeSec = 60 * eraEncounterRechargeMul(state);
         const charges1 = Math.max(0, Math.min(maxCharges, Math.floor(charges0)));
         if (charges1 <= 0) return false;
 
@@ -183,19 +202,38 @@ export function initCaptureTab({
         const isNormalArea = ui.captureAreaId !== "mythic";
         const hitMythic = isNormalArea && randFloat() < mythicChance;
         const mythicPool = hitMythic && typeof getMythicPool === "function" ? getMythicPool() : null;
+        const techEff = computeTechEffects();
+        const rareWeightMul = Math.max(0, typeof techEff.rareWeightMul === "number" ? techEff.rareWeightMul : 1);
         const p =
           hitMythic && Array.isArray(mythicPool) && mythicPool.length > 0
             ? mythicPool[Math.floor(randFloat() * mythicPool.length)]
-            : pickRandomFromPool(pool);
+            : (() => {
+                const tierWeight = (x) =>
+                  applyEncounterBias(
+                    rareWeight(x, x?.tier === "common" ? 80 : x?.tier === "uncommon" ? 15 : x?.tier === "rare" ? 4 : x?.tier === "epic" ? 1 : 1, rareWeightMul),
+                    x,
+                    state,
+                    getMonTypesForBias
+                  );
+                let total = 0;
+                for (const x of pool) total += tierWeight(x);
+                let r = randFloat() * total;
+                for (const x of pool) {
+                  r -= tierWeight(x);
+                  if (r <= 0) return x;
+                }
+                return pool[pool.length - 1];
+              })();
 
         state.encounterCharges = charges1 - 1;
         if (state.encounterCharges < maxCharges && cd0 <= 0) state.encounterCdSec = rechargeSec;
 
         ui.encounterPid = p.id;
-        // 闪光概率计算：基础 1/4096，每个闪耀护符 x2
+        // 闪光概率计算：基础 1/4096，激活闪耀护符时 x2
         const baseShinyRate = 1 / 4096;
-        const charmCount = Math.max(0, Math.floor(state.res.shinyCharm?.value ?? 0));
-        const shinyRate = charmCount > 0 ? baseShinyRate * Math.pow(2, charmCount) : baseShinyRate;
+        const charmOn = typeof state.shinyCharmRemainingSec === "number" && state.shinyCharmRemainingSec > 0;
+        const shinyMul = Math.max(0, typeof techEff.shinyChanceMul === "number" ? techEff.shinyChanceMul : 1);
+        const shinyRate = (charmOn ? baseShinyRate * 2 : baseShinyRate) * shinyMul;
         const isShiny = randFloat() < shinyRate;
         ui.encounterIsShiny = isShiny;
         ui.shinyModalOpen = false;
@@ -295,8 +333,13 @@ export function initCaptureTab({
         addRes("pokeball", qty);
         const after = state.res.pokeball.value;
         const made = Math.max(0, after - before);
-        state.pokeballMade = Math.max(0, (state.pokeballMade ?? 0) + made);
-        if (made > 0) addLog(`制作：精灵球 +${made}`);
+        const bonus = eraPokeballBonusCrafted(state, made);
+        if (bonus > 0) addRes("pokeball", bonus);
+        const afterBonus = state.res.pokeball.value;
+        const bonusMade = Math.max(0, afterBonus - after);
+        state.pokeballMade = Math.max(0, (state.pokeballMade ?? 0) + made + bonusMade);
+        if (made > 0 && typeof onPokeballCraft === "function") onPokeballCraft(made + bonusMade);
+        if (made > 0) addLog(`制作：精灵球 +${made + bonusMade}${bonusMade > 0 ? `（时代加成 +${bonusMade}）` : ""}`);
         markCaptureDirty();
         render();
         return;
@@ -318,7 +361,7 @@ export function initCaptureTab({
         const cd0 =
           typeof state.encounterPlusCdSec === "number" && Number.isFinite(state.encounterPlusCdSec) ? state.encounterPlusCdSec : 0;
         const maxCharges = 10;
-        const rechargeSec = 600;
+        const rechargeSec = 600 * eraEncounterRechargeMul(state);
 
         const charges1 = Math.max(0, Math.min(maxCharges, Math.floor(charges0)));
         if (charges1 <= 0) return;
@@ -353,12 +396,20 @@ export function initCaptureTab({
         const missing = pool.filter((p) => (typeof caught[p.id] === "number" ? caught[p.id] : 0) <= 0);
         const preferMissing = !hitMythic && missing.length > 0 && randFloat() < 0.75;
         const cand = preferMissing ? missing : pool;
+        const techEff = computeTechEffects();
+        const rareWeightMul = Math.max(0, typeof techEff.rareWeightMul === "number" ? techEff.rareWeightMul : 1);
 
         let chosen = cand[cand.length - 1];
         if (hitMythic && Array.isArray(mythicPool) && mythicPool.length > 0) {
           chosen = mythicPool[Math.floor(randFloat() * mythicPool.length)];
         } else {
-          const tierWeight = (p) => (p.tier === "epic" ? 15 : p.tier === "rare" ? 8 : p.tier === "uncommon" ? 3 : 1);
+          const tierWeight = (p) =>
+            applyEncounterBias(
+              rareWeight(p, p.tier === "epic" ? 15 : p.tier === "rare" ? 8 : p.tier === "uncommon" ? 3 : 1, rareWeightMul),
+              p,
+              state,
+              getMonTypesForBias
+            );
           let total = 0;
           for (const p of cand) total += tierWeight(p);
           let r = randFloat() * total;
@@ -372,10 +423,11 @@ export function initCaptureTab({
         }
 
         ui.encounterPid = chosen.id;
-        // 闪光概率计算：基础 1/1024，每个闪耀护符 x2
+        // 闪光概率计算：基础 1/1024，激活闪耀护符时 x2
         const baseShinyRate = 1 / 1024;
-        const charmCount = Math.max(0, Math.floor(state.res.shinyCharm?.value ?? 0));
-        const shinyRate = charmCount > 0 ? baseShinyRate * Math.pow(2, charmCount) : baseShinyRate;
+        const charmOn = typeof state.shinyCharmRemainingSec === "number" && state.shinyCharmRemainingSec > 0;
+        const shinyMul = Math.max(0, typeof techEff.shinyChanceMul === "number" ? techEff.shinyChanceMul : 1);
+        const shinyRate = (charmOn ? baseShinyRate * 2 : baseShinyRate) * shinyMul;
         const isShiny = randFloat() < shinyRate;
         ui.encounterIsShiny = isShiny;
         ui.shinyModalOpen = false;

@@ -1020,6 +1020,60 @@ body {
   color: rgba(255, 255, 255, 0.82);
 }
 
+.era-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(250, 204, 21, 0.18);
+  border-left: 3px solid rgba(250, 204, 21, 0.75);
+  border-radius: var(--radius-md);
+  background: rgba(250, 204, 21, 0.055);
+}
+
+.era-panel__title {
+  font-weight: 800;
+  color: rgba(250, 204, 21, 0.94);
+  letter-spacing: 0.2px;
+}
+
+.era-panel__quests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+
+.era-panel__quest {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.era-panel__quest.is-done {
+  color: rgba(52, 211, 153, 0.92);
+  border-color: rgba(52, 211, 153, 0.28);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.era-panel__done {
+  font-size: 12px;
+  font-weight: 750;
+  color: rgba(250, 204, 21, 0.94);
+}
+
+@media (max-width: 768px) {
+  .era-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .modalOverlay {
   position: fixed;
   inset: 0;

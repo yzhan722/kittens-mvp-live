@@ -1,4 +1,4 @@
-export function initBuildingsTab({ elBuildings, getState, BUILDING_MAX_LEVEL, getBuildingCost, canAfford, pay, addLog, render, defs }) {
+export function initBuildingsTab({ elBuildings, getState, BUILDING_MAX_LEVEL, getBuildingCost, canAfford, pay, addLog, render, defs, onBuildingBuy }) {
   if (!elBuildings) return;
 
   elBuildings.addEventListener("change", (ev) => {
@@ -49,6 +49,7 @@ export function initBuildingsTab({ elBuildings, getState, BUILDING_MAX_LEVEL, ge
     pay(cost);
     state.buildings[bid].owned += 1;
     addLog(`建造：${defs.buildings[bid].name} +1`);
+    if (typeof onBuildingBuy === "function") onBuildingBuy(bid);
     render();
   });
 }

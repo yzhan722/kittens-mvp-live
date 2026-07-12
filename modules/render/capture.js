@@ -1,3 +1,24 @@
+import { getEraDefById } from "../defs_eras.js";
+import { canAdvanceEra, ensureEra, questLabel, syncEraQuests } from "../systems/era.js";
+
+const MUTATOR_LABELS = {
+  berryYield_12: "树果 +12%",
+  catchRate_6: "捕获 +6%",
+  catchRate_3: "捕获 +3%",
+  catchRate_4: "捕获 +4%",
+  researchTime_m8: "研究加速 8%",
+  researchTime_m10: "研究加速 10%",
+  pokeballGain_10: "制球 +10%",
+  encounterRefresh_fast: "遭遇恢复 +10%",
+  pokeballCap_8: "精灵球上限 +8%",
+  buildingYield_10: "建筑产出 +10%",
+  researchCost_m8: "研究成本 -8%",
+  fieldYield_10: "田地 +10%",
+  shiny_micro: "闪光微升",
+  rareWeight_micro: "稀有微升",
+  allYield_5: "全产出 +5%",
+};
+
 export function createRenderCapture({
   elCaptureInfo,
   elCaptureActions,
@@ -25,6 +46,36 @@ export function createRenderCapture({
     if (!elCaptureInfo || !elCaptureActions || !elCaptureArea) return;
     if (ui.activeTab !== "capture") return;
     if (!ui.captureDirty) return;
+
+    ensureEra(state);
+    const era = syncEraQuests(state, getCaptureAreas);
+    const eraDef = getEraDefById(era.id);
+    const eraMainQuests = (era.quests || []).filter((q) => q.kind === "main");
+    const eraAllDone = eraMainQuests.every((q) => q.done);
+    const eraCanAdvance = canAdvanceEra(state, getCaptureAreas);
+    const eraQuestHtml = eraMainQuests
+      .map((q) => `<div class="era-panel__quest ${q.done ? "is-done" : ""}">${escapeHtml(questLabel(q))}</div>`)
+      .join("");
+    const eraMutatorHtml = (era.mutatorsActive || [])
+      .map((id) => MUTATOR_LABELS[id])
+      .filter(Boolean)
+      .map((label) => `<span class="badge">${escapeHtml(label)}</span>`)
+      .join("");
+    const eraActionHtml =
+      era.index >= 8
+        ? eraAllDone
+          ? `<div class="era-panel__done">已抵达悖论时空</div>`
+          : ""
+        : `<button type="button" class="btn btn--primary btn--small" data-era-advance ${eraCanAdvance ? "" : "disabled"}>迈入下一时代</button>`;
+    const eraPanelHtml = `
+      <div class="era-panel">
+        <div class="era-panel__title">时代 · ${escapeHtml(eraDef.name)}</div>
+        ${eraDef.blurb ? `<div class="row__desc">${escapeHtml(eraDef.blurb)}</div>` : ""}
+        ${eraMutatorHtml ? `<div class="era-panel__mutators">${eraMutatorHtml}</div>` : ""}
+        <div class="era-panel__quests">${eraQuestHtml}</div>
+        <div class="era-panel__action">${eraActionHtml}</div>
+      </div>
+    `;
 
     const freezeActions = Boolean(ui.captureQtyFocus);
 
@@ -106,6 +157,7 @@ export function createRenderCapture({
     }
 
     elCaptureInfo.innerHTML = `
+      ${eraPanelHtml}
       <div class="row">
         <div class="row__left">
           <div class="row__title">当前区域</div>

@@ -1,3 +1,5 @@
+import { eraPokeballBonusCrafted } from "../systems/era.js";
+
 export function createRenderBonfireActions({ elBonfireActions, elBtnGather, ui, getState }) {
   const fmtRemain = (sec) => {
     const s = Math.max(0, Math.ceil(typeof sec === "number" && Number.isFinite(sec) ? sec : 0));
@@ -25,7 +27,7 @@ export function createRenderBonfireActions({ elBonfireActions, elBtnGather, ui, 
   };
 }
 
-export function initBonfireTab({ elBonfireActions, elBtnGather, ui, getPokeballMakeCost, canAfford, pay, addRes, addLog, render, doCatch, getState }) {
+export function initBonfireTab({ elBonfireActions, elBtnGather, ui, getPokeballMakeCost, canAfford, pay, addRes, addLog, render, doCatch, getState, onGather, onPokeballCraft }) {
   if (elBtnGather) {
     let lastGatherAtMs = 0;
     elBtnGather.addEventListener("click", () => {
@@ -65,7 +67,9 @@ export function initBonfireTab({ elBonfireActions, elBtnGather, ui, getPokeballM
       const min = Math.min(100, 0.5 + tier * 0.35);
 
       const parts = [];
+      const catBefore = state?.res?.catnip?.value ?? 0;
       addRes("catnip", cat);
+      const catGained = Math.max(0, (state?.res?.catnip?.value ?? 0) - catBefore);
       parts.push(`树果 +${cat}`);
       if (state?.unlocks?.wood) {
         addRes("wood", wood);
@@ -76,6 +80,7 @@ export function initBonfireTab({ elBonfireActions, elBtnGather, ui, getPokeballM
         parts.push(`进化石碎片 +${min}`);
       }
       addLog(`采集：${parts.join("，")}`);
+      if (typeof onGather === "function") onGather(catGained);
       if (ui) ui.bonfireDirty = true;
       render();
     });
@@ -93,12 +98,20 @@ export function initBonfireTab({ elBonfireActions, elBtnGather, ui, getPokeballM
       const makeCost = getPokeballMakeCost(1, { consume: true });
       if (!canAfford(makeCost)) return;
       pay(makeCost);
-      addRes("pokeball", 1);
       const state = typeof getState === "function" ? getState() : null;
+      const before = state?.res?.pokeball?.value ?? 0;
+      addRes("pokeball", 1);
+      const after = state?.res?.pokeball?.value ?? before;
+      const made = Math.max(0, after - before);
+      const bonus = eraPokeballBonusCrafted(state, made);
+      if (bonus > 0) addRes("pokeball", bonus);
+      const afterBonus = state?.res?.pokeball?.value ?? after;
+      const bonusMade = Math.max(0, afterBonus - after);
       if (state && typeof state === "object") {
-        state.pokeballMade = Math.max(0, (state.pokeballMade ?? 0) + 1);
+        state.pokeballMade = Math.max(0, (state.pokeballMade ?? 0) + made + bonusMade);
       }
-      addLog("制作：精灵球 +1");
+      if (typeof onPokeballCraft === "function") onPokeballCraft(made + bonusMade);
+      addLog(`制作：精灵球 +${made + bonusMade}${bonusMade > 0 ? `（时代加成 +${bonusMade}）` : ""}`);
       if (ui) ui.bonfireDirty = true;
       render();
       return;

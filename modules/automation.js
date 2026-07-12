@@ -1,3 +1,5 @@
+import { bumpEraCounter, eraPokeballBonusCrafted } from "./systems/era.js";
+
 export function ensureAutoState(state) {
   if (!state.auto || typeof state.auto !== "object") {
     state.auto = {
@@ -180,8 +182,13 @@ export function runAutomation({
       addRes("pokeball", qty);
       const after = state.res.pokeball.value;
       const made = Math.max(0, after - before);
-      state.pokeballMade = Math.max(0, (state.pokeballMade ?? 0) + made);
-      if (made > 0) addLog(`自动制作：精灵球 +${made}`);
+      const bonus = eraPokeballBonusCrafted(state, made);
+      if (bonus > 0) addRes("pokeball", bonus);
+      const afterBonus = state.res.pokeball.value;
+      const bonusMade = Math.max(0, afterBonus - after);
+      state.pokeballMade = Math.max(0, (state.pokeballMade ?? 0) + made + bonusMade);
+      if (made + bonusMade > 0) bumpEraCounter(state, "pokeball_earned", made + bonusMade);
+      if (made > 0) addLog(`自动制作：精灵球 +${made + bonusMade}${bonusMade > 0 ? `（时代加成 +${bonusMade}）` : ""}`);
 
       ui.captureDirty = true;
     }
