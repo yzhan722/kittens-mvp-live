@@ -195,7 +195,8 @@ export const PVE_CHAPTERS = [
         enemies: [
           { dex: 148, name: "哈克龙", lvl: 37, stars: 1 },
           { dex: 148, name: "哈克龙", lvl: 37, stars: 1 },
-          { dex: 149, name: "快龙", lvl: 50, stars: 3 },
+          // stars 3→2：终盘血牛+超时假负；仍需克制与练级
+          { dex: 149, name: "快龙", lvl: 50, stars: 2 },
         ],
         rewards: { futurecoin: 300, exp: 8000, evolutionStone: 3, linkRope: 1 },
         repeatRewards: { futurecoin: 135, exp: 3600 },

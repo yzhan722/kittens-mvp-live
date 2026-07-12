@@ -1,6 +1,8 @@
 // PvE 关卡挑战 Tab — UI 渲染与交互
 import { PVE_CHAPTERS, PVE_DAILY_MAX, getStageById, isStageUnlocked } from "../pve_defs.js";
-import { simulateBattle } from "../pve_battle.js";
+import { simulateBattle, recommendedTypes, typeMatchScore } from "../pve_battle.js";
+import { getEraDefById } from "../defs_eras.js";
+import { ensureEra } from "../systems/era.js";
 
 export function createRenderPve({
   elPveList,
@@ -19,6 +21,8 @@ export function createRenderPve({
   getState,
   TYPE_ZH,
   dexCaughtUnique,
+  onPveAttempt,
+  onPveWin,
 }) {
   function ensurePveState(state) {
     if (!state.pve || typeof state.pve !== "object") {
@@ -51,6 +55,11 @@ export function createRenderPve({
     return types.filter((x) => typeof x === "string");
   }
 
+  function selectedStageType() {
+    const stageId = typeof ui.pveStage === "string" ? ui.pveStage : "";
+    return getStageById(stageId)?.stage?.type ?? null;
+  }
+
   return function renderPve() {
     if (!elPveList) return;
     if (ui.activeTab !== "pve") return;
@@ -65,6 +74,8 @@ export function createRenderPve({
     const progress = state.pve.progress;
     const dexCount = typeof dexCaughtUnique === "function" ? dexCaughtUnique() : 0;
     const typeMap = TYPE_ZH && typeof TYPE_ZH === "object" ? TYPE_ZH : {};
+    const era = ensureEra(state);
+    const eraDef = getEraDefById(era.id);
 
     const rows = [];
 
@@ -77,6 +88,17 @@ export function createRenderPve({
         </div>
       </div>
     `);
+
+    if (eraDef?.pveHint) {
+      rows.push(`
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">时代提示</div>
+            <div class="row__desc">${escapeHtml(eraDef.pveHint)}</div>
+          </div>
+        </div>
+      `);
+    }
 
     // 当前选中的章节/关卡
     const selChapter = typeof ui.pveChapter === "string" ? ui.pveChapter : PVE_CHAPTERS[0]?.id ?? "";
@@ -152,6 +174,11 @@ export function createRenderPve({
     if (stageInfo && isStageUnlocked(selStage, progress)) {
       const st = stageInfo.stage;
       const cleared = Boolean(progress[st.id]);
+      const recTypes = recommendedTypes(st.type);
+      const recText = recTypes.map((t) => typeMap[t] ?? t).join("、") || "无";
+      const enemyAvgLvl = Math.round(
+        st.enemies.reduce((s, e) => s + (e.lvl || 1), 0) / Math.max(1, st.enemies.length)
+      );
       const rewards = cleared ? (st.repeatRewards ?? st.rewards) : st.rewards;
       const rewardText = Object.entries(rewards).map(([k, v]) => {
         if (k === "exp") return `经验 +${v}（每只）`;
@@ -168,6 +195,8 @@ export function createRenderPve({
           <div class="row__left">
             <div class="row__title">${cleared ? "重复挑战" : "首次通关"}奖励</div>
             <div class="row__desc">${escapeHtml(rewardText)}</div>
+            <div class="row__desc">推荐属性：${escapeHtml(recText)}（优先能打又抗）</div>
+            <div class="row__desc muted">建议队伍等级约 ${enemyAvgLvl}+，星级越高越稳</div>
           </div>
         </div>
       `);
@@ -176,12 +205,30 @@ export function createRenderPve({
       const selectedIds = state.pve.selectedIds.slice(0, 6);
       const selectedMons = selectedIds.map((id) => list.find((m) => m && m.id === id)).filter(Boolean);
       const teamPower = selectedMons.reduce((s, m) => s + monPower(m), 0);
+      let matchSe = 0;
+      let matchWeak = 0;
+      let matchResist = 0;
+      for (const m of selectedMons) {
+        const ms = typeMatchScore(getMonTypes(m), st.type);
+        if (ms.se) matchSe += 1;
+        if (ms.weak) matchWeak += 1;
+        if (ms.resist) matchResist += 1;
+      }
+      const matchDesc = selectedMons.length
+        ? `克制 ${matchSe}/${selectedMons.length} · 抗性 ${matchResist} · 被克 ${matchWeak}`
+        : "未选择队员";
+      const matchWarn =
+        matchWeak > matchSe && selectedMons.length > 0
+          ? `<div class="row__desc" style="color:#f59e0b">编队偏被克，建议换推荐属性</div>`
+          : "";
 
       rows.push(`
         <div class="row">
           <div class="row__left">
             <div class="row__title">挑战队伍</div>
             <div class="row__desc">已选：${selectedMons.length} / 6 · 总战力：${Math.floor(teamPower)}</div>
+            <div class="row__desc">${escapeHtml(matchDesc)}</div>
+            ${matchWarn}
           </div>
           <div class="row__right">
             <button class="btn btn--small" data-pve-team-open>选择队员</button>
@@ -209,20 +256,28 @@ export function createRenderPve({
     if (ui.pveTeamModalOpen) {
       const selectedIds = state.pve.selectedIds.slice(0, 6);
       const selSet = new Set(selectedIds);
+      const stageType = selectedStageType();
       const candidates = list
         .filter((m) => m)
-        .map((m) => ({ m, power: monPower(m) }))
-        .sort((a, b) => b.power - a.power);
+        .map((m) => {
+          const types = getMonTypes(m);
+          const match = typeMatchScore(types, stageType);
+          return { m, power: monPower(m), types, match };
+        })
+        .sort((a, b) => b.match.score - a.match.score || b.power - a.power);
 
-      const candidateRows = candidates.map(({ m, power }) => {
+      const candidateRows = candidates.map(({ m, power, match }) => {
         const checked = selSet.has(m.id);
         const disabled = !checked && selectedIds.length >= 6;
         const types = getMonTypes(m).map((t) => typeMap[t] ?? t).join("/");
+        const stats = typeof getMonCurrentStats === "function" ? getMonCurrentStats(m) : null;
+        const lean = stats && (stats.spa ?? 0) >= (stats.atk ?? 0) ? "特" : "物";
+        const tag = match.se && match.resist ? "克+抗" : match.se ? "克制" : match.resist ? "抗性" : match.weak ? "被克" : "普通";
         return `
           <div class="row">
             <div class="row__left">
               <div class="row__title row__titleLine">${renderPokemonIcon(m.dex, m.name, Boolean(m.isShiny))}<span>${escapeHtml(m.name)} Lv.${m.lvl}</span></div>
-              <div class="row__desc">${escapeHtml(types || "-")} · 战力 ${Math.floor(power)}</div>
+              <div class="row__desc">${escapeHtml(types || "-")} · ${lean} · ${tag} · 战力 ${Math.floor(power)}</div>
             </div>
             <div class="row__right">
               <input class="chk" type="checkbox" data-pve-team-check="${m.id}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />
@@ -237,7 +292,7 @@ export function createRenderPve({
             <div class="modal__header">
               <div class="modal__title">选择挑战队员（最多 6 只）</div>
               <div class="modal__right">
-                <button class="btn btn--small" data-pve-team-auto>一键最强</button>
+                <button class="btn btn--small" data-pve-team-auto>一键克制优先</button>
                 <button class="btn btn--small" data-pve-team-clear>清空</button>
                 <button class="btn btn--small" data-pve-team-close>关闭</button>
               </div>
@@ -254,6 +309,18 @@ export function createRenderPve({
       const r = ui.pveBattleResult;
       const starIcons = [1, 2, 3].map((i) => `<span style="color:${i <= r.stars ? "#f5c542" : "#666"};font-size:1.5em">★</span>`).join("");
       const logHtml = r.log.map((l) => `<div class="row__desc">${escapeHtml(l)}</div>`).join("");
+      let tipHtml = "";
+      if (!r.win) {
+        if (r.endReason === "timeout") {
+          tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提示</div><div class="row__desc">超时未压过对手生命。提高等级/星级，或换「能打又抗」的属性。</div></div></div>`;
+        } else if (r.superEffectiveHits === 0) {
+          tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提示</div><div class="row__desc">没有打出克制伤害，试试推荐属性。</div></div></div>`;
+        } else {
+          tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提示</div><div class="row__desc">属性方向对了，但练度不够。参考建议等级再练练。</div></div></div>`;
+        }
+      } else if (r.endReason === "decision") {
+        tipHtml = `<div class="row"><div class="row__left"><div class="row__title">判定胜利</div><div class="row__desc">超时按剩余生命险胜（1星）。想稳定三星请再练级。</div></div></div>`;
+      }
       resultModalHtml = `
         <div class="modalOverlay" data-pve-result-overlay="1">
           <div class="modal">
@@ -263,7 +330,8 @@ export function createRenderPve({
                 <button class="btn btn--small" data-pve-result-close>关闭</button>
               </div>
             </div>
-            <div class="modal__body" style="max-height:400px;overflow-y:auto">
+              <div class="modal__body" style="max-height:400px;overflow-y:auto">
+              ${tipHtml}
               ${r.rewardText ? `<div class="row"><div class="row__left"><div class="row__title">获得奖励</div><div class="row__desc">${escapeHtml(r.rewardText)}</div></div></div>` : ""}
               <div class="sidebar__divider"></div>
               <div class="row"><div class="row__left"><div class="row__title">战斗日志（${r.rounds}回合）</div></div></div>
@@ -292,16 +360,30 @@ export function createRenderPve({
     state.pve.dailyAttempts++;
 
     // 准备玩家队伍数据
-    const team = selectedMons.map((m) => ({
-      id: m.id,
-      name: m.name,
-      types: getMonTypes(m),
-      stats: typeof getMonCurrentStats === "function" ? getMonCurrentStats(m) : { hp: 50, atk: 20, def: 20, spe: 20 },
-    }));
+    const team = selectedMons.map((m) => {
+      const stats0 = typeof getMonCurrentStats === "function" ? getMonCurrentStats(m) : { hp: 50, atk: 20, def: 20, spa: 20, spd: 20, spe: 20 };
+      const hasMegaAura =
+        typeof m.megaAuraRemainingSec === "number" && Number.isFinite(m.megaAuraRemainingSec) && m.megaAuraRemainingSec > 0;
+      const stats = hasMegaAura
+        ? Object.fromEntries(Object.entries(stats0).map(([k, v]) => [k, Math.max(1, Math.floor((typeof v === "number" ? v : 0) * 1.2))]))
+        : stats0;
+      return {
+        id: m.id,
+        name: m.name,
+        types: getMonTypes(m),
+        stats,
+      };
+    });
 
-    const result = simulateBattle(team, st.enemies, st.type);
+    const darkBoostOn =
+      typeof state.skills?.darkPveDamageBoostRemainingSec === "number" &&
+      Number.isFinite(state.skills.darkPveDamageBoostRemainingSec) &&
+      state.skills.darkPveDamageBoostRemainingSec > 0;
+    const result = simulateBattle(team, st.enemies, st.type, { playerDamageMul: darkBoostOn ? 1.5 : 1 });
+    if (typeof onPveAttempt === "function") onPveAttempt();
 
     if (result.win) {
+      if (typeof onPveWin === "function") onPveWin();
       const cleared = Boolean(state.pve.progress[st.id]);
       const bestStars = typeof state.pve.progress[`${st.id}_stars`] === "number" ? state.pve.progress[`${st.id}_stars`] : 0;
       state.pve.progress[st.id] = true;
@@ -422,12 +504,19 @@ export function createRenderPve({
       });
     });
 
-    // 一键最强
+    // 一键克制优先（能打又抗 > 纯克制 > 战力）
     el.querySelectorAll("[data-pve-team-auto]").forEach((btn) => {
       btn.addEventListener("click", () => {
         ensurePveState(state);
         const mons = Array.isArray(state.mons?.list) ? state.mons.list : [];
-        const sorted = mons.filter(Boolean).map((m) => ({ m, p: monPower(m) })).sort((a, b) => b.p - a.p);
+        const stageType = selectedStageType();
+        const sorted = mons
+          .filter(Boolean)
+          .map((m) => {
+            const match = typeMatchScore(getMonTypes(m), stageType);
+            return { m, p: monPower(m), match };
+          })
+          .sort((a, b) => b.match.score - a.match.score || b.p - a.p);
         state.pve.selectedIds = sorted.slice(0, 6).map((x) => x.m.id);
         ui.pveDirty = true;
         if (typeof render === "function") render();
