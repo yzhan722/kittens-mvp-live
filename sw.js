@@ -1,12 +1,11 @@
-// Service Worker v0.40.0
-// 策略：HTML/JS/CSS Network First（确保F5刷新时强制获取最新版本），数据文件 Cache First
+﻿// Service Worker v0.40.1
+// 绛栫暐锛欻TML/JS/CSS Network First锛堢‘淇滷5鍒锋柊鏃跺己鍒惰幏鍙栨渶鏂扮増鏈級锛屾暟鎹枃浠?Cache First
 
-const CACHE_VERSION = 'kittens-v0.40.0';
+const CACHE_VERSION = 'kittens-v0.40.1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
-// 需要预缓存的静态资源
-const PRECACHE_URLS = [
+// 闇€瑕侀缂撳瓨鐨勯潤鎬佽祫婧?const PRECACHE_URLS = [
   './',
   './index.html',
   './styles.css',
@@ -15,8 +14,7 @@ const PRECACHE_URLS = [
   './assets/donate_qr.jpg',
 ];
 
-// 数据文件（pokemon data）单独缓存，版本更新时一并清除
-const DATA_URLS = [
+// 鏁版嵁鏂囦欢锛坧okemon data锛夊崟鐙紦瀛橈紝鐗堟湰鏇存柊鏃朵竴骞舵竻闄?const DATA_URLS = [
   './data/pokemon_zh.js',
   './data/pokemon_tier.js',
   './data/pokemon_catch_rate.js',
@@ -50,10 +48,10 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 非同源请求直接走网络
+  // 闈炲悓婧愯姹傜洿鎺ヨ蛋缃戠粶
   if (url.origin !== self.location.origin) return;
 
-  // API 请求：Network First
+  // API 璇锋眰锛歂etwork First
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request).catch(() =>
@@ -66,8 +64,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // pokemon data 文件：Cache First（数据量大，版本号变化时自动miss）
-  if (url.pathname.startsWith('/data/')) {
+  // pokemon data 鏂囦欢锛欳ache First锛堟暟鎹噺澶э紝鐗堟湰鍙峰彉鍖栨椂鑷姩miss锛?  if (url.pathname.startsWith('/data/')) {
     event.respondWith(
       caches.open(DATA_CACHE).then((cache) =>
         cache.match(request).then((cached) => {
@@ -82,9 +79,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML / JS / CSS：Network First，网络失败时回退缓存
-  // 这样普通 F5 刷新时总是尝试获取最新版本，只有离线时才用缓存
-  event.respondWith(
+  // HTML / JS / CSS锛歂etwork First锛岀綉缁滃け璐ユ椂鍥為€€缂撳瓨
+  // 杩欐牱鏅€?F5 鍒锋柊鏃舵€绘槸灏濊瘯鑾峰彇鏈€鏂扮増鏈紝鍙湁绂荤嚎鏃舵墠鐢ㄧ紦瀛?  event.respondWith(
     fetch(request)
       .then((res) => {
         if (res.ok && request.method === 'GET') {
