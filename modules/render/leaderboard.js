@@ -2,6 +2,7 @@
 // 维护者窗口：C（渲染）/ 数据刷新仍在 app.js SECTION:LEADERBOARD_DATA
 
 import { seasonBarVsGhosts, seasonLocalScore, canClaimLbRivalReward, markLbRivalRewardClaimed, localDateStr } from "../systems/gameplay_fun.js";
+import { ghostRivalsForDay } from "../systems/world_presence.js";
 
 export function createRenderLeaderboard({
   elLeaderboard,
@@ -130,19 +131,14 @@ export function createRenderLeaderboard({
       `);
     }
 
-    // 本地幽灵对手（静态 NPC 分数，无服务器）
+    // 本地幽灵对手（按日漂移，无人也有追赶感）
     {
-      const ghosts = [
-        { name: "幽灵·短裤小子", dex: 12, power: 800 },
-        { name: "幽灵·迷你裙", dex: 35, power: 2200 },
-        { name: "幽灵·精英阿哲", dex: 80, power: 12000 },
-        { name: "幽灵·道馆影子", dex: 120, power: 28000 },
-      ];
+      const ghosts = ghostRivalsForDay(localDateStr());
       rows.push(`
         <div class="row">
           <div class="row__left">
-            <div class="row__title">幽灵对手（本地）</div>
-            <div class="row__desc">与静态 NPC 分数对比，不上传。</div>
+            <div class="row__title">幽灵对手（今日）</div>
+            <div class="row__desc">分数每日微变，不上传；刷新日换一批压力。</div>
           </div>
         </div>
       `);

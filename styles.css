@@ -13,6 +13,7 @@
   --shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
   --ticker-h: 0px;
   --ticker-dur: 20s;
+  --world-pulse-h: 22px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -35,7 +36,7 @@ body {
 
 body {
   margin: 0;
-  padding-top: var(--ticker-h);
+  padding-top: calc(var(--ticker-h) + var(--world-pulse-h));
   font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   color: var(--text);
   background: radial-gradient(1200px 600px at 20% -10%, rgba(239, 68, 68, 0.20), transparent 60%),
@@ -108,9 +109,30 @@ body {
    }
  }
 
+.worldPulse {
+  position: fixed;
+  top: var(--ticker-h);
+  left: 0;
+  right: 0;
+  z-index: 49;
+  height: var(--world-pulse-h);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.62);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 15, 23, 0.72);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .topbar {
   position: sticky;
-  top: var(--ticker-h);
+  top: calc(var(--ticker-h) + var(--world-pulse-h));
   z-index: 20;
   display: flex;
   align-items: center;

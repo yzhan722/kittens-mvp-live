@@ -1,6 +1,7 @@
 // Gameplay fun helpers — abilities, lucky type-day, catch streak
 import { monPassive } from "../abilities.js";
 import { formatPvpSeasonStats } from "./pvp_narrative.js";
+import { seasonGhostsForDay } from "./world_presence.js";
 
 const TYPE_POOL = [
   "normal", "fire", "water", "grass", "electric", "ice", "fighting", "poison",
@@ -519,10 +520,10 @@ export const SEASON_GHOST_RIVALS = [
   { name: "道馆影子", score: 1800 },
 ];
 
-/** Returns progress line vs next/top ghost. */
-export function seasonBarVsGhosts(myScore, ghosts = SEASON_GHOST_RIVALS) {
+/** Returns progress line vs next/top ghost (daily-drifting scores by default). */
+export function seasonBarVsGhosts(myScore, ghosts) {
   const score = Math.max(0, Math.floor(myScore || 0));
-  const list = Array.isArray(ghosts) ? ghosts.slice().sort((a, b) => a.score - b.score) : [];
+  const list = (Array.isArray(ghosts) ? ghosts : seasonGhostsForDay()).slice().sort((a, b) => a.score - b.score);
   const top = list.length ? list[list.length - 1] : { name: "顶端", score: score };
   const next = list.find((g) => g.score > score) || null;
   const beaten = list.filter((g) => score >= g.score).length;

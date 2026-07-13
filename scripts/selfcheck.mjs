@@ -436,6 +436,27 @@ assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
   assert(lines.some((x) => x.includes("霸凌")), "buff strip dark");
 }
 
+{
+  const {
+    ambientWorldLine,
+    ambientWorldBatch,
+    ghostRivalsForDay,
+    seasonGhostsForDay,
+    bossHudLine,
+  } = await import("../modules/systems/world_presence.js");
+  assert(typeof ambientWorldLine() === "string" && ambientWorldLine().length > 4, "ambient line");
+  assert(ambientWorldBatch(1, 3).length === 3, "ambient batch");
+  const g1 = ghostRivalsForDay("2026-07-13");
+  const g2 = ghostRivalsForDay("2026-07-13");
+  const g3 = ghostRivalsForDay("2026-07-14");
+  assert(g1.length === 4 && g1[0].dex === g2[0].dex, "ghost day stable");
+  assert(g1[0].dex !== g3[0].dex || g1[0].power !== g3[0].power, "ghost day drifts");
+  const s1 = seasonGhostsForDay("2026-07-13");
+  assert(s1.length === 4 && s1[0].score > 0, "season ghosts");
+  assert(bossHudLine(null).includes("林佬"), "boss hud empty");
+  assert(bossHudLine({ hp: 50, maxHp: 100 }).includes("50/100"), "boss hud hp");
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const era = spawnSync(process.execPath, [path.join(__dirname, "era-selfcheck.mjs")], { stdio: "inherit" });
 if (era.status !== 0) failed += 1;

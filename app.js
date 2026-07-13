@@ -72,12 +72,12 @@ import {
 import { computeDerived as computeDerivedCore } from "./modules/systems/compute_derived.js";
 import { createCaptureSystem } from "./modules/app/capture_system.js";
 import { awardCaughtPokemon as awardCaughtPokemonCore } from "./modules/app/capture_award.js";
-import { createTickerSystem } from "./modules/app/ticker.js";
+import { createTickerSystem } from "./modules/app/ticker.js?v=0.41.2";
 import { createRenderPve } from "./modules/tabs/pve_tab.js";
 import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
 import { createSocialSystem } from "./modules/social.js";
 import { createRenderSocial } from "./modules/render/social.js";
-import { createRenderLeaderboard } from "./modules/render/leaderboard.js";
+import { createRenderLeaderboard } from "./modules/render/leaderboard.js?v=0.41.2";
 import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.41.0";
 import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.41.0";
 import {
@@ -978,7 +978,14 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
 
   function tryAdvanceEra() {
     const advanced = advanceEra(state, { addLog, getCaptureAreas });
-    if (advanced) markCaptureDirty();
+    if (advanced) {
+      markCaptureDirty();
+      try {
+        const eraName = state.era?.id || "下一时代";
+        pushTickerEvent("era", `迈入时代 ${eraName}`);
+      } catch {
+      }
+    }
     return advanced;
   }
 
@@ -2577,6 +2584,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     pay,
     getPokeballMakeCost,
     getState: () => state,
+    pushTickerEvent,
   });
 
   renderCapture = createRenderCapture({

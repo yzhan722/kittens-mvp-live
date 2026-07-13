@@ -2,6 +2,8 @@
 // 维护者窗口：B
 // 注：含 DOM/网络，放 modules/app/（非 systems 纯函数）
 
+import { ambientWorldBatch, ambientWorldLine, bossHudLine } from "../systems/world_presence.js";
+
 export function createTickerSystem({
   getElTicker,
   getUi,
@@ -30,6 +32,8 @@ export function createTickerSystem({
   let TICKER_SEEN_EVENT_IDS = new Set();
   let TICKER_BASE_DUR_SEC = 0;
   let TICKER_TIMER_ID = null;
+  let TICKER_AMBIENT_TICK = 0;
+  let TICKER_LAST_BOSS_LINE = "";
 
   function elTicker() {
     return typeof getElTicker === "function" ? getElTicker() : null;
@@ -147,13 +151,53 @@ export function createTickerSystem({
     }
   }
 
+  function enqueueLocal(type, msg, { eventId = 0 } = {}) {
+    const text = String(msg || "").replace(/\s+/g, " ").trim();
+    if (!text || shouldSuppressTickerMsg(text)) return;
+    const ty = String(type || "event").slice(0, 32);
+    const repeat = ty === "mythic" || ty === "shiny" ? 2 : 1;
+    for (let r = 0; r < repeat; r += 1) {
+      TICKER_QUEUE.push({ qid: TICKER_QSEQ++, eventId: eventId || 0, msg: text, type: ty });
+    }
+    if (TICKER_QUEUE.length > 200) TICKER_QUEUE = TICKER_QUEUE.slice(-200);
+    tryStartTicker();
+  }
+
+  function injectAmbientIfQuiet() {
+    TICKER_AMBIENT_TICK += 1;
+    const busy = TICKER_LANE_BUSY.some((x) => x) || TICKER_QUEUE.length > 0;
+    // ~每 3 次轮询（约 12s）补一条氛围；队列空时更勤
+    const due = !busy || TICKER_AMBIENT_TICK % 3 === 0;
+    if (!due) return;
+    const ui = typeof getUi === "function" ? getUi() : null;
+    const bossLine = bossHudLine(ui?.bossBully);
+    if (bossLine && bossLine !== TICKER_LAST_BOSS_LINE && ui?.bossBully) {
+      TICKER_LAST_BOSS_LINE = bossLine;
+      enqueueLocal("boss", `全服·${bossLine}`);
+      return;
+    }
+    const batch = ambientWorldBatch(nowMs(), busy ? 1 : 2);
+    for (const it of batch) enqueueLocal(it.type, it.msg);
+  }
+
+  function syncWorldPulse() {
+    const el = document.getElementById("worldPulse");
+    if (!el) return;
+    const ui = typeof getUi === "function" ? getUi() : null;
+    const boss = bossHudLine(ui?.bossBully);
+    const tip = ambientWorldLine(nowMs(), 99);
+    el.textContent = ui?.bossBully ? `${boss} · ${tip}` : tip;
+  }
+
   async function pollTickerOnce() {
     const base = lbBaseUrl();
+    let gotRemote = false;
     try {
       const res = await lbFetchJson(`${base}/api/events/pull?since=${encodeURIComponent(String(TICKER_LAST_ID || 0))}&limit=30`);
       const items = Array.isArray(res?.items) ? res.items : [];
       const lastId = typeof res?.lastId === "number" && Number.isFinite(res.lastId) ? Math.floor(res.lastId) : TICKER_LAST_ID;
       if (items.length) {
+        gotRemote = true;
         const now = nowMs();
         const maxAgeMs = 6 * 60 * 60 * 1000;
         for (const it of items) {
@@ -166,12 +210,8 @@ export function createTickerSystem({
           TICKER_SEEN_EVENT_IDS.add(id);
           if (shouldSuppressTickerMsg(msg)) continue;
           if (ts > 0 && now - ts > maxAgeMs) continue;
-          const repeat = type === "mythic" ? 3 : type === "shiny" ? 3 : 1;
-          for (let r = 0; r < repeat; r += 1) {
-            TICKER_QUEUE.push({ qid: TICKER_QSEQ++, eventId: id, msg, type });
-          }
+          enqueueLocal(type, msg, { eventId: id });
         }
-        if (TICKER_QUEUE.length > 200) TICKER_QUEUE = TICKER_QUEUE.slice(-200);
       }
       TICKER_LAST_ID = Math.max(TICKER_LAST_ID, lastId);
       try {
@@ -179,15 +219,21 @@ export function createTickerSystem({
         else localStorage.setItem(TICKER_LAST_ID_KEY, String(TICKER_LAST_ID));
       } catch {
       }
-      tryStartTicker();
     } catch {
     }
+    if (!gotRemote) injectAmbientIfQuiet();
+    else if (TICKER_AMBIENT_TICK % 5 === 0) injectAmbientIfQuiet();
+    else TICKER_AMBIENT_TICK += 1;
+    syncWorldPulse();
   }
 
   function ensureTickerPolling() {
     if (!elTicker()) return;
     if (TICKER_TIMER_ID) return;
     setTickerVisible(false);
+    // 首屏先灌氛围，避免空白跑马灯
+    injectAmbientIfQuiet();
+    syncWorldPulse();
     pollTickerOnce();
     TICKER_TIMER_ID = window.setInterval(() => {
       pollTickerOnce();
@@ -199,11 +245,14 @@ export function createTickerSystem({
     const base = lbBaseUrl();
     const name = typeof ui?.lbName === "string" && ui.lbName.trim() ? ui.lbName.trim() : "训练家";
     if (shouldSuppressTickerMsg(msg)) return;
+    const full = String(`${name}：${String(msg || "")}`).slice(0, 200);
+    // 本地立刻可见（不等服务端 pull / 不依赖登录）
+    enqueueLocal(type, full);
     const body = {
       type: String(type || "event").slice(0, 32),
       uid: ui?.lbUid,
       name,
-      msg: String(`${name}：${String(msg || "")}`).slice(0, 200),
+      msg: full,
     };
     try {
       if (typeof lbFetchJson === "function") {
@@ -227,5 +276,6 @@ export function createTickerSystem({
     pushTickerEvent,
     ensureTickerPolling,
     shouldSuppressTickerMsg,
+    syncWorldPulse,
   };
 }

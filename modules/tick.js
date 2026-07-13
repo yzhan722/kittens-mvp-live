@@ -38,6 +38,7 @@ export function createTick(ctx) {
   const pay = ctx.pay;
   const getPokeballMakeCost = ctx.getPokeballMakeCost;
   const getState = ctx.getState;
+  const pushTickerEvent = ctx.pushTickerEvent;
   const onResearchComplete = ctx.onResearchComplete;
 
   // Cached monById/aliveSet — only rebuilt when mons list changes
@@ -1087,6 +1088,9 @@ export function createTick(ctx) {
 
         addLog(wasQuick ? "远征完成（急行）" : "远征完成", true);
         if (eventCard?.title) addLog(`奇遇：${eventCard.title} — ${eventCard.blurb}`, true);
+        if (typeof pushTickerEvent === "function") {
+          pushTickerEvent("expedition", wasQuick ? "远征完成（急行）" : "远征完成");
+        }
         if (ui) {
           ui.expeditionRewardModalOpen = true;
           ui.expeditionRewardModalData = {
