@@ -574,7 +574,10 @@ export function initMonsTab({
       if (batchReleaseBtn && elMonList.contains(batchReleaseBtn)) {
         if (batchReleaseBtn.disabled) return;
         const list = state.mons?.list ?? [];
-        const ids = pickWeakMonIds(list, { protectIds: busyMonIds(state) });
+        const ids = pickWeakMonIds(list, {
+          protectIds: busyMonIds(state),
+          smartProtect: true,
+        });
         if (!ids.length) {
           addLog("批量放生：盒子未满或没有可放生的弱宠", true);
           return;

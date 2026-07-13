@@ -247,9 +247,13 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
         result.battleLog
       );
 
-      const line = summarizePvpBattle(result);
-      addLog(`PvP：${line}`, result.winner === 2);
       if (!ui.pvpRecent) ui.pvpRecent = [];
+      const recentWithCurrent = [{ winner: result.winner }, ...ui.pvpRecent];
+      const line = summarizePvpBattle(result, "你", {
+        seasonId: ui.remoteConfig?.seasonId,
+        recent: recentWithCurrent,
+      });
+      addLog(`PvP：${line}`, result.winner === 2);
       ui.pvpRecent.unshift({ line, winner: result.winner, at: Date.now() });
       ui.pvpRecent = ui.pvpRecent.slice(0, 5);
 

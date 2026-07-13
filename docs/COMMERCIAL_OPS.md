@@ -10,19 +10,26 @@
 - [ ] `node scripts/analytics-selfcheck.mjs` 绿
 - [ ] `node scripts/daily_tasks-selfcheck.mjs` 绿
 - [ ] `node scripts/e2e-smoke.mjs` 绿（关键文件 + analytics/daily_tasks/era 子自检）
+- [ ] `node scripts/playwright-smoke.mjs`：安装 Playwright 时真跑；未安装只会明确 `SKIP`
 - [ ] GitHub Actions `selfcheck` workflow 全步骤过
 
 ## D1 迁移
 
 - [ ] 增量 migration（`migrations/*.sql`、`scripts/migrations/*.sql`），**禁止**未授权全量 `d1_schema.sql`
-- [ ] 新表/列上线前在 staging D1 跑一遍，再 prod
+- [ ] 本地逐个验证：
+  - `npx wrangler d1 execute kittens-mvp --local --file scripts/migrations/2026-07-12-rate-limits.sql`
+  - `npx wrangler d1 execute kittens-mvp --local --file scripts/migrations/2026-07-13-iap-orders.sql`
+- [ ] 本地验证通过后，先备份/确认 D1 环境，再将同一命令改为 `--remote` 执行
+- [ ] Prod 执行后查询 `rate_limits`、`iap_orders` 表存在；记录执行时间与操作者
+- [ ] 当前状态：上述两个 Prod migration **尚未确认 apply**
 
 ## IAP / 赞助（诚实桩）
 
 - [ ] `modules/iap_stub.js`：`purchase()` 无 `window.KITTENS_IAP_PROVIDER` 时返回 `{ ok:false, reason:'provider_unconfigured' }`，**不得**伪造支付成功
-- [ ] `GET /api/iap/catalog` 公开只读目录；`POST /api/iap/webhook` 暂 501
+- [ ] `GET /api/iap/catalog` 公开只读目录
+- [ ] `POST /api/iap/webhook`：未配置 `IAP_WEBHOOK_SECRET` 时拒绝；配置后验签并写 `pending` 台账
 - [ ] 设置页「支持开发者」展示赞助 QR + 目录「即将上线」列表
-- [ ] 真商户接入：配置 provider、验签 webhook、D1 履约台账后再开 `iap_enabled`
+- [ ] 真商户接入：配置 provider、履约 worker 与退款/幂等流程后再开 `iap_enabled`
 
 ## 写接口鉴权
 

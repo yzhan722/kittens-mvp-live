@@ -282,12 +282,31 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
     { softLimit: 1, batch: 2, protectIds: new Set([2]) }
   );
   assert(ids.length === 2 && !ids.includes(2), "pick weak mon ids");
+  const smartIds = pickWeakMonIds(
+    [
+      { id: 1, pid: "a", lvl: 1, dex: 1, baseStats: bs, iv, isShiny: true },
+      { id: 2, pid: "b", lvl: 1, dex: 2, baseStats: bs, iv, stars: 1 },
+      { id: 3, pid: "c", lvl: 1, dex: 3, baseStats: bs, iv },
+      { id: 4, pid: "c", lvl: 2, dex: 3, baseStats: bs, iv },
+    ],
+    { softLimit: 1, batch: 3, smartProtect: true }
+  );
+  assert(
+    smartIds.length === 1 && smartIds[0] === 3,
+    "smart release protects shiny, starred, and sole species"
+  );
   const pvpLine = summarizePvpBattle({
     winner: 2,
     rounds: 8,
     battleLog: ["你 派出 皮卡丘！", "对手 倒下了！", "你获胜！"],
   });
   assert(pvpLine.includes("险胜"), "pvp narrative win");
+  const seasonLine = summarizePvpBattle(
+    { winner: 2, rounds: 4, battleLog: [] },
+    "你",
+    { seasonId: "s3", recent: [{ winner: 2 }, { winner: 2 }] }
+  );
+  assert(seasonLine.includes("赛季 s3") && seasonLine.includes("2 连胜"), "pvp season narrative");
 }
 
 import { createPvpBattle } from "../modules/pvp_battle.js";

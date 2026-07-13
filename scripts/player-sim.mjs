@@ -297,7 +297,10 @@ function pveTeamScore(mon, stage) {
 
 function tryReleaseWeakMons() {
   const list = state.mons?.list || [];
-  const ids = pickWeakMonIds(list, { protectIds: busyMonIds(state) });
+  const ids = pickWeakMonIds(list, {
+    protectIds: busyMonIds(state),
+    smartProtect: true,
+  });
   if (!ids.length) return 0;
   return releaseMonIds(state, ids).removed;
 }

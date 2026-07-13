@@ -28,12 +28,36 @@ export function pickWeakMonIds(list, opts = {}) {
   const batch = opts.batch ?? BOX_RELEASE_BATCH;
   const protect = opts.protectIds ?? new Set();
   if (!Array.isArray(list) || list.length <= softLimit) return [];
+  const speciesCounts = opts.smartProtect
+    ? list.reduce((counts, m) => {
+        if (m?.pid) counts.set(m.pid, (counts.get(m.pid) || 0) + 1);
+        return counts;
+      }, new Map())
+    : null;
   const ranked = list
-    .filter((m) => m && !protect.has(m.id))
+    .filter(
+      (m) =>
+        m &&
+        !protect.has(m.id) &&
+        (!opts.smartProtect ||
+          (!m.isShiny &&
+            Math.max(0, Math.floor(m.stars || 0)) === 0 &&
+            (!m.pid || (speciesCounts.get(m.pid) || 0) > 1)))
+    )
     .slice()
     .sort((a, b) => monPower(a) - monPower(b) || (a.lvl || 1) - (b.lvl || 1));
   const dropN = Math.min(batch, list.length - softLimit);
-  return ranked.slice(0, dropN).map((m) => m.id);
+  if (!opts.smartProtect) return ranked.slice(0, dropN).map((m) => m.id);
+
+  const remaining = new Map(speciesCounts);
+  const ids = [];
+  for (const mon of ranked) {
+    if (ids.length >= dropN) break;
+    if (mon.pid && (remaining.get(mon.pid) || 0) <= 1) continue;
+    ids.push(mon.id);
+    if (mon.pid) remaining.set(mon.pid, (remaining.get(mon.pid) || 0) - 1);
+  }
+  return ids;
 }
 
 /** Remove mons by id; returns { removed, candy, sampleNames }. */

@@ -205,7 +205,10 @@ export function createRenderMons({
         if (cdCnt > 0) batchSkillCooldownCounts[t] = cdCnt;
       }
       const hasBatchSkill = Object.keys(batchSkillCounts).length > 0 || Object.keys(batchSkillCooldownCounts).length > 0;
-      const batchReleaseIds = pickWeakMonIds(filtered, { protectIds: busyMonIds(state) });
+      const batchReleaseIds = pickWeakMonIds(filtered, {
+        protectIds: busyMonIds(state),
+        smartProtect: true,
+      });
       const canBatchRelease = batchReleaseIds.length > 0;
 
       if (elMonPageInfo) {
