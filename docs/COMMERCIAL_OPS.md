@@ -17,7 +17,7 @@
 ## D1 迁移
 
 - [ ] 增量 migration（`migrations/*.sql`、`scripts/migrations/*.sql`），**禁止**未授权全量 `d1_schema.sql`
-- [ ] 本地逐个验证：
+- [ ] `node scripts/apply-d1-migrations.mjs`（本地 `--local`；上线前改 `--remote`）
   - `npx wrangler d1 execute kittens-mvp --local --file scripts/migrations/2026-07-12-rate-limits.sql`
   - `npx wrangler d1 execute kittens-mvp --local --file scripts/migrations/2026-07-13-iap-orders.sql`
 - [ ] 本地验证通过后，先备份/确认 D1 环境，再将同一命令改为 `--remote` 执行

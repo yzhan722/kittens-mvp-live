@@ -599,19 +599,26 @@ export function loadFromRaw(raw) {
 
   if (data.meta && typeof data.meta === "object") {
 
+    const {
+      createdAt: createdAtRaw,
+      lastSavedAt: lastSavedAtRaw,
+      saveVersion: _saveVersion,
+      ...restMeta
+    } = data.meta;
+
     const createdAt =
 
-      typeof data.meta.createdAt === "number" && Number.isFinite(data.meta.createdAt)
+      typeof createdAtRaw === "number" && Number.isFinite(createdAtRaw)
 
-        ? data.meta.createdAt
+        ? createdAtRaw
 
         : t0;
 
     const lastSavedAt =
 
-      typeof data.meta.lastSavedAt === "number" && Number.isFinite(data.meta.lastSavedAt)
+      typeof lastSavedAtRaw === "number" && Number.isFinite(lastSavedAtRaw)
 
-        ? data.meta.lastSavedAt
+        ? lastSavedAtRaw
 
         : t0;
 
@@ -619,13 +626,13 @@ export function loadFromRaw(raw) {
 
       ...s.meta,
 
+      ...restMeta,
+
       createdAt,
 
       lastSavedAt,
 
     };
-
-    if (data.meta.starterBallsGranted) s.meta.starterBallsGranted = true;
 
   }
 

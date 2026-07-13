@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Minimal self-check for pure modules (no test framework)
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
@@ -37,7 +38,12 @@ import { computeDerived as computeDerivedCore } from "../modules/systems/compute
 import { awardCaughtPokemon as awardCaughtCore } from "../modules/app/capture_award.js";
 import { pickWeakMonIds, releaseCandyRefund } from "../modules/systems/mon_release.js";
 import { resetEvoFamilyCacheForTest } from "../modules/evo_utils.js";
-import { summarizePvpBattle } from "../modules/systems/pvp_narrative.js";
+import {
+  bumpPvpSeasonStats,
+  formatPvpSeasonStats,
+  normalizePvpRecent,
+  summarizePvpBattle,
+} from "../modules/systems/pvp_narrative.js";
 import { techReqHint } from "../modules/tech_req_hint.js";
 import { getTypeMul, TYPE_MUL } from "../modules/type_chart.js";
 import {
@@ -322,6 +328,25 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
     { seasonId: "s3", recent: [{ winner: 2 }, { winner: 2 }] }
   );
   assert(seasonLine.includes("赛季 s3") && seasonLine.includes("2 连胜"), "pvp season narrative");
+  const rareIds = pickWeakMonIds(
+    [
+      { id: 20, pid: "a", lvl: 10, dex: 1, tier: "rare", baseStats: bs, iv },
+      { id: 21, pid: "a", lvl: 1, dex: 1, tier: "common", baseStats: bs, iv },
+      { id: 22, pid: "a", lvl: 2, dex: 1, tier: "common", baseStats: bs, iv },
+    ],
+    { softLimit: 1, batch: 1, smartProtect: true }
+  );
+  assert(rareIds.length === 1 && rareIds[0] === 21, "smart release protects rare tier");
+  const recent = normalizePvpRecent([{ line: "test", winner: 2, at: 1 }, { bad: true }]);
+  assert(recent.length === 1 && recent[0].line === "test", "normalize pvp recent");
+  const meta = {};
+  bumpPvpSeasonStats(meta, 2);
+  bumpPvpSeasonStats(meta, 1);
+  assert(formatPvpSeasonStats(meta.pvpStats) === "本赛季 1胜1负", "pvp season stats");
+  assert(
+    existsSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "apply-d1-migrations.mjs")),
+    "apply d1 migrations script exists"
+  );
 }
 
 import { createPvpBattle } from "../modules/pvp_battle.js";

@@ -3,6 +3,7 @@ import { monPower } from "../mons.js";
 
 export const BOX_SOFT_LIMIT = 120;
 export const BOX_RELEASE_BATCH = 24;
+const KEEP_TIERS = new Set(["rare", "epic", "legendary"]);
 
 export function releaseCandyRefund(power) {
   const p = typeof power === "number" && Number.isFinite(power) ? power : 0;
@@ -49,6 +50,7 @@ export function pickWeakMonIds(list, opts = {}) {
         !protect.has(m.id) &&
         (!opts.smartProtect ||
           (!m.isShiny &&
+            !KEEP_TIERS.has(m.tier) &&
             Math.max(0, Math.floor(m.stars || 0)) === 0 &&
             (!m.pid || (speciesCounts.get(m.pid) || 0) > 1) &&
             (!m.pid || (familyCounts.get(getEvoFamilyId(m.pid)) || 0) > 1)))

@@ -51,6 +51,12 @@ export function getEvoFamilyId(pid) {
   return EVO_FAMILY_ID_BY_PID.get(pid) ?? pid;
 }
 
+export function isSameEvoFamily(pidA, pidB) {
+  if (!pidA || !pidB) return false;
+  if (pidA === pidB) return true;
+  return getEvoFamilyId(pidA) === getEvoFamilyId(pidB);
+}
+
 function getEvoReqMap() {
   const m = globalThis.POKEMON_EVO_REQ;
   return m && typeof m === "object" ? m : {};

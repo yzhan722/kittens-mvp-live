@@ -5,7 +5,7 @@ import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.40.1";
 import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.40.1";
 import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.40.1";
 import { createPokeApiClient } from "./modules/pokeapi_client.js";
-import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.40.1";
+import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isSameEvoFamily, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.40.1";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js";
@@ -2125,64 +2125,6 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     return true;
   }
 
-  let EVO_FAMILY_ID_BY_PID = null;
-  function buildEvoFamilyIdMap() {
-    const evo = getEvoMap();
-    if (!evo || typeof evo !== "object") return null;
-
-    const adj = {};
-    const ensure = (pid) => {
-      if (!pid || typeof pid !== "string") return;
-      if (!adj[pid]) adj[pid] = new Set();
-    };
-
-    for (const [from, tos] of Object.entries(evo)) {
-      if (typeof from !== "string") continue;
-      if (!Array.isArray(tos)) continue;
-      ensure(from);
-      for (const to of tos) {
-        if (typeof to !== "string") continue;
-        ensure(to);
-        adj[from].add(to);
-        adj[to].add(from);
-      }
-    }
-
-    const famId = new Map();
-    let next = 1;
-    for (const pid of Object.keys(adj)) {
-      if (famId.has(pid)) continue;
-      const id = next;
-      next += 1;
-      const q = [pid];
-      famId.set(pid, id);
-      while (q.length) {
-        const cur = q.pop();
-        const ns = adj[cur];
-        if (!ns) continue;
-        for (const n of ns) {
-          if (famId.has(n)) continue;
-          famId.set(n, id);
-          q.push(n);
-        }
-      }
-    }
-
-    return famId;
-  }
-
-  function isSameEvoFamily(pidA, pidB) {
-    if (!pidA || !pidB) return false;
-    if (pidA === pidB) return true;
-    if (!EVO_FAMILY_ID_BY_PID) EVO_FAMILY_ID_BY_PID = buildEvoFamilyIdMap();
-    const m = EVO_FAMILY_ID_BY_PID;
-    if (!m) return false;
-    const a = m.get(pidA);
-    const b = m.get(pidB);
-    if (!a || !b) return false;
-    return a === b;
-  }
-
   // ===== SECTION:SAVE_CLOUD — 存档序列化/云同步 — 维护者窗口A =====
   function getAutosaveRawJson() {
     try {
@@ -3251,6 +3193,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       ui,
       escapeHtml,
       socialSystem,
+      getState: () => state,
       formatTime: (ts) => {
         const now = Date.now();
         const diff = now - ts;

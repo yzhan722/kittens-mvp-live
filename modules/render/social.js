@@ -1,8 +1,9 @@
 // 社交功能渲染模块
 
 import { getExpeditionSeasonBlurb, resolveSeasonId } from "../systems/expedition.js";
+import { formatPvpSeasonStats } from "../systems/pvp_narrative.js";
 
-export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime }) {
+export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, getState }) {
   function socialUnavailableRow(title) {
     return `
       <div class="row is-locked">
@@ -20,6 +21,12 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     return ` <span class="muted">· 赛季 ${escapeHtml(sid)}</span>`;
   }
 
+  function pvpSeasonStatsHtml() {
+    const stats = typeof getState === "function" ? getState()?.meta?.pvpStats : null;
+    const line = formatPvpSeasonStats(stats);
+    return line ? `<div class="row__meta">${escapeHtml(line)}</div>` : "";
+  }
+
   function pvpSeasonBlurbHtml() {
     const sid = resolveSeasonId(ui.remoteConfig);
     const blurb = getExpeditionSeasonBlurb(sid);
@@ -33,6 +40,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
           <div class="row__title">暂无对战邀请${pvpSeasonSuffix()}</div>
           <div class="row__desc">
             ${pvpSeasonBlurbHtml()}
+            ${pvpSeasonStatsHtml()}
             如何开始 PvP：
             <ol style="margin:0.5rem 0 0 1.2rem;padding:0;">
               <li>在下方「我的队伍」选择最多 6 只精灵</li>
@@ -104,7 +112,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
       el.innerHTML = "";
       return;
     }
-    let html = `<div class="row"><div class="row__left"><div class="row__title">最近战果${pvpSeasonSuffix()}</div>${pvpSeasonBlurbHtml()}</div></div>`;
+    let html = `<div class="row"><div class="row__left"><div class="row__title">最近战果${pvpSeasonSuffix()}</div>${pvpSeasonBlurbHtml()}${pvpSeasonStatsHtml()}</div></div>`;
     for (const item of recent) {
       const tone =
         item.winner === 2 ? "badge--success" : item.winner === 1 ? "badge--warning" : "badge--muted";

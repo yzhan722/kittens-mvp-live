@@ -27,6 +27,8 @@ jobs:
         run: node scripts/era-selfcheck.mjs
       - name: Gameplay fun selfcheck
         run: node scripts/gameplay-fun-selfcheck.mjs
+      - name: Migrations selfcheck
+        run: node scripts/migrations-selfcheck.mjs
       - name: Player sim (6h)
         run: node scripts/player-sim.mjs
         env:

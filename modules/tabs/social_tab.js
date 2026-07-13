@@ -1,10 +1,11 @@
 // 社交标签页
 import { escapeHtml } from "../utils.js";
-import { summarizePvpBattle } from "../systems/pvp_narrative.js";
+import { summarizePvpBattle, bumpPvpSeasonStats, normalizePvpRecent } from "../systems/pvp_narrative.js";
 
 export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friendsSystem, state, createPvpBattle, getMonCurrentStats, getPokeApiDataByDex }) {
   
   let selectedTeam = []; // 当前选中的队伍（已归一化为 PVP 战报字段）
+  ui.pvpRecent = normalizePvpRecent(state?.meta?.pvpRecent);
 
   function monTypes(mon) {
     const api = typeof getPokeApiDataByDex === "function" ? getPokeApiDataByDex(mon.dex) : null;
@@ -249,13 +250,17 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
 
       if (!ui.pvpRecent) ui.pvpRecent = [];
       const recentWithCurrent = [{ winner: result.winner }, ...ui.pvpRecent];
+      bumpPvpSeasonStats(state.meta, result.winner);
       const line = summarizePvpBattle(result, "你", {
         seasonId: ui.remoteConfig?.seasonId,
         recent: recentWithCurrent,
+        stats: state.meta?.pvpStats,
       });
       addLog(`PvP：${line}`, result.winner === 2);
       ui.pvpRecent.unshift({ line, winner: result.winner, at: Date.now() });
       ui.pvpRecent = ui.pvpRecent.slice(0, 5);
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      state.meta.pvpRecent = ui.pvpRecent.slice();
 
       // 显示战斗结果
       showBattleResult(result);
