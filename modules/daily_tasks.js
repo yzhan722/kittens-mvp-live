@@ -1,5 +1,5 @@
 // 每日任务系统
-export function createDailyTasks({ state, addRes, addLog }) {
+export function createDailyTasks({ state, addRes, addLog, dailySignin, apiFetch, hasAuth }) {
   const TASKS_KEY = "kittens_mvp_daily_tasks_v1";
 
   // 任务类型定义（仅保留已接线进度事件）
@@ -95,8 +95,36 @@ export function createDailyTasks({ state, addRes, addLog }) {
     return state.dailyTasks.tasks.length > 0 && state.dailyTasks.tasks.every((t) => t.completed);
   }
 
+  function taskPayload() {
+    return state.dailyTasks.tasks.map((t) => ({
+      type: t.type,
+      current: t.current,
+      target: t.target,
+      completed: t.completed,
+    }));
+  }
+
+  // ponytail: logged-in claim is server-gated once/day; task progress stays local until claim POST
+  async function syncFromServer() {
+    if (typeof apiFetch !== "function" || (typeof hasAuth === "function" && !hasAuth())) {
+      return { ok: false, skipped: true };
+    }
+    ensureTasksState();
+    generateDailyTasks();
+    const today = getTodayStr();
+    try {
+      const data = await apiFetch(`/api/daily_tasks?date=${encodeURIComponent(today)}`);
+      if (data?.date === today && data.claimed) {
+        state.dailyTasks.claimed = true;
+      }
+      return { ok: true, data };
+    } catch {
+      return { ok: false };
+    }
+  }
+
   // 领取奖励
-  function claimRewards() {
+  async function claimRewards() {
     ensureTasksState();
     generateDailyTasks();
 
@@ -107,6 +135,22 @@ export function createDailyTasks({ state, addRes, addLog }) {
     const completedTasks = state.dailyTasks.tasks.filter((t) => t.completed);
     if (completedTasks.length === 0) {
       return { ok: false, error: "NO_COMPLETED_TASKS" };
+    }
+
+    if (typeof apiFetch === "function" && (!hasAuth || hasAuth())) {
+      try {
+        await apiFetch("/api/daily_tasks/claim", {
+          method: "POST",
+          body: { date: getTodayStr(), tasks: taskPayload() },
+        });
+      } catch (e) {
+        const code = e?.data?.error || e?.message || "";
+        if (code === "ALREADY_CLAIMED") {
+          state.dailyTasks.claimed = true;
+          return { ok: false, error: "ALREADY_CLAIMED" };
+        }
+        return { ok: false, error: "SYNC_FAILED", message: String(code || "claim failed") };
+      }
     }
 
     // 发放奖励
@@ -148,6 +192,11 @@ export function createDailyTasks({ state, addRes, addLog }) {
     state.dailyTasks.claimed = true;
     addLog(`每日任务奖励: 未来币 +${totalFuturecoin}`);
 
+    // 连续登录奖励并入领取，去掉商店里重复的「每日签到」入口
+    if (dailySignin && typeof dailySignin.canSignin === "function" && dailySignin.canSignin()) {
+      dailySignin.signin();
+    }
+
     return { ok: true, futurecoin: totalFuturecoin };
   }
 
@@ -174,6 +223,7 @@ export function createDailyTasks({ state, addRes, addLog }) {
       claimed: state.dailyTasks.claimed,
       canClaim: canClaim(),
       isAllCompleted: isAllCompleted(),
+      signin: dailySignin && typeof dailySignin.getSigninInfo === "function" ? dailySignin.getSigninInfo() : null,
     };
   }
 
@@ -215,6 +265,7 @@ export function createDailyTasks({ state, addRes, addLog }) {
     canClaim,
     isAllCompleted,
     claimRewards,
+    syncFromServer,
     getTasksState,
     onEvent,
     TASK_TYPES,

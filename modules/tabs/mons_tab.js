@@ -83,6 +83,30 @@ export function initMonsTab({
   if (elMonList) {
     let lastSkillPointerDownTs = 0;
     let lastSkillPointerDownKey = "";
+    let monSearchDebounce = null;
+
+    elMonList.addEventListener("input", (ev) => {
+      const searchInput = ev.target?.closest?.("input[data-mon-search]");
+      if (!searchInput || !elMonList.contains(searchInput)) return;
+      const q = String(searchInput.value || "");
+      ui.monSearch = q;
+      ui.monSearchFocus = true;
+      if (monSearchDebounce) clearTimeout(monSearchDebounce);
+      monSearchDebounce = setTimeout(() => {
+        ui.monPage = 0;
+        markMonListDirty(true);
+        render();
+      }, 200);
+    });
+
+    elMonList.addEventListener("focusout", (ev) => {
+      const searchInput = ev.target?.closest?.("input[data-mon-search]");
+      if (!searchInput || !elMonList.contains(searchInput)) return;
+      setTimeout(() => {
+        const active = document.activeElement;
+        if (active?.closest?.("input[data-mon-search]") !== searchInput) ui.monSearchFocus = false;
+      }, 0);
+    });
 
     const getSkillKey = (btn) => {
       const typeId = btn?.getAttribute?.("data-mon-skill") ?? "";
@@ -478,6 +502,62 @@ export function initMonsTab({
 
         if (fedCount <= 0) {
           addLog("一键喂食：所有精灵饱腹度已满或树果不足", true);
+        }
+        markMonListDirty(false);
+        render();
+        return;
+      }
+
+      const batchCandyBtn = ev.target?.closest?.("button[data-mon-batch-candy]");
+      if (batchCandyBtn && elMonList.contains(batchCandyBtn)) {
+        if (batchCandyBtn.disabled) return;
+        const list = state.mons?.list ?? [];
+        const region = ui.monRegion || "all";
+        const typeFilter = ui.monType || "all";
+        const searchQ = typeof ui.monSearch === "string" ? ui.monSearch.trim().toLowerCase() : "";
+        const regionOk = (m) => {
+          if (!m || typeof m.dex !== "number") return false;
+          if (region === "all") return true;
+          if (region === "mythic") return m.tier === "epic";
+          if (m.tier === "epic") return false;
+          if (region === "kanto") return m.dex >= 1 && m.dex <= 151;
+          if (region === "johto") return m.dex >= 152 && m.dex <= 251;
+          if (region === "hoenn") return m.dex >= 252 && m.dex <= 386;
+          if (region === "sinnoh") return m.dex >= 387 && m.dex <= 493;
+          if (region === "unova") return m.dex >= 494 && m.dex <= 649;
+          if (region === "kalos") return m.dex >= 650 && m.dex <= 721;
+          if (region === "alola") return m.dex >= 722 && m.dex <= 809;
+          if (region === "galar") return m.dex >= 810 && m.dex <= 905;
+          return true;
+        };
+        const typeOk = (m) => {
+          if (!m || typeof m.dex !== "number") return false;
+          if (typeFilter === "all") return true;
+          const api = typeof getPokeApiDataByDex === "function" ? getPokeApiDataByDex(m.dex) : null;
+          const types = Array.isArray(api?.types) ? api.types : null;
+          if (!types) return true;
+          return types.includes(typeFilter);
+        };
+        const searchOk = (m) => {
+          if (!searchQ) return true;
+          const name = typeof m?.name === "string" ? m.name.toLowerCase() : "";
+          return name.includes(searchQ);
+        };
+        const targets = list.filter((m) => m && m.lvl < 100 && regionOk(m) && typeOk(m) && searchOk(m));
+        let candy = Math.max(0, Math.floor(state.res.rareCandy?.value ?? 0));
+        let fed = 0;
+        for (const m of targets) {
+          if (candy < 1) break;
+          candy -= 1;
+          state.res.rareCandy.value = Math.max(0, (state.res.rareCandy?.value ?? 0) - 1);
+          m.lvl = clamp(m.lvl + 1, 1, 100);
+          m.exp = 0;
+          fed += 1;
+        }
+        if (fed > 0) {
+          addLog(`批量喂糖：${fed} 只各 +1Lv（消耗神奇糖果 ${fed}）`, true);
+        } else {
+          addLog("批量喂糖：无可用精灵或糖果不足", true);
         }
         markMonListDirty(false);
         render();

@@ -1,0 +1,2 @@
+-- daily_tasks_progress already in d1_schema.sql (uid, date, progress_json, claimed, updated_at)
+-- No DDL change: API re-enabled for claim anti-double-claim; progress_json stores claim snapshot + streakDays.

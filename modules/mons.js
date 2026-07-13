@@ -50,7 +50,7 @@ export const NATURE_PASSIVE = {
   lax:     { desc: "资源上限 +2%",          key: "resCapBonus",         val: 0.02 },
   naughty: { desc: "逃跑必定成功",          key: "alwaysEscape",        val: 1.00 },
   gentle:  { desc: "饱腹消耗 -5%",          key: "satietyDecayReduce",  val: 0.05 },
-  // 中性性格：保底积累略快（catchFails 每次+1.2倍速）
+  // 中性性格：20% 概率把本次失败计为 2 次（pityAccelBonus）
   hardy:   { desc: "均衡型·保底积累 +20%",  key: "pityAccelBonus",      val: 0.20 },
   docile:  { desc: "均衡型·保底积累 +20%",  key: "pityAccelBonus",      val: 0.20 },
   bashful: { desc: "均衡型·保底积累 +20%",  key: "pityAccelBonus",      val: 0.20 },

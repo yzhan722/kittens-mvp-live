@@ -206,11 +206,19 @@ export function createTickerSystem({
       msg: String(`${name}：${String(msg || "")}`).slice(0, 200),
     };
     try {
-      fetch(`${base}/api/events/push`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }).catch(() => {});
+      if (typeof lbFetchJson === "function") {
+        lbFetchJson(`${base}/api/events/push`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }).catch(() => {});
+      } else {
+        fetch(`${base}/api/events/push`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }).catch(() => {});
+      }
     } catch {
     }
   }

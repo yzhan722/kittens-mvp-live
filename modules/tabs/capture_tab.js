@@ -1,4 +1,18 @@
-import { applyEncounterBias, eraEncounterRechargeMul, eraPokeballBonusCrafted } from "../systems/era.js";
+import { applyEncounterBias, confirmPrestige, eraEncounterRechargeMul, eraPokeballBonusCrafted } from "../systems/era.js";
+import { rollNature } from "../mons.js";
+import {
+  bumpCatchStreak,
+  ensureLuckyDay,
+  luckyCatchMul,
+  luckyWeekEncounterMul,
+  natureEncounterRechargeMul,
+  natureAdvMissingPreferChance,
+  partyHasAlwaysEscape,
+  pityFailStep,
+  resetCatchStreak,
+  tryBallSave,
+  typeZh,
+} from "../systems/gameplay_fun.js";
 
 export function initCaptureTab({
   elCaptureArea,
@@ -26,6 +40,7 @@ export function initCaptureTab({
   pushTickerEvent,
   onPokeballCraft,
   onEraAdvance,
+  getCaptureAreas,
 }) {
   const CAPTURE_PREVIEW_KEY = "kittens_mvp_capture_preview_hidden_v1";
   const rareWeight = (p, base, rareWeightMul) =>
@@ -33,6 +48,27 @@ export function initCaptureTab({
   const getMonTypesForBias = (p) => {
     const localTypes = globalThis.POKEMON_TYPES;
     return localTypes && typeof localTypes === "object" ? localTypes[p?.dex] : null;
+  };
+
+  const refundBallIfSaved = (state, ballType) => {
+    if (!tryBallSave(state, randFloat)) return;
+    const r = state.res?.[ballType];
+    if (!r) return;
+    r.value = Math.max(0, (r.value ?? 0) + 1);
+    addLog("胆怯性格：精灵球被弹回！");
+  };
+
+  const onCatchSuccessFun = (state) => {
+    const { streak, reward } = bumpCatchStreak(state);
+    if (streak >= 3) addLog(`连捕中：×${streak}`);
+    if (reward?.berry > 0) {
+      addRes("catnip", reward.berry);
+      addLog(`★ ${reward.label}：树果 +${reward.berry}`, true);
+    }
+  };
+
+  const onCatchFailFun = (state) => {
+    resetCatchStreak(state);
   };
 
   if (elCaptureArea) {
@@ -50,6 +86,17 @@ export function initCaptureTab({
         if (typeof onEraAdvance === "function") onEraAdvance();
         markCaptureDirty();
         render();
+        return;
+      }
+
+      const eraPrestigeBtn = ev.target?.closest?.("button[data-era-prestige]");
+      if (eraPrestigeBtn && elCaptureInfo.contains(eraPrestigeBtn)) {
+        const state = getState();
+        const result = confirmPrestige(state, { addLog, getCaptureAreas });
+        if (result.ok) {
+          markCaptureDirty();
+          render();
+        }
         return;
       }
 
@@ -174,7 +221,7 @@ export function initCaptureTab({
           typeof state.encounterCharges === "number" && Number.isFinite(state.encounterCharges) ? state.encounterCharges : 100;
         const cd0 = typeof state.encounterCdSec === "number" && Number.isFinite(state.encounterCdSec) ? state.encounterCdSec : 0;
         const maxCharges = 100;
-        const rechargeSec = 60 * eraEncounterRechargeMul(state);
+        const rechargeSec = 60 * eraEncounterRechargeMul(state) * natureEncounterRechargeMul(state);
         const charges1 = Math.max(0, Math.min(maxCharges, Math.floor(charges0)));
         if (charges1 <= 0) return false;
 
@@ -198,7 +245,7 @@ export function initCaptureTab({
           addLog("遭遇失败：该区域没有可遭遇的宝可梦。", true);
           return false;
         }
-        const mythicChance = 0.001;
+        const mythicChance = 0.002;
         const isNormalArea = ui.captureAreaId !== "mythic";
         const hitMythic = isNormalArea && randFloat() < mythicChance;
         const mythicPool = hitMythic && typeof getMythicPool === "function" ? getMythicPool() : null;
@@ -214,7 +261,7 @@ export function initCaptureTab({
                     x,
                     state,
                     getMonTypesForBias
-                  );
+                  ) * luckyWeekEncounterMul(state, getMonTypesForBias(x));
                 let total = 0;
                 for (const x of pool) total += tierWeight(x);
                 let r = randFloat() * total;
@@ -229,6 +276,7 @@ export function initCaptureTab({
         if (state.encounterCharges < maxCharges && cd0 <= 0) state.encounterCdSec = rechargeSec;
 
         ui.encounterPid = p.id;
+        ui.encounterNature = rollNature();
         // 闪光概率计算：基础 1/4096，激活闪耀护符时 x2
         const baseShinyRate = 1 / 4096;
         const charmOn = typeof state.shinyCharmRemainingSec === "number" && state.shinyCharmRemainingSec > 0;
@@ -238,7 +286,15 @@ export function initCaptureTab({
         ui.encounterIsShiny = isShiny;
         ui.shinyModalOpen = false;
         ui.mythicModalOpen = false;
-        addLog(`遭遇：${p.name}`);
+        ensureLuckyDay(state);
+        const lucky = state.luckyDay;
+        const monTypes = getMonTypesForBias(p);
+        const luckyHit = luckyCatchMul(state, monTypes) > 1;
+        addLog(
+          `遭遇：${p.name}${ui.encounterNature ? `（${ui.encounterNature}）` : ""}${
+            luckyHit && lucky?.type ? ` · 今日幸运·${typeZh(lucky.type)}` : ""
+          }`
+        );
         if (p.tier === "epic") {
           ui.mythicModalOpen = true;
           addLog(`！！！神兽出现：${p.name}！！！`, true);
@@ -275,6 +331,7 @@ export function initCaptureTab({
         const ballType = ui.selectedBallType || "pokeball";
         if ((state.res[ballType]?.value ?? 0) < 1) return false;
         state.res[ballType].value = Math.max(0, (state.res[ballType]?.value ?? 0) - 1);
+        refundBallIfSaved(state, ballType);
         const techEff = computeTechEffects();
         const add = typeof techEff.catchChanceAdd === "number" ? techEff.catchChanceAdd : 0;
         const dragonRem = typeof state.skills?.dragonCatchBoostRemainingSec === "number" && Number.isFinite(state.skills.dragonCatchBoostRemainingSec) ? Math.max(0, state.skills.dragonCatchBoostRemainingSec) : 0;
@@ -290,12 +347,15 @@ export function initCaptureTab({
           const caughtCount = caughtMap && typeof caughtMap[p.id] === "number" ? caughtMap[p.id] : 0;
           ballMult = caughtCount === 0 ? 5 : 1;
         }
-        let chance = base * mult * ballMult + pity;
+        const luckyMul = luckyCatchMul(state, getMonTypesForBias(p));
+        let chance = base * mult * ballMult * luckyMul + pity;
         chance = clamp(chance, 0, 0.95);
         if (randFloat() > chance) {
           if (!state.rng) state.rng = { catchFails: 0 };
-          state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + 1);
+          state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + pityFailStep(state, randFloat, ui.encounterNature));
+          onCatchFailFun(state);
           ui.encounterPid = null;
+          ui.encounterNature = null;
           ui.encounterIsShiny = false;
           ui.shinyModalOpen = false;
           ui.mythicModalOpen = false;
@@ -307,12 +367,14 @@ export function initCaptureTab({
         if (!state.rng) state.rng = { catchFails: 0 };
         state.rng.catchFails = 0;
         ui.encounterPid = null;
+        ui.encounterNature = null;
         const isShiny = Boolean(ui.encounterIsShiny);
         ui.encounterIsShiny = false;
         ui.shinyModalOpen = false;
         ui.mythicModalOpen = false;
         const luxuryBonus = ballType === "luxuryball" ? 20 : 0;
         awardCaughtPokemon(p, { isShiny, affectionBonus: luxuryBonus, ballType });
+        onCatchSuccessFun(state);
         if (luxuryBonus > 0) addLog(`豪华球效果：${p.name} 亲密度 +${luxuryBonus}`);
         const didAuto = tryAutoEncounter();
         if (!didAuto) { markCaptureDirty(); render(); }
@@ -360,8 +422,12 @@ export function initCaptureTab({
           typeof state.encounterPlusCharges === "number" && Number.isFinite(state.encounterPlusCharges) ? state.encounterPlusCharges : 1;
         const cd0 =
           typeof state.encounterPlusCdSec === "number" && Number.isFinite(state.encounterPlusCdSec) ? state.encounterPlusCdSec : 0;
-        const maxCharges = 10;
-        const rechargeSec = 600 * eraEncounterRechargeMul(state);
+        const encPlusMaxBonus =
+          typeof state.permanentBoosts?.encPlusMax === "number"
+            ? Math.max(0, Math.min(20, Math.floor(state.permanentBoosts.encPlusMax)))
+            : 0;
+        const maxCharges = 10 + encPlusMaxBonus;
+        const rechargeSec = 600 * eraEncounterRechargeMul(state) * natureEncounterRechargeMul(state);
 
         const charges1 = Math.max(0, Math.min(maxCharges, Math.floor(charges0)));
         if (charges1 <= 0) return;
@@ -387,14 +453,14 @@ export function initCaptureTab({
           return;
         }
 
-        const mythicChance = 0.001;
+        const mythicChance = 0.002;
         const isNormalArea = ui.captureAreaId !== "mythic";
         const hitMythic = isNormalArea && randFloat() < mythicChance;
         const mythicPool = hitMythic && typeof getMythicPool === "function" ? getMythicPool() : null;
 
         const caught = state.dex && typeof state.dex === "object" && state.dex.caught && typeof state.dex.caught === "object" ? state.dex.caught : {};
         const missing = pool.filter((p) => (typeof caught[p.id] === "number" ? caught[p.id] : 0) <= 0);
-        const preferMissing = !hitMythic && missing.length > 0 && randFloat() < 0.75;
+        const preferMissing = !hitMythic && missing.length > 0 && randFloat() < natureAdvMissingPreferChance(state, 0.75);
         const cand = preferMissing ? missing : pool;
         const techEff = computeTechEffects();
         const rareWeightMul = Math.max(0, typeof techEff.rareWeightMul === "number" ? techEff.rareWeightMul : 1);
@@ -409,7 +475,7 @@ export function initCaptureTab({
               p,
               state,
               getMonTypesForBias
-            );
+            ) * luckyWeekEncounterMul(state, getMonTypesForBias(p));
           let total = 0;
           for (const p of cand) total += tierWeight(p);
           let r = randFloat() * total;
@@ -423,6 +489,7 @@ export function initCaptureTab({
         }
 
         ui.encounterPid = chosen.id;
+        ui.encounterNature = rollNature();
         // 闪光概率计算：基础 1/1024，激活闪耀护符时 x2
         const baseShinyRate = 1 / 1024;
         const charmOn = typeof state.shinyCharmRemainingSec === "number" && state.shinyCharmRemainingSec > 0;
@@ -454,7 +521,8 @@ export function initCaptureTab({
         const enc = typeof ui.encounterPid === "string" ? getSpeciesByPid(ui.encounterPid) : null;
         if (!enc) return;
 
-        const ok = randFloat() < 0.5;
+        const forced = partyHasAlwaysEscape(state);
+        const ok = forced || randFloat() < 0.5;
         const okTexts = [
           "你把命运关在门外，转身就走。",
           "你与这里的因果断开了一瞬。",
@@ -488,12 +556,15 @@ export function initCaptureTab({
         }
 
         ui.encounterPid = null;
+        ui.encounterNature = null;
         ui.encounterIsShiny = false;
         ui.shinyModalOpen = false;
         ui.mythicModalOpen = false;
 
         if (ok) {
-          const msg = okTexts[Math.floor(randFloat() * okTexts.length)] || "逃跑成功！";
+          const msg = forced
+            ? "顽皮性格：你从叙事里溜走了。"
+            : okTexts[Math.floor(randFloat() * okTexts.length)] || "逃跑成功！";
           addLog(msg, true);
         } else {
           const msg = failTexts[Math.floor(randFloat() * failTexts.length)] || "逃跑失败！";
@@ -516,6 +587,7 @@ export function initCaptureTab({
         const ballType = ui.selectedBallType || "pokeball";
         if ((state.res[ballType]?.value ?? 0) < 1) return;
         state.res[ballType].value = Math.max(0, (state.res[ballType]?.value ?? 0) - 1);
+        refundBallIfSaved(state, ballType);
 
         const techEff = computeTechEffects();
         const add = typeof techEff.catchChanceAdd === "number" ? techEff.catchChanceAdd : 0;
@@ -542,15 +614,17 @@ export function initCaptureTab({
           ballMult = 1; // 豪华球：捕获率不变，但捕获后亲密度+20
         }
         
-        let chance = base * mult * ballMult + pity;
+        let chance = base * mult * ballMult * luckyCatchMul(state, getMonTypesForBias(p)) + pity;
         chance = clamp(chance, 0, 0.95);
 
         if (randFloat() > chance) {
           if (!state.rng) state.rng = { catchFails: 0 };
-          state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + 1);
+          state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + pityFailStep(state, randFloat, ui.encounterNature));
+          onCatchFailFun(state);
 
           if (Boolean(ui.captureAutoEncounter)) {
             ui.encounterPid = null;
+            ui.encounterNature = null;
             ui.encounterIsShiny = false;
             ui.shinyModalOpen = false;
             ui.mythicModalOpen = false;
@@ -571,9 +645,12 @@ export function initCaptureTab({
             setTimeout(() => elCaptureActions.classList.remove("capture-fail-shake"), 500);
           }
 
+          if (chance >= 0.5) addLog(`差一点！成功率约 ${Math.round(chance * 100)}%`);
+
           const clearEncounter = randFloat() < 0.5;
           if (clearEncounter) {
             ui.encounterPid = null;
+            ui.encounterNature = null;
             ui.encounterIsShiny = false;
             ui.shinyModalOpen = false;
             ui.mythicModalOpen = false;
@@ -590,6 +667,7 @@ export function initCaptureTab({
         if (!state.rng) state.rng = { catchFails: 0 };
         state.rng.catchFails = 0;
         ui.encounterPid = null;
+        ui.encounterNature = null;
         const isShiny = Boolean(ui.encounterIsShiny);
         ui.encounterIsShiny = false;
         ui.shinyModalOpen = false;
@@ -611,6 +689,7 @@ export function initCaptureTab({
         const uniqueBefore = Object.values(state.dex?.caught ?? {}).filter((v) => typeof v === "number" && v > 0).length;
         
         awardCaughtPokemon(p, { isShiny, affectionBonus: luxuryBonus, ballType });
+        onCatchSuccessFun(state);
         
         if (luxuryBonus > 0) {
           addLog(`豪华球效果：${p.name} 亲密度 +${luxuryBonus}`);
@@ -649,6 +728,7 @@ export function initCaptureTab({
         if (!state.rng) state.rng = { catchFails: 0 };
         state.rng.catchFails = 0;
         ui.encounterPid = null;
+        ui.encounterNature = null;
         const isShiny = Boolean(ui.encounterIsShiny);
         ui.encounterIsShiny = false;
         ui.shinyModalOpen = false;
@@ -662,6 +742,7 @@ export function initCaptureTab({
         }
         const uniqueBeforeMb = Object.values(state.dex?.caught ?? {}).filter((v) => typeof v === "number" && v > 0).length;
         awardCaughtPokemon(p, { isShiny, ballType: "masterball" });
+        onCatchSuccessFun(state);
         addLog(`大师球捕捉：${p.name} 捕捉成功！`, true);
         const uniqueAfterMb = Object.values(state.dex?.caught ?? {}).filter((v) => typeof v === "number" && v > 0).length;
         const MILESTONES_MB = { 20:"城都树林",55:"丰缘海岸",110:"神奥雪原",170:"合众沙漠",230:"卡洛斯花田",290:"阿罗拉海滩",360:"伽勒尔旷野",440:"神兽领域" };

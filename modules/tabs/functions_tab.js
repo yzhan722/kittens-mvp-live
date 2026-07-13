@@ -1,5 +1,15 @@
 import { EXP_LEVELS, getExpLevelDef } from "../expedition_defs.js";
-import { expeditionTypeMul, getMonTypesForExpedition } from "../systems/expedition.js";
+import {
+  ensureExpeditionDungeonTiers,
+  expeditionTypeMul,
+  getExpeditionSeasonBlurb,
+  getMonTypesForExpedition,
+  pickExpeditionDungeons,
+  resolveExpeditionSeasonLabel,
+  resolveSeasonId,
+} from "../systems/expedition.js";
+import { expeditionNatureTimeMul, natureTrainExpMul } from "../systems/gameplay_fun.js";
+import { NATURE_PASSIVE, getNatureInfo } from "../mons.js";
 
 export function createRenderFunctions({
   elFunctionsTraining,
@@ -126,10 +136,18 @@ export function createRenderFunctions({
             const exp = Math.max(0, Math.floor(typeof m.exp === "number" && Number.isFinite(m.exp) ? m.exp : 0));
             const needExp = m.lvl >= 100 ? 0 : Math.max(0, Math.floor(expNeedForLevel0(m.lvl)));
             const expText = needExp > 0 ? `${exp}/${needExp}` : `${exp}/MAX`;
+            const nMul = natureTrainExpMul(m, active.length);
+            const nName = getNatureInfo(m.nature)?.name || m.nature || "";
+            const nHint =
+              nMul > 1
+                ? ` · ${escapeHtml(nName)}经验×${nMul.toFixed(2)}`
+                : NATURE_PASSIVE[m.nature]
+                  ? ` · ${escapeHtml(nName)}`
+                  : "";
             rows.push(`
               <div class="row">
                 <div class="row__left">
-                  <div class="row__title">训练中：${escapeHtml(m.name)} <span class="row__desc">Lv.${m.lvl} · 饱腹${sat}/100 · 经验${expText}</span></div>
+                  <div class="row__title">训练中：${escapeHtml(m.name)} <span class="row__desc">Lv.${m.lvl} · 饱腹${sat}/100 · 经验${expText}${nHint}</span></div>
                 </div>
                 <div class="row__right">
                   <button class="btn btn--small" data-train-feed="${m.id}" ${sat >= 100 ? "disabled" : ""}>喂食</button>
@@ -576,12 +594,14 @@ export function createRenderFunctions({
     rows.push(`<div class="sidebar__divider"></div>`);
 
     const hideExpedition = Boolean(ui.functionsHideExpedition);
+    const expeditionSeasonLabel = resolveExpeditionSeasonLabel(ui.remoteConfig);
+    const expeditionSeasonBlurb = getExpeditionSeasonBlurb(resolveSeasonId(ui.remoteConfig));
 
     rows.push(`
       <div class="row">
         <div class="row__left">
-          <div class="row__title">远征所</div>
-          <div class="row__desc">派遣精灵下副本：完成后获得经验与未来币，并概率掉落药剂。属性克制可提高远征收益。</div>
+          <div class="row__title">远征所 <span class="muted">· ${escapeHtml(expeditionSeasonLabel)}</span></div>
+          <div class="row__desc">${escapeHtml(expeditionSeasonBlurb)}。派遣精灵下副本：完成后获得经验与未来币，并概率掉落药剂。属性克制可提高远征收益。</div>
         </div>
         <div class="row__right">
           <button class="btn btn--small btn--ghost" data-func-toggle="expedition">${hideExpedition ? "▸" : "▾"}</button>
@@ -624,30 +644,15 @@ export function createRenderFunctions({
 
     const regenAllDungeons = () => {
       if (!Array.isArray(TYPE_KEYS) || TYPE_KEYS.length === 0) return;
-      const pick3 = () => {
-        const picks = [];
-        const seen = new Set();
-        let guard = 0;
-        while (picks.length < 3 && guard < 200) {
-          guard += 1;
-          const t = TYPE_KEYS[Math.floor(Math.random() * TYPE_KEYS.length)];
-          if (!t || seen.has(t)) continue;
-          seen.add(t);
-          picks.push({ key: `${t}_${Math.floor(Math.random() * 1e9)}`, type: t });
-        }
-        return picks;
-      };
-      state.expedition.dungeons = {
-        basic: pick3(),
-        intermediate: pick3(),
-        advanced: pick3(),
-        super: pick3(),
-        master: pick3(),
-      };
+      const dungeons = {};
+      for (const lvl of EXP_LEVELS) dungeons[lvl.key] = pickExpeditionDungeons(TYPE_KEYS);
+      state.expedition.dungeons = dungeons;
     };
 
     if (!state.expedition.dungeons || typeof state.expedition.dungeons !== "object") {
       regenAllDungeons();
+    } else {
+      ensureExpeditionDungeonTiers(state.expedition.dungeons, TYPE_KEYS);
     }
 
     const selLvl = typeof state.expedition.selectedLevel === "string" ? state.expedition.selectedLevel : "basic";
@@ -661,11 +666,16 @@ export function createRenderFunctions({
 
     if (!hideExpedition) {
       if (!expeditionUnlocked) {
+        const trainOk = (state.buildings.trainingGround?.owned ?? 0) > 0;
+        const breedOk = (state.buildings.breedingHouse?.owned ?? 0) > 0;
+        const chainHint = trainOk && breedOk
+          ? "训练场与饲养屋已就绪，在「建筑」页建造远征所即可解锁。"
+          : "需先建造训练场与饲养屋，再建造远征所。";
         rows.push(`
           <div class="row is-locked">
             <div class="row__left">
               <div class="row__title">未解锁</div>
-              <div class="row__desc">建造“远征所”（功能建筑）后可用。</div>
+              <div class="row__desc">${escapeHtml(chainHint)}</div>
             </div>
           </div>
         `);
@@ -729,8 +739,15 @@ export function createRenderFunctions({
         const canStartExp = !expOn && selectedMons.length > 0 && effPower >= lvlDef.req;
         const baseSec = 7200;
         const excessPct = canStartExp ? Math.max(0, (effPower - lvlDef.req) / lvlDef.req) : 0;
-        const totalSec = canStartExp ? Math.max(60, Math.ceil(baseSec / Math.pow(1.01, excessPct * 100))) : baseSec;
+        const natureTimeMul = expeditionNatureTimeMul(selectedMons);
+        const totalSec = canStartExp
+          ? Math.max(60, Math.ceil((baseSec / Math.pow(1.01, excessPct * 100)) * natureTimeMul))
+          : baseSec;
         const rewardMul = expeditionRewardMul(selectedMons, dungeonType);
+        const natureHint =
+          natureTimeMul < 0.999
+            ? ` · 性格加速 ×${(1 / natureTimeMul).toFixed(2)}`
+            : "";
         const rewardExp = Math.floor(lvlDef.exp * rewardMul);
         const rewardCoin = Math.floor(lvlDef.coin * rewardMul);
 
@@ -738,7 +755,7 @@ export function createRenderFunctions({
       <div class="row">
         <div class="row__left">
           <div class="row__title">远征队伍</div>
-          <div class="row__desc">已选：${selectedMons.length} / 20 · 总战力：${Math.floor(effPower)} / ${lvlDef.req} · 预计用时：${fmtDuration(totalSec)} · 属性相性 x${rewardMul.toFixed(2)}</div>
+          <div class="row__desc">已选：${selectedMons.length} / 20 · 总战力：${Math.floor(effPower)} / ${lvlDef.req} · 预计用时：${fmtDuration(totalSec)}${natureHint} · 属性相性 x${rewardMul.toFixed(2)}</div>
         </div>
         <div class="row__right">
           <button class="btn btn--small" data-exp-team-open ${expOn ? "disabled" : ""}>选择队员</button>
@@ -1439,7 +1456,8 @@ export function initFunctionsTab({
       if (effPower < lvlDef.req) return;
       const baseSec = 7200;
       const excessPct = Math.max(0, (effPower - lvlDef.req) / lvlDef.req);
-      const totalSec = Math.max(60, Math.ceil(baseSec / Math.pow(1.01, excessPct * 100)));
+      const natureTimeMul = expeditionNatureTimeMul(selMonsSorted);
+      const totalSec = Math.max(60, Math.ceil((baseSec / Math.pow(1.01, excessPct * 100)) * natureTimeMul));
       const rewardMul0 = selMonsSorted.reduce((acc, m) => acc + typeMul(m, d.type), 0) / selMonsSorted.length;
       const rewardMul = Math.max(0.75, Math.min(1.5, rewardMul0));
 
@@ -1451,7 +1469,8 @@ export function initFunctionsTab({
       state.expedition.rewardCoin = Math.floor(lvlDef.coin * rewardMul);
       state.expedition.rewardPotionTotal = lvlDef.pot;
       state.expedition.dungeonType = d.type;
-      addLog("开始远征", true);
+      const impishN = selMonsSorted.filter((m) => NATURE_PASSIVE[m?.nature]?.key === "expeditionTimeBonus").length;
+      addLog(impishN > 0 ? `开始远征（淘气性格加速 ×${impishN}）` : "开始远征", true);
       markFunctionsDirty();
       render();
       return;

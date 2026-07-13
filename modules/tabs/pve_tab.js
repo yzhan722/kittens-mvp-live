@@ -1,8 +1,24 @@
 // PvE 关卡挑战 Tab — UI 渲染与交互
 import { PVE_CHAPTERS, PVE_DAILY_MAX, getStageById, isStageUnlocked } from "../pve_defs.js";
-import { simulateBattle, recommendedTypes, typeMatchScore } from "../pve_battle.js";
+import { simulateBattle, recommendedTypes, typeMatchScore, estimateStageEnemyPower, pveFightModifiers } from "../pve_battle.js";
 import { getEraDefById } from "../defs_eras.js";
+import { natureIncomingDamageMul, bumpPveWinStreak, resetPveWinStreak } from "../systems/gameplay_fun.js";
 import { ensureEra } from "../systems/era.js";
+
+// ponytail: blurbs live here — pve_defs is data-only, no chapter copy field yet
+const PVE_CHAPTER_BLURBS = {
+  "1": "关都八大道馆试炼：从森林虫系到地面系，循序渐进熟悉属性克制。",
+  "2": "城都进阶挑战：幽灵、格斗、钢系轮番上阵，终盘龙系需要克制与练度。",
+};
+
+const PVE_STAGE_HINTS = {
+  "1-1": "首关教学：火/飞行/岩石系克制虫系；先训练到 Lv.3+ 更稳。",
+  "1-2": "岩石馆：草/水/格斗/地面系有优势，注意大岩蛇耐久。",
+  "1-3": "水系馆：草/电系优先；宝石海星特攻偏高。",
+  "2-1": "飞行馆：电/冰/岩石系；波波等级低，适合练手。",
+  "2-4": "幽灵馆：恶/幽灵系；耿鬼高星需克制与练度。",
+  "2-8": "龙系终盘：冰/妖精/龙系；快龙高星，建议满编再挑战。",
+};
 
 export function createRenderPve({
   elPveList,
@@ -135,6 +151,18 @@ export function createRenderPve({
       return;
     }
 
+    const chapterBlurb = PVE_CHAPTER_BLURBS[chapter.id];
+    if (chapterBlurb) {
+      rows.push(`
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">${escapeHtml(chapter.name)}</div>
+            <div class="row__desc">${escapeHtml(chapterBlurb)}</div>
+          </div>
+        </div>
+      `);
+    }
+
     // 关卡列表
     rows.push(`<div class="sidebar__divider"></div>`);
     for (const st of chapter.stages) {
@@ -190,13 +218,17 @@ export function createRenderPve({
       }).join("、");
 
       rows.push(`<div class="sidebar__divider"></div>`);
+      const enemyPower = estimateStageEnemyPower(st);
+      const stageHint = PVE_STAGE_HINTS[st.id];
+      const tutNote = st.id === "1-1" && !cleared ? " · 首关试炼加成" : "";
       rows.push(`
         <div class="row">
           <div class="row__left">
             <div class="row__title">${cleared ? "重复挑战" : "首次通关"}奖励</div>
             <div class="row__desc">${escapeHtml(rewardText)}</div>
             <div class="row__desc">推荐属性：${escapeHtml(recText)}（优先能打又抗）</div>
-            <div class="row__desc muted">建议队伍等级约 ${enemyAvgLvl}+，星级越高越稳</div>
+            <div class="row__desc muted">敌人战力约 ${enemyPower} · 建议队伍 ${Math.floor(enemyPower * 0.65)}+ · 等级 ${enemyAvgLvl}+${tutNote}</div>
+            ${stageHint ? `<div class="row__desc">${escapeHtml(stageHint)}</div>` : ""}
           </div>
         </div>
       `);
@@ -222,13 +254,19 @@ export function createRenderPve({
           ? `<div class="row__desc" style="color:#f59e0b">编队偏被克，建议换推荐属性</div>`
           : "";
 
+      const powerGap = teamPower < enemyPower * 0.5;
+      const powerHint = powerGap
+        ? `<div class="row__desc" style="color:#f59e0b">队伍战力偏低，建议训练或换克制属性</div>`
+        : "";
+
       rows.push(`
         <div class="row">
           <div class="row__left">
             <div class="row__title">挑战队伍</div>
-            <div class="row__desc">已选：${selectedMons.length} / 6 · 总战力：${Math.floor(teamPower)}</div>
+            <div class="row__desc">已选：${selectedMons.length} / 6 · 总战力：${Math.floor(teamPower)} / 建议 ${Math.floor(enemyPower * 0.65)}+</div>
             <div class="row__desc">${escapeHtml(matchDesc)}</div>
             ${matchWarn}
+            ${powerHint}
           </div>
           <div class="row__right">
             <button class="btn btn--small" data-pve-team-open>选择队员</button>
@@ -309,18 +347,50 @@ export function createRenderPve({
       const r = ui.pveBattleResult;
       const starIcons = [1, 2, 3].map((i) => `<span style="color:${i <= r.stars ? "#f5c542" : "#666"};font-size:1.5em">★</span>`).join("");
       const logHtml = r.log.map((l) => `<div class="row__desc">${escapeHtml(l)}</div>`).join("");
+      const stageTypeZh = r.stageType ? (typeMap[r.stageType] ?? r.stageType) : "";
+      const recText = Array.isArray(r.recTypes)
+        ? r.recTypes.map((t) => typeMap[t] ?? t).join("、") || "无"
+        : "";
+      const typeTipHtml = stageTypeZh
+        ? `<div class="row"><div class="row__left"><div class="row__title">属性提示</div><div class="row__desc">关卡属性：${escapeHtml(stageTypeZh)} · 推荐：${escapeHtml(recText)}</div></div></div>`
+        : "";
+
+      let summaryHtml = "";
       let tipHtml = "";
-      if (!r.win) {
-        if (r.endReason === "timeout") {
-          tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提示</div><div class="row__desc">超时未压过对手生命。提高等级/星级，或换「能打又抗」的属性。</div></div></div>`;
-        } else if (r.superEffectiveHits === 0) {
-          tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提示</div><div class="row__desc">没有打出克制伤害，试试推荐属性。</div></div></div>`;
-        } else {
-          tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提示</div><div class="row__desc">属性方向对了，但练度不够。参考建议等级再练练。</div></div></div>`;
+      if (r.win) {
+        const hpPct = Math.round((r.teamHpPct ?? 0) * 100);
+        const winLine =
+          r.endReason === "decision"
+            ? `险胜（超时判定，剩余生命 ${hpPct}%）`
+            : r.stars >= 3
+              ? `完胜（${r.stars}星，剩余生命 ${hpPct}%）`
+              : `胜利（${r.stars}星，剩余生命 ${hpPct}%）`;
+        summaryHtml = `<div class="row"><div class="row__left"><div class="row__title">结果摘要</div><div class="row__desc hint hint--ok">${escapeHtml(winLine)}${typeof r.winStreak === "number" && r.winStreak > 0 ? ` · 连胜 ×${r.winStreak}` : ""}</div>${r.rewardText ? `<div class="row__desc">奖励：${escapeHtml(r.rewardText)}</div>` : ""}</div></div>`;
+        if (r.endReason === "decision") {
+          tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提升建议</div><div class="row__desc">超时按剩余生命险胜。想稳定三星请再练级或换推荐属性。</div></div></div>`;
+        } else if (r.stars < 3 && r.superEffectiveHits === 0) {
+          tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提升建议</div><div class="row__desc">胜利但克制不足，换推荐属性可拿更高星级。</div></div></div>`;
         }
-      } else if (r.endReason === "decision") {
-        tipHtml = `<div class="row"><div class="row__left"><div class="row__title">判定胜利</div><div class="row__desc">超时按剩余生命险胜（1星）。想稳定三星请再练级。</div></div></div>`;
+      } else {
+        const failReason =
+          r.endReason === "timeout"
+            ? "回合用尽：敌方剩余生命比例更高"
+            : r.endReason === "wipe"
+              ? "队伍全灭：敌人输出压过你的防线"
+              : r.endReason === "empty"
+                ? "未派出精灵"
+                : r.superEffectiveHits === 0
+                  ? "全程无克制伤害：属性不对路"
+                  : "练度不足：有克制但仍打不过";
+        const fixTip =
+          r.endReason === "timeout" || r.endReason === "wipe"
+            ? "提高等级/星级，或换「能打又抗」的推荐属性。"
+            : r.superEffectiveHits === 0
+              ? `试试推荐属性：${escapeHtml(recText)}。`
+              : "参考关卡建议等级，升星/喂糖果后再战。";
+        summaryHtml = `<div class="row"><div class="row__left"><div class="row__title">失败原因</div><div class="row__desc hint hint--danger">${escapeHtml(failReason)}</div><div class="row__desc">${fixTip}</div></div></div>`;
       }
+
       resultModalHtml = `
         <div class="modalOverlay" data-pve-result-overlay="1">
           <div class="modal">
@@ -330,9 +400,12 @@ export function createRenderPve({
                 <button class="btn btn--small" data-pve-result-close>关闭</button>
               </div>
             </div>
-              <div class="modal__body" style="max-height:400px;overflow-y:auto">
+              <div class="modal__body battle-log">
+              <div class="pve-result-block ${r.win ? "pve-result-block--win" : "pve-result-block--lose"}">
+              ${summaryHtml}
+              ${typeTipHtml}
               ${tipHtml}
-              ${r.rewardText ? `<div class="row"><div class="row__left"><div class="row__title">获得奖励</div><div class="row__desc">${escapeHtml(r.rewardText)}</div></div></div>` : ""}
+              </div>
               <div class="sidebar__divider"></div>
               <div class="row"><div class="row__left"><div class="row__title">战斗日志（${r.rounds}回合）</div></div></div>
               ${logHtml}
@@ -379,7 +452,16 @@ export function createRenderPve({
       typeof state.skills?.darkPveDamageBoostRemainingSec === "number" &&
       Number.isFinite(state.skills.darkPveDamageBoostRemainingSec) &&
       state.skills.darkPveDamageBoostRemainingSec > 0;
-    const result = simulateBattle(team, st.enemies, st.type, { playerDamageMul: darkBoostOn ? 1.5 : 1 });
+    const clearedBefore = Boolean(state.pve.progress[st.id]);
+    const tut = pveFightModifiers(st.id, clearedBefore);
+    const result = simulateBattle(team, st.enemies, st.type, {
+      playerDamageMul: (darkBoostOn ? 1.5 : 1) * tut.playerDamageMul,
+      incomingDamageMul: natureIncomingDamageMul(state) * tut.incomingDamageMul,
+      enemyHpMul: tut.enemyHpMul,
+    });
+    result.stageType = st.type;
+    result.stageName = st.name;
+    result.recTypes = recommendedTypes(st.type);
     if (typeof onPveAttempt === "function") onPveAttempt();
 
     if (result.win) {
@@ -423,10 +505,19 @@ export function createRenderPve({
       }
 
       result.rewardText = rewardParts.join("、");
-      if (typeof addLog === "function") addLog(`PvE 通关：${st.name}（${result.stars}星）`, true);
+      const streakInfo = bumpPveWinStreak(state);
+      result.winStreak = streakInfo.streak;
+      if (streakInfo.milestone && typeof addLog === "function") {
+        addLog(`★ ${streakInfo.milestone}`, true);
+      }
+      if (typeof addLog === "function") {
+        addLog(`PvE 通关：${st.name}（${result.stars}星 · 连胜 ×${streakInfo.streak}）`, true);
+      }
     } else {
+      resetPveWinStreak(state);
       result.rewardText = "";
-      if (typeof addLog === "function") addLog(`PvE 失败：${st.name}`);
+      result.winStreak = 0;
+      if (typeof addLog === "function") addLog(`PvE 失败：${st.name}（连胜中断）`);
     }
 
     ui.pveBattleResult = result;

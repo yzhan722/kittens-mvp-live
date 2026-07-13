@@ -107,12 +107,16 @@ export function createMonthlyCard({ state, addRes, addLog }) {
 
   function getInfo() {
     ensureMonthlyCardState();
+    const dailyFc = DAILY_REWARD.futurecoin ?? 0;
     return {
       active: isActive(),
       canClaim: canClaim(),
       remainingDays: getRemainingDays(),
       dailyReward: DAILY_REWARD,
       price: MONTHLY_CARD_PRICE,
+      durationDays: MONTHLY_CARD_DAYS,
+      dailyFuturecoin: dailyFc,
+      totalFuturecoin30d: dailyFc * MONTHLY_CARD_DAYS,
       totalClaimed: state.monthlyCard.totalClaimed,
     };
   }

@@ -5,10 +5,11 @@
     "GATE-001", "GATE-002", "GATE-003", "GATE-004", "GATE-005", "GATE-006"
   ],
   "blockedOn": [],
-  "lastIterationAt": "2026-07-11T11:20:00.000Z",
-  "iterationCount": 6,
+  "lastIterationAt": "2026-07-12T13:45:00.000Z",
+  "iterationCount": 7,
   "backlogHead": null,
   "queueEmpty": true,
   "lastCommit": "3a16524",
-  "version": "0.39.2"
+  "version": "0.40.1",
+  "notes": "v0.40.1: items-selfcheck in CI, ARCHITECTURE tab-unlock + daily_tasks 410 doc, COMMERCIAL_OPS checklist"
 }

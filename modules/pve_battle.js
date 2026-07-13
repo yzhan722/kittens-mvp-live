@@ -72,6 +72,24 @@ function makeEnemyStats(enemy, stageType) {
   };
 }
 
+/** Sum of combat stats for stage enemies — used for PvE power hints. */
+export function estimateStageEnemyPower(stage) {
+  if (!stage || !Array.isArray(stage.enemies)) return 0;
+  const stype = stage.type || "normal";
+  return stage.enemies.reduce((sum, e) => {
+    const s = makeEnemyStats(e, stype);
+    return sum + s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
+  }, 0);
+}
+
+/** First-clear tutorial tuning for early stages. */
+export function pveFightModifiers(stageId, cleared) {
+  if (stageId === "1-1" && !cleared) {
+    return { playerDamageMul: 1.35, incomingDamageMul: 0.82, enemyHpMul: 0.2 };
+  }
+  return { playerDamageMul: 1, incomingDamageMul: 1, enemyHpMul: 1 };
+}
+
 /**
  * 计算单次攻击伤害（物/特分路 + 关卡压迫 + 保底伤害避免磨皮假负）
  */
@@ -102,8 +120,16 @@ export function calcDamage(attacker, defender, stageType, opts = {}) {
     attacker.side === "player" && typeof opts?.playerDamageMul === "number" && Number.isFinite(opts.playerDamageMul)
       ? Math.max(0, opts.playerDamageMul)
       : 1;
+  let damage = Math.max(1, Math.floor((raw + progress) * playerDamageMul));
+  if (
+    defender.side === "player" &&
+    typeof opts?.incomingDamageMul === "number" &&
+    Number.isFinite(opts.incomingDamageMul)
+  ) {
+    damage = Math.max(1, Math.floor(damage * Math.max(0, opts.incomingDamageMul)));
+  }
   return {
-    damage: Math.max(1, Math.floor((raw + progress) * playerDamageMul)),
+    damage,
     typeMul,
     immune: false,
     pressureMul,
@@ -127,6 +153,15 @@ export function simulateBattle(team, enemies, stageType, opts = {}) {
     typeof opts?.playerDamageMul === "number" && Number.isFinite(opts.playerDamageMul)
       ? Math.max(0, opts.playerDamageMul)
       : 1;
+  const incomingDamageMul =
+    typeof opts?.incomingDamageMul === "number" && Number.isFinite(opts.incomingDamageMul)
+      ? Math.max(0, opts.incomingDamageMul)
+      : 1;
+  const enemyHpMul =
+    typeof opts?.enemyHpMul === "number" && Number.isFinite(opts.enemyHpMul)
+      ? Math.max(0.1, opts.enemyHpMul)
+      : 1;
+  const dmgOpts = { playerDamageMul, incomingDamageMul };
 
   const playerUnits = team.map((m, i) => ({
     side: "player",
@@ -153,8 +188,8 @@ export function simulateBattle(team, enemies, stageType, opts = {}) {
       idx: i,
       name: e.name || `敌人${i + 1}`,
       types: eTypes,
-      maxHp: s.hp,
-      hp: s.hp,
+      maxHp: Math.max(1, Math.floor(s.hp * enemyHpMul)),
+      hp: Math.max(1, Math.floor(s.hp * enemyHpMul)),
       atk: s.atk,
       spa: s.spa,
       def: s.def,
@@ -209,7 +244,7 @@ export function simulateBattle(team, enemies, stageType, opts = {}) {
       log.push(`R${rounds}: ${first.name} 先手！`);
     }
 
-    const hit1 = calcDamage(first, second, stageType, { playerDamageMul });
+    const hit1 = calcDamage(first, second, stageType, dmgOpts);
     second.hp = Math.max(0, second.hp - hit1.damage);
     if (first.side === "player" && hit1.typeMul > 1) superEffectiveHits += 1;
     const eff1 = hit1.immune ? "（无效）" : hit1.typeMul > 1 ? "（效果拔群）" : hit1.typeMul < 1 ? "（效果不佳）" : "";
@@ -227,7 +262,7 @@ export function simulateBattle(team, enemies, stageType, opts = {}) {
       continue;
     }
 
-    const hit2 = calcDamage(second, first, stageType, { playerDamageMul });
+    const hit2 = calcDamage(second, first, stageType, dmgOpts);
     first.hp = Math.max(0, first.hp - hit2.damage);
     if (second.side === "player" && hit2.typeMul > 1) superEffectiveHits += 1;
     const eff2 = hit2.immune ? "（无效）" : hit2.typeMul > 1 ? "（效果拔群）" : hit2.typeMul < 1 ? "（效果不佳）" : "";

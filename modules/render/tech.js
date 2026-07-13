@@ -1,7 +1,13 @@
+import { techReqHint } from "../tech_req_hint.js";
+import { getTechStage, TECH_STAGE_LABELS, TECH_STAGE_ORDER } from "../tech_defs.js";
+
+const TECH_PACING_BLURB =
+  "研究耗时随投入分档：起步科技约数秒～半分钟，中期扩产约 1 分钟，后期飞跃链显著更长；建研究所可缩短耗时。";
+
 export function createRenderTech({ elTech, elAutoResearchToggle, elAutoResearchMode, elResearchEff, defs, canAfford, computeResearchTimeSec, fmtDuration, getResearchEfficiency, getState, getResearchCost }) {
   return function renderTech() {
     const state = getState();
-    const rows = [];
+    const byStage = new Map(TECH_STAGE_ORDER.map((s) => [s, []]));
 
     if (elAutoResearchToggle) {
       const unlocked = Boolean(state.unlocks?.autoResearch);
@@ -40,6 +46,7 @@ export function createRenderTech({ elTech, elAutoResearchToggle, elAutoResearchM
       const isActive = Boolean(activeResearchTid && activeResearchTid === tid);
       const researchBusy = Boolean(activeResearchTid && activeResearchTid !== tid);
       const canBuy = !owned && prereqOk && reqOk && afford && !activeResearchTid;
+      const locked = !prereqOk || !reqOk;
 
       const costText = Object.entries(cost)
         .map(([rid, v]) => `${defs.resources[rid].name}${v}`)
@@ -57,11 +64,30 @@ export function createRenderTech({ elTech, elAutoResearchToggle, elAutoResearchM
 
       const btnText = isActive ? `剩余 ${fmtDuration(activeRemain)}` : "研究";
 
-      rows.push(`
-        <div class="row">
+      const missingPrereq = (tdef.prereq ?? []).filter((p) => !state.tech[p]);
+      const depHint =
+        !prereqOk && missingPrereq.length
+          ? `需要：${missingPrereq.map((p) => defs.tech[p]?.name ?? p).join("、")}`
+          : "";
+      const reqHint = prereqOk && !reqOk ? techReqHint(state, tid, tdef) : "";
+      const gateHint = depHint || reqHint;
+
+      const rowClass = [
+        "row",
+        locked ? "is-locked" : "",
+        isActive ? "row--researching" : "",
+        canBuy ? "row--researchable" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      const stage = getTechStage(tid);
+      const bucket = byStage.get(stage) ?? byStage.get("mid");
+      bucket.push(`
+        <div class="${rowClass}">
           <div class="row__left">
             <div class="row__title">${tdef.name}</div>
-            <div class="row__desc">${tdef.desc}</div>
+            <div class="row__desc">${tdef.desc}${gateHint ? `<span class="tech-dep">${gateHint}</span>` : ""}</div>
           </div>
           <div class="row__right">
             <div class="badge ${owned ? "badge--ok" : ""}">${statusText}</div>
@@ -73,6 +99,20 @@ export function createRenderTech({ elTech, elAutoResearchToggle, elAutoResearchM
       `);
     }
 
-    elTech.innerHTML = rows.join("");
+    const sections = [`<p class="tech-pacing muted">${TECH_PACING_BLURB}</p>`];
+
+    for (const stage of TECH_STAGE_ORDER) {
+      const rows = byStage.get(stage) ?? [];
+      if (rows.length === 0) continue;
+      const label = TECH_STAGE_LABELS[stage] ?? stage;
+      sections.push(`
+        <div class="building-section tech-section" role="group" aria-label="${label}">
+          <div class="building-section__title">${label}</div>
+        </div>
+      `);
+      sections.push(...rows);
+    }
+
+    elTech.innerHTML = sections.join("");
   };
 }

@@ -127,7 +127,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
 
     rows.push(block("未来币与全服 Buff", `
       <div style='line-height:1.8'>
-        <strong>未来币来源</strong>：远征完成、每日签到、林佬奖励<br/>
+        <strong>未来币来源</strong>：远征完成、每日任务（含连续登录）、林佬奖励<br/>
         <strong>用途</strong>：购买全服Buff（1币≈1分钟），兑换道具
       </div>
       <table style='width:100%;border-collapse:collapse;font-size:12px'>
@@ -142,9 +142,13 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       <div class='muted' style='font-size:11px;margin-top:6px'>提示：全服Buff全服共享——你买了大家受益。</div>
     `));
 
-    rows.push(block("每日签到", `
+    rows.push(block("每日任务", `
+      <div style='line-height:1.8'>
+        每天随机 5 个玩法目标；完成任意任务后可在「商店与合成」领取奖励。<br/>
+        <strong>连续登录</strong>已并入任务领取：领奖时自动发放当日连续登录奖励（7天循环），不再单独签到。
+      </div>
       <table style='width:100%;border-collapse:collapse;font-size:12px'>
-        <tr style='opacity:0.6'><td>天数</td><td>奖励</td></tr>
+        <tr style='opacity:0.6'><td>连续天数</td><td>登录奖励</td></tr>
         <tr><td>第1天</td><td>未来币x5 + 树果x500</td></tr>
         <tr><td>第2天</td><td>未来币x5 + 球果x200</td></tr>
         <tr><td>第3天</td><td>未来币x10 + 进化石碎片x100</td></tr>
@@ -153,7 +157,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
         <tr><td>第6天</td><td>未来币x20 + 进化能量x2</td></tr>
         <tr><td>第7天</td><td>未来币x50 + 进化石x1 + 稀有糖果x3</td></tr>
       </table>
-      <div class='muted' style='font-size:11px;margin-top:6px'>提示：每天登录即可签到，7天后重新循环。</div>
+      <div class='muted' style='font-size:11px;margin-top:6px'>提示：月卡每日领取仍在未来币商店，与任务独立。</div>
     `));
 
     rows.push(block("图鉴与排行榜", `
@@ -168,9 +172,11 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
     rows.push(block("云存档与设置", `
       <div style='line-height:1.8'>
         <strong>注册账号</strong>：在设置页输入用户名/密码注册。<br/>
-        <strong>立即同步</strong>：点击按钮手动上传当前存档到云端。<br/>
-        <strong>自动同步</strong>：游戏每30秒自动同步一次。<br/>
-        <strong>换设备</strong>：登录同一账号后点立即同步拉取云端存档。
+        <strong>存档槽</strong>：槽 0 为自动存档（主进度）；槽 1 为手动存档。登录后可在设置页查看各槽本地/云端时间并单独拉取或上传。<br/>
+        <strong>立即同步</strong>：按时间戳合并所有已接入槽位；若发生冲突会弹出选择：保留本地、保留云端或取消。<br/>
+        <strong>自动同步</strong>：游戏每30秒自动上传槽 0；后台冲突会静默跳过，需手动同步处理。<br/>
+        <strong>换设备</strong>：登录同一账号后点立即同步或拉取槽 0。<br/>
+        <strong>忘记密码</strong>：暂不支持自助找回，请联系管理员，或先导出本地存档备份。
       </div>
       <div class='muted' style='font-size:11px;margin-top:6px'>提示：换设备前务必手动同步一次，避免进度丢失。</div>
     `));

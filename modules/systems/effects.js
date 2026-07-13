@@ -7,6 +7,7 @@
 
 import { clamp } from "../utils.js";
 import { applyMutatorsToEff } from "./era.js";
+import { natureDexBonusMul } from "./gameplay_fun.js";
 import { serverBuffPct, serverBuffResearchTimeMul as _serverBuffResearchTimeMul } from "./server_buffs.js";
 
 function hasSkillTimer(state, key) {
@@ -45,10 +46,11 @@ export function dexCaughtCount(state) {
  */
 export function computeDexEffects(state) {
   const { unique } = dexCaughtCount(state);
+  const dexMul = natureDexBonusMul(state);
   return {
-    catnipPerSecMul: 1 + unique * 0.01,
-    woodRateMul:     1 + unique * 0.005,
-    mineralsRateMul: 1 + unique * 0.005,
+    catnipPerSecMul: (1 + unique * 0.01) * dexMul,
+    woodRateMul: (1 + unique * 0.005) * dexMul,
+    mineralsRateMul: (1 + unique * 0.005) * dexMul,
     buildingCostMul: 1,
   };
 }
@@ -151,9 +153,9 @@ export function getBuildingCost(id, state, defs, ui) {
     }
   }
 
-  if (id === "researchLab" && state.res?.minerals) {
-    const maxCost = Math.max(1, Math.floor((state.res.minerals.cap ?? 0) * 0.9));
-    if (cost.minerals && cost.minerals > maxCost) cost.minerals = maxCost;
+  if (state.res?.minerals) {
+    const maxMinerals = Math.max(1, Math.floor((state.res.minerals.cap ?? 0) * 0.9));
+    if (cost.minerals && cost.minerals > maxMinerals) cost.minerals = maxMinerals;
   }
 
   if (hasSkillTimer(state, "rockBuildBoostRemainingSec")) applyCostMultiplier(cost, 0.8);

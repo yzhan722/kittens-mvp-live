@@ -116,10 +116,12 @@ export function createHintManager(elHint) {
   function show(text, ttl = GAME_CONFIG.UI.HINT_DEFAULT_TTL) {
     if (!elHint) return;
     elHint.textContent = text;
+    elHint.hidden = !text;
     if (timeoutId) clearTimeout(timeoutId);
     if (ttl > 0) {
       timeoutId = setTimeout(() => {
         elHint.textContent = "";
+        elHint.hidden = true;
       }, ttl);
     }
   }
@@ -127,6 +129,7 @@ export function createHintManager(elHint) {
   function clear() {
     if (!elHint) return;
     elHint.textContent = "";
+    elHint.hidden = true;
     if (timeoutId) clearTimeout(timeoutId);
   }
 

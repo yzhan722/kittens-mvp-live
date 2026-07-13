@@ -5,6 +5,8 @@ import {
   recommendedTypes,
   typeMatchScore,
   PVE_MAX_ROUNDS,
+  estimateStageEnemyPower,
+  pveFightModifiers,
 } from "../modules/pve_battle.js";
 import { PVE_CHAPTERS } from "../modules/pve_defs.js";
 
@@ -103,6 +105,21 @@ try {
   // 2-8 exists and dragonite not ★3 anymore
   const dragon = PVE_CHAPTERS[1].stages.find((s) => s.id === "2-8");
   assert(dragon && dragon.enemies.some((e) => e.dex === 149 && e.stars === 2), "2-8 dragonite stars nerfed to 2");
+
+  const stage11 = PVE_CHAPTERS[0].stages.find((s) => s.id === "1-1");
+  assert(stage11 && stage11.enemies.every((e) => e.lvl <= 3), "1-1 enemy lvl tuned for early game");
+  const ep = estimateStageEnemyPower(stage11);
+  assert(ep > 0 && ep < 900, "1-1 enemy power in teachable range");
+
+  const tut = pveFightModifiers("1-1", false);
+  assert(tut.playerDamageMul > 1 && tut.incomingDamageMul < 1 && tut.enemyHpMul < 1, "1-1 first-clear tutorial mods");
+  const noviceTeam = Array.from({ length: 6 }, (_, i) => ({
+    name: `n${i}`,
+    types: ["fire"],
+    stats: { hp: 55, atk: 16, def: 12, spa: 16, spd: 12, spe: 14 },
+  }));
+  const noviceWin = simulateBattle(noviceTeam, stage11.enemies, stage11.type, tut);
+  assert(noviceWin.win, "novice SE team can clear 1-1 with tutorial mods");
 } finally {
   Math.random = realRandom;
 }

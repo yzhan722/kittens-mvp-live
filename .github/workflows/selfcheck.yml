@@ -17,3 +17,20 @@ jobs:
         run: node scripts/selfcheck.mjs
       - name: API contract selfcheck
         run: node scripts/api-contract-selfcheck.mjs
+      - name: Items selfcheck
+        run: node scripts/items-selfcheck.mjs
+      - name: Analytics selfcheck
+        run: node scripts/analytics-selfcheck.mjs
+      - name: Daily tasks selfcheck
+        run: node scripts/daily_tasks-selfcheck.mjs
+      - name: Era selfcheck
+        run: node scripts/era-selfcheck.mjs
+      - name: Gameplay fun selfcheck
+        run: node scripts/gameplay-fun-selfcheck.mjs
+      - name: Player sim (6h)
+        run: node scripts/player-sim.mjs
+        env:
+          SIM_HOURS: "6"
+          SIM_DT: "30"
+      - name: E2E smoke
+        run: node scripts/e2e-smoke.mjs

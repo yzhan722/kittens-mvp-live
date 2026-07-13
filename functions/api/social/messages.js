@@ -44,7 +44,8 @@ export async function onRequest(context) {
     const body = await readJson(req);
     const toUid = clampUid(body?.toUid);
     const message = clampStr(body?.message, 500);
-    if (!toUid || !message) return json({ error: "bad request" }, { req });
+    if (!toUid) return json({ error: "bad request" }, { status: 400, req });
+    if (!message) return json({ error: "empty message" }, { status: 400, req });
     await dbRun(
       db,
       "INSERT INTO friend_messages(from_uid, to_uid, message, read, created_at) VALUES(?, ?, ?, 0, ?)",

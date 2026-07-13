@@ -190,3 +190,59 @@ export function buildExtraTechDefs() {
 export const EXTRA_TECH_DEFS = buildExtraTechDefs();
 
 export const EXTRA_TECH_FLAGS = Object.fromEntries(Object.keys(EXTRA_TECH_DEFS).map((k) => [k, false]));
+
+/** ponytail: static map + prefix rules; new tech without label falls back to mid */
+export const TECH_STAGE_ORDER = ["early", "mid", "late"];
+
+export const TECH_STAGE_LABELS = {
+  early: "早期 · 营地起步",
+  mid: "中期 · 扩产与工具",
+  late: "后期 · 飞跃与指数",
+};
+
+const TECH_STAGE_BY_ID = {
+  pokeballBasics: "early",
+  berryCultivation: "early",
+  composting: "early",
+  backpackWeaving: "early",
+  ballMolds: "early",
+  campLogistics: "early",
+  trainerDrills: "early",
+  irrigation: "mid",
+  greenhouse: "mid",
+  carpentry: "mid",
+  fieldResearch: "mid",
+  fieldGuide: "mid",
+  apricornCrafting: "mid",
+  reinforcedBalls: "mid",
+  captureTraining: "mid",
+  mineralSurvey: "mid",
+  excavationTools: "mid",
+  refining: "mid",
+  sawmillPlans: "mid",
+  oreStorage: "mid",
+  supplyLines: "mid",
+  efficientConstruction: "mid",
+  advancedGear: "mid",
+  researchMethod: "mid",
+  ultraStorage: "late",
+};
+
+const TECH_STAGE_PREFIX = [
+  ["agroBoost", "late"],
+  ["forestryBoost", "late"],
+  ["miningBoost", "late"],
+  ["catnipStorageBoost", "late"],
+  ["woodStorageBoost", "late"],
+  ["mineralsStorageBoost", "late"],
+  ["hyperGrowth", "late"],
+];
+
+export function getTechStage(tid) {
+  if (typeof tid !== "string" || !tid) return "mid";
+  if (TECH_STAGE_BY_ID[tid]) return TECH_STAGE_BY_ID[tid];
+  for (const [prefix, stage] of TECH_STAGE_PREFIX) {
+    if (tid.startsWith(prefix)) return stage;
+  }
+  return "mid";
+}

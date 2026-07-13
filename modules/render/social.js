@@ -1,5 +1,7 @@
 // 社交功能渲染模块
 
+import { resolveSeasonId } from "../systems/expedition.js";
+
 export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime }) {
   function socialUnavailableRow(title) {
     return `
@@ -10,6 +12,81 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
         </div>
       </div>
     `;
+  }
+
+  function pvpSeasonSuffix() {
+    if (!ui.remoteConfig) return "";
+    const sid = resolveSeasonId(ui.remoteConfig);
+    return ` <span class="muted">· 赛季 ${escapeHtml(sid)}</span>`;
+  }
+
+  function pvpEmptyStateHtml() {
+    return `
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">暂无对战邀请${pvpSeasonSuffix()}</div>
+          <div class="row__desc">
+            如何开始 PvP：
+            <ol style="margin:0.5rem 0 0 1.2rem;padding:0;">
+              <li>在下方「我的队伍」选择最多 6 只精灵</li>
+              <li>好友资料页点击「对战邀请」向好友发起挑战</li>
+              <li>收到邀请后点「应战」，系统自动模拟战斗并记录结果</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function renderPvpInvites() {
+    const elPvpInvites = document.getElementById("pvpInvites");
+    if (!elPvpInvites) return;
+
+    if (!ui.lbUid) {
+      elPvpInvites.innerHTML = `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">PVP 对战${pvpSeasonSuffix()}</div>
+            <div class="row__desc">请先登录查看对战邀请</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const invites = await socialSystem.getPvpInvites();
+    if (invites === null && ui.lbUid) {
+      elPvpInvites.innerHTML = socialUnavailableRow("社交服务暂时不可用");
+      return;
+    }
+
+    if (!invites || invites.length === 0) {
+      elPvpInvites.innerHTML = pvpEmptyStateHtml();
+      return;
+    }
+
+    let html = "";
+    for (const invite of invites) {
+      const expiresIn = Math.floor((invite.expires_at - Date.now()) / 1000 / 60);
+      html += `
+        <div class="row pvp-invite-card">
+          <div class="row__left">
+            <div class="row__title">${escapeHtml(invite.from_name || invite.from_uid)} 向你发起挑战${pvpSeasonSuffix()}</div>
+            <div class="row__desc">
+              队伍：${(Array.isArray(invite.team_data) ? invite.team_data : []).map(m => escapeHtml(m?.name || "?")).join(", ") || "未知"}
+              <br>剩余时间：${expiresIn} 分钟
+            </div>
+          </div>
+          <div class="row__right">
+            <button class="btn btn--primary btn--small" data-pvp-action="accept" data-invite-id="${invite.id}">
+              应战
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    elPvpInvites.innerHTML = html;
   }
   
   // 渲染好友动态（成就分享）
@@ -22,7 +99,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
         <div class="row">
           <div class="row__left">
             <div class="row__title">好友动态</div>
-            <div class="row__desc">请先登录查看好友动态</div>
+            <div class="row__desc">请先在「设置」登录云账号后查看好友动态</div>
           </div>
         </div>
       `;
@@ -102,7 +179,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
         <div class="row">
           <div class="row__left">
             <div class="row__title">好友消息</div>
-            <div class="row__desc">请先登录查看消息</div>
+            <div class="row__desc">请先在「设置」登录云账号后查看消息</div>
           </div>
         </div>
       `;
@@ -221,6 +298,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     renderFriendFeed,
     renderMessages,
     renderFriendProfile,
+    renderPvpInvites,
   };
 }
 

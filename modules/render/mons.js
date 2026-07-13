@@ -80,6 +80,7 @@ export function createRenderMons({
 
       const region = ui.monRegion || "all";
       const typeFilter = ui.monType || "all";
+      const searchQ = typeof ui.monSearch === "string" ? ui.monSearch.trim().toLowerCase() : "";
       const regionOk = (m) => {
         if (!m || typeof m.dex !== "number") return false;
         if (region === "all") return true;
@@ -105,7 +106,13 @@ export function createRenderMons({
         return types.includes(typeFilter);
       };
 
-      const filtered = list.filter((m) => regionOk(m) && typeOk(m)).sort((a, b) => {
+      const searchOk = (m) => {
+        if (!searchQ) return true;
+        const name = typeof m?.name === "string" ? m.name.toLowerCase() : "";
+        return name.includes(searchQ);
+      };
+
+      const filtered = list.filter((m) => regionOk(m) && typeOk(m) && searchOk(m)).sort((a, b) => {
         const sort = ui.monSort || "created";
         if (sort === "dex") {
           return a.dex - b.dex;
@@ -137,6 +144,32 @@ export function createRenderMons({
         (state.res?.catnip?.value ?? 0) >= 100 &&
         filtered.some((m) => clamp(typeof m?.satiety === "number" ? m.satiety : 100, 0, 100) < 100);
       const feedAllCount = filtered.filter((m) => clamp(typeof m?.satiety === "number" ? m.satiety : 100, 0, 100) < 100).length;
+
+      const candyHave = Math.max(0, Math.floor(state.res.rareCandy?.value ?? 0));
+      const candyTargets = filtered.filter((m) => m && m.lvl < 100);
+      const canBatchCandy = candyHave >= 1 && candyTargets.length > 0;
+      const batchCandyCount = Math.min(candyHave, candyTargets.length);
+
+      const REGION_LABELS = {
+        all: "全部地区",
+        kanto: "关都",
+        johto: "城都",
+        hoenn: "丰缘",
+        sinnoh: "神奥",
+        unova: "合众",
+        kalos: "卡洛斯",
+        alola: "阿罗拉",
+        galar: "伽勒尔",
+        mythic: "神兽",
+      };
+      const TYPE_ZH_MAP = TYPE_ZH && typeof TYPE_ZH === "object" ? TYPE_ZH : {};
+      const SORT_LABELS = { created: "获取时间", dex: "图鉴", lvl: "等级", power: "战力", satiety: "饱腹" };
+      const filterChips = [];
+      if (region !== "all") filterChips.push(`地区：${REGION_LABELS[region] ?? region}`);
+      if (typeFilter !== "all") filterChips.push(`属性：${TYPE_ZH_MAP[typeFilter] ?? typeFilter}`);
+      if (searchQ) filterChips.push(`搜索：${searchQ}`);
+      const sortLabel = SORT_LABELS[ui.monSort || "created"] ?? ui.monSort;
+      filterChips.push(`排序：${sortLabel}`);
 
       // 批量技能：统计各属性可用精灵数
       const BATCH_SKILL_TYPES = ["fighting","bug","ground","electric","fire","grass","water","normal","ghost","steel","ice","fairy","dragon"];
@@ -173,20 +206,37 @@ export function createRenderMons({
       if (elMonPrev) elMonPrev.disabled = ui.monPage <= 0;
       if (elMonNext) elMonNext.disabled = ui.monPage >= totalPages - 1;
 
+      if (total > 80) {
+        rows.push(`
+          <div class="row is-locked">
+            <div class="row__left">
+              <div class="row__title">盒子较满（${total} 只）</div>
+              <div class="row__desc">低战力精灵可放生换取神奇糖果；升星也会消耗同进化系材料。</div>
+            </div>
+          </div>
+        `);
+      }
+
       rows.push(`
         <div class="row">
           <div class="row__left">
+            <input class="input input--search" data-mon-search type="search" placeholder="搜索精灵名称…" value="${escapeHtml(searchQ)}" />
+            ${filterChips.length ? `<div class="filter-chips">${filterChips.map((c) => `<span class="filter-chip">${escapeHtml(c)}</span>`).join("")}</div>` : ""}
+          </div>
+        </div>
+        <div class="row">
+          <div class="row__left">
             <div class="row__title">快捷操作</div>
-            <div class="row__desc">饱腹不足精灵：${feedAllCount} 只 · 树果：${Math.floor(state.res.catnip?.value ?? 0)}</div>
+            <div class="row__desc">饱腹不足：${feedAllCount} 只 · 树果：${Math.floor(state.res.catnip?.value ?? 0)} · 糖果：${candyHave}</div>
           </div>
           <div class="row__right">
             <button class="btn btn--small${feedAllCount > 0 ? ' btn--warning' : ''}" data-mon-feed-all="1" ${canFeedAll ? "" : "disabled"}>一键喂食${feedAllCount > 0 ? `（${feedAllCount}只）` : '（已满）'}</button>
+            <button class="btn btn--small" data-mon-batch-candy="1" ${canBatchCandy ? "" : "disabled"}>各喂1糖${canBatchCandy ? `（${batchCandyCount}只）` : ""}</button>
           </div>
         </div>
       `);
 
       if (hasBatchSkill) {
-        const TYPE_ZH_MAP = TYPE_ZH && typeof TYPE_ZH === "object" ? TYPE_ZH : {};
         // 合并就绪和冷却中的属性
         const allBatchTypes = new Set([...Object.keys(batchSkillCounts), ...Object.keys(batchSkillCooldownCounts)]);
         const batchBtns = [...allBatchTypes].map((t) => {
@@ -211,11 +261,15 @@ export function createRenderMons({
       }
 
       if (total === 0) {
+        const emptyHint =
+          searchQ || region !== "all" || typeFilter !== "all"
+            ? "当前筛选无结果，试试放宽地区/属性或清空搜索。"
+            : "去“捕捉”页抓一只吧。";
         rows.push(`
           <div class="row is-locked">
             <div class="row__left">
               <div class="row__title">暂无精灵</div>
-              <div class="row__desc">去“捕捉”页抓一只吧。</div>
+              <div class="row__desc">${escapeHtml(emptyHint)}</div>
             </div>
           </div>
         `);
@@ -380,6 +434,17 @@ export function createRenderMons({
 
       if (starUpModalHtml) rows.push(starUpModalHtml);
       elMonList.innerHTML = rows.join("");
+      if (ui.monSearchFocus) {
+        const searchInput = elMonList.querySelector("input[data-mon-search]");
+        if (searchInput) {
+          searchInput.focus();
+          const len = searchInput.value.length;
+          try {
+            searchInput.setSelectionRange(len, len);
+          } catch {
+          }
+        }
+      }
       try {
         const nextBody = elMonList.querySelector('.modalOverlay[data-mon-starup-overlay="1"] .modal__body');
         if (nextBody) nextBody.scrollTop = prevStarUpBodyScrollTop;

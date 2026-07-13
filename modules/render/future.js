@@ -1,4 +1,4 @@
-export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, dailySignin, monthlyCard }) {
+export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, monthlyCard }) {
   return function renderFutureShop() {
     const state = getState();
     if (!elFutureShop) return;
@@ -37,7 +37,15 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
 
     const rows = [];
     const foldCfg = ui.futureShopFold && typeof ui.futureShopFold === "object" ? ui.futureShopFold : {};
-    const isFolded = (k) => Boolean(foldCfg && Object.prototype.hasOwnProperty.call(foldCfg, k) ? foldCfg[k] : false);
+    const foldDefaults = { daily: false, exchange: false, boost: true, permanent: true, item: true, package: true, auto: true, craft: true };
+    const isFolded = (k) =>
+      Boolean(
+        foldCfg && Object.prototype.hasOwnProperty.call(foldCfg, k)
+          ? foldCfg[k]
+          : Object.prototype.hasOwnProperty.call(foldDefaults, k)
+            ? foldDefaults[k]
+            : true
+      );
     const sectionHeader = (k, title) => {
       const folded = isFolded(k);
       const icon = folded ? "▸" : "▾";
@@ -71,33 +79,7 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
       </div>
     `);
 
-    // 每日签到
-    if (dailySignin) {
-      const signinInfo = dailySignin.getSigninInfo();
-      const nextRewards = signinInfo.nextRewards;
-      const rewardText = Object.entries(nextRewards)
-        .filter(([k]) => k !== "day")
-        .map(([k, v]) => {
-          const resName = defs.resources[k]?.name || k;
-          return `${resName} +${v}`;
-        })
-        .join("、");
-      
-      dailyRows.push(`
-        <div class="row">
-          <div class="row__left">
-            <div class="row__title">每日签到</div>
-            <div class="row__desc">连续签到：${signinInfo.consecutiveDays}天 · 累计签到：${signinInfo.totalDays}天</div>
-            <div class="row__desc">明日奖励：${rewardText}</div>
-          </div>
-          <div class="row__right">
-            <button class="btn btn--primary" data-daily-signin ${signinInfo.canSignin ? "" : "disabled"}>${signinInfo.canSignin ? "签到领奖" : "今日已签到"}</button>
-          </div>
-        </div>
-      `);
-    }
-
-    // 月卡
+    // 月卡（每日签到已并入上方「每日任务」领取，避免双入口）
     if (monthlyCard) {
       const cardInfo = monthlyCard.getInfo();
       const rewardText = Object.entries(cardInfo.dailyReward)
@@ -106,18 +88,21 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
           return `${resName} +${v}`;
         })
         .join("、");
-      
+      const fc30 = cardInfo.totalFuturecoin30d ?? cardInfo.dailyFuturecoin * (cardInfo.durationDays ?? 30);
+      const expiringSoon = cardInfo.active && cardInfo.remainingDays <= 3;
+
       if (cardInfo.active) {
         dailyRows.push(`
           <div class="row">
             <div class="row__left">
-              <div class="row__title">月卡特权</div>
-              <div class="row__desc">剩余天数：${cardInfo.remainingDays}天 · 已领取：${cardInfo.totalClaimed}次</div>
+              <div class="row__title">月卡特权${expiringSoon ? ' <span class="hint--warn">即将到期</span>' : ""}</div>
+              <div class="row__desc">剩余 ${cardInfo.remainingDays} 天 · 已领取 ${cardInfo.totalClaimed} 次</div>
               <div class="row__desc">每日奖励：${rewardText}</div>
+              <div class="row__desc"><span class="badge badge--ok">30天累计约 ${fc30} 未来币 + 道具</span></div>
             </div>
             <div class="row__right">
               <button class="btn btn--primary" data-monthly-claim ${cardInfo.canClaim ? "" : "disabled"}>${cardInfo.canClaim ? "领取今日奖励" : "今日已领取"}</button>
-              <button class="btn btn--small" data-monthly-renew>续费（${cardInfo.price}币）</button>
+              <button class="btn btn--small" data-monthly-renew>续费 ${cardInfo.durationDays ?? 30} 天（${cardInfo.price}币）</button>
             </div>
           </div>
         `);
@@ -126,11 +111,11 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
           <div class="row">
             <div class="row__left">
               <div class="row__title">月卡特权（未激活）</div>
-              <div class="row__desc">价格：${cardInfo.price}未来币 · 有效期：30天</div>
               <div class="row__desc">每日可领：${rewardText}</div>
+              <div class="row__desc"><span class="badge badge--ok">${cardInfo.durationDays ?? 30}天共 ${fc30} 未来币 + 道具 · 售价 ${cardInfo.price} 未来币</span></div>
             </div>
             <div class="row__right">
-              <button class="btn btn--primary" data-monthly-buy>购买月卡（${cardInfo.price}币）</button>
+              <button class="btn btn--primary" data-monthly-buy>开通月卡（${cardInfo.price}币）</button>
             </div>
           </div>
         `);
@@ -863,23 +848,23 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
       </div>
     `);
 
-    rows.push(sectionHeader("daily", "每日福利"));
+    rows.push(sectionHeader("daily", "每日福利（月卡）"));
     if (!isFolded("daily")) rows.push(...dailyRows);
 
-    rows.push(sectionHeader("package", "资源礼包"));
-    if (!isFolded("package")) rows.push(...packageRows);
-
-    rows.push(sectionHeader("item", "道具商店"));
-    if (!isFolded("item")) rows.push(...itemRows);
+    rows.push(sectionHeader("exchange", "兑换"));
+    if (!isFolded("exchange")) rows.push(...exchangeRows);
 
     rows.push(sectionHeader("boost", "限时增益"));
     if (!isFolded("boost")) rows.push(...boostRows);
 
-    rows.push(sectionHeader("permanent", "永久增益"));
+    rows.push(sectionHeader("permanent", "永久"));
     if (!isFolded("permanent")) rows.push(...permanentRows);
 
-    rows.push(sectionHeader("exchange", "兑换"));
-    if (!isFolded("exchange")) rows.push(...exchangeRows);
+    rows.push(sectionHeader("item", "道具"));
+    if (!isFolded("item")) rows.push(...itemRows);
+
+    rows.push(sectionHeader("package", "礼包"));
+    if (!isFolded("package")) rows.push(...packageRows);
 
     rows.push(sectionHeader("auto", "自动"));
     if (!isFolded("auto")) rows.push(...autoRows);

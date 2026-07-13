@@ -14,7 +14,7 @@ import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, e
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
 import { createTick } from "./modules/tick.js?v=0.40.1";
-import { createRenderResources } from "./modules/render/resources.js?v=0.40.1";
+import { createRenderResources } from "./modules/render/resources.js?v=0.40.3";
 import { createRenderLog } from "./modules/render/log.js?v=0.40.1";
 import { createRenderBuildings } from "./modules/render/buildings.js?v=0.40.1";
 import { createRenderTech } from "./modules/render/tech.js?v=0.40.1";
@@ -62,7 +62,9 @@ import {
   ensureDerivedContainers,
   finalizeProductionRates,
 } from "./modules/systems/production.js";
+import { computeDerived as computeDerivedCore } from "./modules/systems/compute_derived.js";
 import { createCaptureSystem } from "./modules/app/capture_system.js";
+import { awardCaughtPokemon as awardCaughtPokemonCore } from "./modules/app/capture_award.js";
 import { createTickerSystem } from "./modules/app/ticker.js";
 import { createRenderPve } from "./modules/tabs/pve_tab.js";
 import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
@@ -86,9 +88,13 @@ import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
 import { setupGlobalErrorHandling } from "./modules/error_handler.js";
 import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era.js";
+import { createAnalytics } from "./modules/analytics.js";
+import { load as loadRemoteConfig } from "./modules/remote_config.js";
+import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatchStreak, natureResCapMul, formatWelcomeBackSummary } from "./modules/systems/gameplay_fun.js";
 
 (() => {
   setupGlobalErrorHandling();
+  const analytics = createAnalytics({ gameVersion: "0.40.1" });
 
   const STORAGE_KEY = "kittens_mvp_save_v1";
   // ===== SECTION:STORAGE_CONSTANTS — 存档键名常量/localStorage工具 =====
@@ -1036,6 +1042,7 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
   let renderItems = () => {};
   let renderHelp = () => {};
   let renderDailyTasks = () => {};
+  let dailyTasks = null;
   let renderPve = () => {};
   let renderFunctionsImpl = () => {};
   let socialTab = null;
@@ -1112,11 +1119,19 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
     render,
     doCatch,
     getState: () => state,
-    onGather: (catnipGained) => {
+    onGather: (intendedOrGained, maybeGained) => {
+      const intended =
+        typeof maybeGained === "number"
+          ? Math.max(0, Number(intendedOrGained) || 0)
+          : Math.max(0, Number(intendedOrGained) || 0);
+      const catnipGained =
+        typeof maybeGained === "number" ? Math.max(0, maybeGained) : intended;
       bumpEraCounter(state, "gather_total", 1);
-      if (catnipGained > 0) bumpEraCounter(state, "berry_earned", catnipGained);
+      // ponytail: era berry quest counts gather yield even when warehouse is full
+      bumpEraCounter(state, "berry_earned", intended > 0 ? intended : catnipGained);
       dailyTasks?.onEvent("gather", { resource: "catnip", amount: catnipGained });
       dailyTasks?.onEvent("clickGather");
+      analytics.track("gather_click", { catnipGained: catnipGained ?? 0 });
       syncEraProgress();
       markCaptureDirty();
     },
@@ -1234,6 +1249,7 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
       markCaptureDirty();
     },
     onEraAdvance: tryAdvanceEra,
+    getCaptureAreas,
   });
 
   initBuildingsTab({
@@ -1261,9 +1277,13 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
   // ===== SECTION:CORE_HELPERS — hint / addLog / getSpeciesByPid — 维护者窗口A =====
   function hint(text, ttl = 2000) {
     elHint.textContent = text;
+    elHint.hidden = !text;
     if (ttl > 0) {
       window.setTimeout(() => {
-        if (elHint.textContent === text) elHint.textContent = "";
+        if (elHint.textContent === text) {
+          elHint.textContent = "";
+          elHint.hidden = true;
+        }
       }, ttl);
     }
   }
@@ -1500,7 +1520,18 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
       }
     }, 8000);
     try {
-      const res = await fetch(url, { ...(opts || {}), signal: ctrl ? ctrl.signal : undefined });
+      const baseOpts = opts && typeof opts === "object" ? { ...opts } : {};
+      const headers = { ...(baseOpts.headers || {}) };
+      // Harden write APIs require Bearer; attach when logged in (GET also OK with token)
+      try {
+        const token = cloudSave?.getToken?.();
+        if (token && !headers.Authorization && !headers.authorization) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+      } catch {
+      }
+      baseOpts.headers = headers;
+      const res = await fetch(url, { ...baseOpts, signal: ctrl ? ctrl.signal : undefined });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } finally {
@@ -1595,6 +1626,7 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
       });
 
       state.res.futurecoin.value = Math.max(0, (state.res.futurecoin?.value ?? 0) - price);
+      analytics.trackFuturecoinSpend(price, "server_buff");
       ui.futureDirty = true;
       addLog(`购买全服增益：${SERVER_BUFF_UI[k]?.name ?? k}（+${m} 分钟，花费未来币 ${price}）`, true);
       if (typeof pushTickerEvent === "function") {
@@ -2184,6 +2216,7 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
     slotKeys: [SAVE_SLOT_KEY],
     applyAutosaveRaw,
   });
+  cloudSave.installCloudPanelUI({ setStatus: setCloudStatus, refreshGame: () => render() });
 
   // API fetch for daily_tasks / authenticated endpoints (Bearer from cloudSave)
   ui.fetch = async (path, { method = "GET", body = null } = {}) => {
@@ -2225,6 +2258,7 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
       }
       setCloudStatus("同步中...");
       await cloudSave.syncAll();
+      await dailyTasks?.syncFromServer?.();
       cloudSave.startAutoSync();
       const st = cloudSave.getSyncStatus();
       if (st.status === "error") {
@@ -2371,6 +2405,8 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
     for (const [rid, v] of Object.entries(cost)) {
       state.res[rid].value = Math.max(0, state.res[rid].value - v);
     }
+    const fc = cost?.futurecoin;
+    if (typeof fc === "number" && Number.isFinite(fc) && fc > 0) analytics.trackFuturecoinSpend(fc, "pay");
   }
 
   function canStartResearch(tid) {
@@ -2479,67 +2515,13 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
 
   // ===== SECTION:COMPUTE_DERIVED — computeDerived主函数 — 维护者窗口A =====
   function computeDerived() {
-    const eff = accumulateBuildingEffects(state, defs);
-    const techEff = computeTechEffects();
-    applyTechAndServerCapToEff(eff, techEff, serverBuffMul("resCap"));
-    eff.unlockPokeball = Boolean(state.tech.pokeballBasics);
-
-    const caps = computeBaseResourceCaps(defs, eff);
-    const permCapMul = permanentBoostMul(state.permanentBoosts?.capacity);
-    applyCoreResourceCaps(state, caps, eff.unlockPokeball, permCapMul);
-    applyStaticItemCaps(state, computeStaticItemCaps(defs));
-
-    state.unlocks.wood = Boolean(eff.unlockWood);
-    state.unlocks.minerals = Boolean(eff.unlockMinerals);
-    state.unlocks.pokeball = Boolean(eff.unlockPokeball);
-
-    // Soft early-game boost for brand-new / pre-catch saves (one-time)
-    if (!state.meta || typeof state.meta !== "object") state.meta = {};
-    if (!state.meta.earlyPaceGranted && (state.catchCount || 0) === 0) {
-      state.meta.earlyPaceGranted = true;
-      if ((state.buildings?.field?.owned ?? 0) < 1) {
-        if (!state.buildings.field) state.buildings.field = { owned: 0 };
-        state.buildings.field.owned = 1;
-      }
-      if ((state.res.catnip?.value ?? 0) < 12) {
-        state.res.catnip.value = Math.max(Number(state.res.catnip.value) || 0, 12);
-      }
-    }
-
-    // After caps applied: one-time starter pack so first catch isn't blocked by wood/hut farm.
-    // (Previously granting inside tick lost balls when pokeball.cap was reset to 0 here.)
-    if (eff.unlockPokeball) {
-      if (!state.meta || typeof state.meta !== "object") state.meta = {};
-      state.res.pokeball.cap = Math.max(Number(state.res.pokeball.cap) || 0, 10);
-      if (!state.meta.starterBallsGranted) {
-        // Skip grant for saves that already progressed past the tutorial pack
-        if ((state.catchCount || 0) > 0 || (state.pokeballMade || 0) > 0 || (state.res.pokeball.value || 0) > 0) {
-          state.meta.starterBallsGranted = true;
-        } else {
-          state.meta.starterBallsGranted = true;
-          state.res.pokeball.value = Math.min(
-            state.res.pokeball.cap,
-            (Number(state.res.pokeball.value) || 0) + 5
-          );
-          state.res.wood.cap = Math.max(Number(state.res.wood.cap) || 0, 40);
-          state.res.wood.value = Math.max(Number(state.res.wood.value) || 0, 24);
-          try {
-            addLog("精灵球基础生效：赠送精灵球×5与球果×24，可直接去捕捉。", true);
-          } catch {
-            // ignore
-          }
-        }
-      }
-    }
-
-    ensureDerivedContainers(state, clamp);
-
-    const unlockedRates = computeUnlockedResourceRates(state, techEff);
-    if (state.unlocks.wood) eff.woodPerSec = unlockedRates.woodPerSec;
-    if (state.unlocks.minerals) eff.mineralsPerSec = unlockedRates.mineralsPerSec;
-
-    finalizeProductionRates(eff, state, serverBuffMul("resProd"));
-    return eff;
+    return computeDerivedCore(state, {
+      defs,
+      computeTechEffects,
+      serverBuffMul,
+      clamp,
+      addLog,
+    });
   }
 
   renderFunctionsImpl = createRenderFunctions({
@@ -2626,12 +2608,24 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
     addLog,
   });
 
-  const dailyTasks = createDailyTasks({
+  dailyTasks = createDailyTasks({
     state,
     addRes,
     addLog,
+    dailySignin,
+    apiFetch: (path, opts) => ui.fetch(path, opts),
+    hasAuth: () => Boolean(cloudSave.getToken()),
   });
+  {
+    const claimRewards0 = dailyTasks.claimRewards.bind(dailyTasks);
+    dailyTasks.claimRewards = async () => {
+      const res = await claimRewards0();
+      if (res?.ok) analytics.track("daily_claim", { futurecoin: res.futurecoin ?? 0 });
+      return res;
+    };
+  }
   dailyTasks.onEvent("login");
+  if (cloudSave.getToken()) dailyTasks.syncFromServer().catch(() => {});
 
   renderFutureShop = createRenderFutureShop({
     elFutureShop,
@@ -2639,7 +2633,6 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
     defs,
     fmt,
     getState: () => state,
-    dailySignin,
     monthlyCard,
   });
 
@@ -2709,85 +2702,65 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
   }
 
   function awardCaughtPokemon(p, opts = null) {
-    const isShiny = Boolean(opts && typeof opts === "object" && opts.isShiny);
-    const caught = state.dex.caught;
-    const prev = typeof caught[p.id] === "number" ? caught[p.id] : 0;
-    caught[p.id] = prev + 1;
+    awardCaughtPokemonCore(state, p, opts, {
+      createMonInstance,
+      ui,
+      addLog,
+      bumpEraCounter,
+      syncEraProgress: () => syncEraProgress(),
+      afterAward: ({ species, prev, isShiny, prevCatchCount }) => {
+        if (prevCatchCount === 0) analytics.trackFirstCapture({ pokemonId: species.id, dex: species.dex });
+        dailyTasks?.onEvent("catch");
 
-    const prevCatch = typeof state.catchCount === "number" && Number.isFinite(state.catchCount) ? state.catchCount : 0;
-    state.catchCount = Math.max(0, Math.floor(prevCatch)) + 1;
-    dailyTasks?.onEvent("catch");
-    bumpEraCounter(state, "catch_count", 1);
-    syncEraProgress();
-    if (isShiny) {
-      const prevShiny = typeof state.shinyCount === "number" && Number.isFinite(state.shinyCount) ? state.shinyCount : 0;
-      state.shinyCount = Math.max(0, Math.floor(prevShiny)) + 1;
-    }
+        if (prev === 0 && (species.tier === "rare" || species.tier === "epic") && typeof pushTickerEvent === "function") {
+          pushTickerEvent("catch", `捕捉成功 ${species.name}`);
+        }
+        if (prev === 0 && species.tier === "epic" && typeof pushTickerEvent === "function") {
+          pushTickerEvent("mythic", `捕捉到神兽 ${species.name}`);
+        }
+        if (isShiny && typeof pushTickerEvent === "function") {
+          pushTickerEvent("shiny", `捕捉到闪光 ${species.name}`);
+        }
 
-    if (!state.mons) state.mons = { nextId: 1, list: [] };
-    const mon = createMonInstance(p);
-    mon.isShiny = isShiny;
-    const caughtWithBall = opts && typeof opts === "object" && typeof opts.ballType === "string" ? opts.ballType : "pokeball";
-    mon.caughtWith = caughtWithBall;
-    state.mons.list.push(mon);
-    state.mons.nextId = Math.max(state.mons.nextId, mon.id + 1);
+        if (!socialTab || !ui.lbUid) return;
+        const tier = getPokemonTier(species.id);
+        const tierNum =
+          tier === "common"
+            ? 5
+            : tier === "uncommon"
+              ? 4
+              : tier === "rare"
+                ? 3
+                : tier === "epic"
+                  ? 2
+                  : tier === "legendary"
+                    ? 1
+                    : 6;
 
-    ui.dexDirty = true;
-    ui.captureDirty = true;
-    ui.monsDirty = true;
-    ui.functionsDirty = true;
-
-    if (prev === 0) {
-      addLog(`图鉴登记：${p.name}（首次捕获）`, true);
-    } else {
-      addLog(`捕获：${p.name} +1`);
-    }
-
-    if (prev === 0 && (p.tier === "rare" || p.tier === "epic") && typeof pushTickerEvent === "function") {
-      pushTickerEvent("catch", `捕捉成功 ${p.name}`);
-    }
-    if (prev === 0 && p.tier === "epic" && typeof pushTickerEvent === "function") pushTickerEvent("mythic", `捕捉到神兽 ${p.name}`);
-    if (isShiny && typeof pushTickerEvent === "function") pushTickerEvent("shiny", `捕捉到闪光 ${p.name}`);
-
-    if (isShiny) {
-      addLog(`！！！闪光入队：${p.name}！！！`, true);
-    }
-
-    // 自动分享成就
-    if (socialTab && ui.lbUid) {
-      const tier = getPokemonTier(p.id);
-      const tierNum = tier === "common" ? 5 : tier === "uncommon" ? 4 : tier === "rare" ? 3 : tier === "epic" ? 2 : tier === "legendary" ? 1 : 6;
-      
-      // 分享稀有精灵或闪光精灵
-      if (tierNum <= 2 || isShiny) {
-        socialTab.autoShareAchievement("rare_catch", {
-          name: p.name,
-          pid: p.id,
-          tier: tierNum,
-          isShiny: isShiny,
-        });
-      }
-
-      // 图鉴里程碑（首次捕获时检查）
-      if (prev === 0) {
-        const dexCount = dexCaughtUnique();
-        if (dexCount % 50 === 0 && dexCount > 0) {
-          socialTab.autoShareAchievement("dex_milestone", {
-            count: dexCount,
+        if (tierNum <= 2 || isShiny) {
+          socialTab.autoShareAchievement("rare_catch", {
+            name: species.name,
+            pid: species.id,
+            tier: tierNum,
+            isShiny,
           });
         }
-      }
 
-      // 闪光里程碑
-      if (isShiny) {
-        const shinyCount = state.shinyCount || 0;
-        if (shinyCount % 10 === 0 && shinyCount > 0) {
-          socialTab.autoShareAchievement("shiny_milestone", {
-            count: shinyCount,
-          });
+        if (prev === 0) {
+          const dexCount = dexCaughtUnique();
+          if (dexCount % 50 === 0 && dexCount > 0) {
+            socialTab.autoShareAchievement("dex_milestone", { count: dexCount });
+          }
         }
-      }
-    }
+
+        if (isShiny) {
+          const shinyCount = state.shinyCount || 0;
+          if (shinyCount % 10 === 0 && shinyCount > 0) {
+            socialTab.autoShareAchievement("shiny_milestone", { count: shinyCount });
+          }
+        }
+      },
+    });
   }
 
   function doCatch() {
@@ -2814,12 +2787,14 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
     const addSoft = addRaw <= 0.2 ? addRaw : 0.2 + (addRaw - 0.2) * 0.4;
     const baseWithTech = base * Math.max(1, 1 + addSoft);
     const fails = typeof state.rng?.catchFails === "number" ? state.rng.catchFails : 0;
-    const pity = Math.min(0.02 * Math.max(0, Math.floor(fails)), 0.15);
+    const pity = Math.min(0.02 * Math.max(0, Math.floor(fails)), 0.2);
     const capByTier = p.tier === "epic" ? 0.98 : p.tier === "rare" ? 0.92 : p.tier === "uncommon" ? 0.85 : 0.75;
     let chance = clamp(baseWithTech + pity, 0, capByTier);
+    chance = clamp(chance * luckyCatchMul(state, globalThis.POKEMON_TYPES?.[p.dex]), 0, Math.max(capByTier, 0.95));
     if (randFloat() > chance) {
       if (!state.rng) state.rng = { catchFails: 0 };
-      state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + 1);
+      state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + pityFailStep(state, randFloat));
+      resetCatchStreak(state);
       addLog("捕捉失败：宝可梦逃走了。");
       return;
     }
@@ -2827,6 +2802,12 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
     if (!state.rng) state.rng = { catchFails: 0 };
     state.rng.catchFails = 0;
     awardCaughtPokemon(p);
+    const { streak, reward } = bumpCatchStreak(state);
+    if (streak >= 3) addLog(`连捕中：×${streak}`);
+    if (reward?.berry > 0) {
+      addRes("catnip", reward.berry);
+      addLog(`★ ${reward.label}：树果 +${reward.berry}`, true);
+    }
   }
 
   // ===== SECTION:TAB_AND_RENDER_WIRE — render*/init*Tab / leaderboard listeners — 维护者窗口A/C =====
@@ -2961,7 +2942,6 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
     addRes,
     addLog,
     render,
-    dailySignin,
     monthlyCard,
     dailyTasks,
   });
@@ -3097,6 +3077,15 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
 
     refreshCloudUI();
     cloudSave.installLifecycleFlush();
+    analytics.init({
+      baseUrl: lbBaseUrl,
+      getToken: () => cloudSave.getToken(),
+      getUid: () => (typeof ui.lbUid === "string" ? ui.lbUid : ""),
+    });
+    analytics.trackOnceSession("session_start");
+    loadRemoteConfig(lbBaseUrl()).then((cfg) => {
+      ui.remoteConfig = cfg;
+    }).catch(() => {});
     if (cloudSave.getToken()) {
       doCloudSyncNow();
     }
@@ -3192,6 +3181,10 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
         wood: state.res.wood.value,
         minerals: state.res.minerals.value,
         pokeball: state.res.pokeball.value,
+        catchCount: state.catchCount || 0,
+        eraId: state.era?.id || "",
+        pveCleared: Object.keys(state.pve?.progress || {}).filter((k) => !k.includes("_")).length,
+        expeditionsCompleted: state.meta?.expeditionsCompleted ?? 0,
       };
 
       tick(dt, { offline: true });
@@ -3207,6 +3200,9 @@ import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era
       if (dMin > 0) parts.push(`进化石碎片 +${fmt(dMin)}`);
       if (dBall > 0) parts.push(`精灵球 +${fmt(dBall)}`);
       if (parts.length > 0) addLog(`离线收益：${parts.join("，")}`);
+
+      const highlights = formatWelcomeBackSummary(state, before, dt);
+      if (highlights) addLog(`今日精彩：${highlights}`, true);
     }
 
     if (autosaveEnabled) {

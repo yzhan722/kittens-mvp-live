@@ -8,6 +8,7 @@ import {
   computeDexEffects,
   getPokeballMakeCost,
   getResearchCost,
+  getBuildingCost,
   computeResearchTimeSec,
 } from "../modules/systems/effects.js";
 import {
@@ -31,6 +32,10 @@ import {
   serverBuffResearchTimeMul,
 } from "../modules/systems/server_buffs.js";
 import { EXP_LEVELS, getExpLevelDef } from "../modules/expedition_defs.js";
+import { BUILDING_DEFS } from "../modules/defs_buildings.js";
+import { computeDerived as computeDerivedCore } from "../modules/systems/compute_derived.js";
+import { awardCaughtPokemon as awardCaughtCore } from "../modules/app/capture_award.js";
+import { techReqHint } from "../modules/tech_req_hint.js";
 import { getTypeMul, TYPE_MUL } from "../modules/type_chart.js";
 import {
   getStarUpgradeNeed,
@@ -49,7 +54,7 @@ function assert(cond, msg) {
 }
 
 // expedition_defs
-assert(EXP_LEVELS.length === 5, "EXP_LEVELS length");
+assert(EXP_LEVELS.length === 7, "EXP_LEVELS length");
 assert(getExpLevelDef("master").req === 30000, "master req");
 assert(getExpLevelDef("super").coin === 300, "super expedition coin");
 assert(getExpLevelDef("master").coin === 800, "master expedition coin");
@@ -104,6 +109,25 @@ assert(Math.abs(eff.catchChanceAdd - 0.21) < 1e-9, "catchChanceAdd got " + eff.c
 assert(computeDexEffects(state).catnipPerSecMul === 1.02, "dex catnip");
 assert(getPokeballMakeCost(1, state, ui, null, defs).wood === 3, "pokeball cost");
 assert(getResearchCost({ cost: { catnip: 200 } }, state).catnip === 90, "research cap");
+{
+  const capState = {
+    buildings: {
+      trainingGround: { owned: 1 },
+      breedingHouse: { owned: 1 },
+      expeditionPost: { owned: 0 },
+    },
+    res: {
+      catnip: { value: 100, cap: 100 },
+      wood: { value: 100, cap: 100 },
+      minerals: { value: 30, cap: 30 },
+    },
+    unlocks: { minerals: true, wood: true },
+    tech: {},
+  };
+  const expCost = getBuildingCost("expeditionPost", capState, { buildings: BUILDING_DEFS, tech: {} }, ui);
+  assert((expCost.minerals ?? 0) <= 27, "expeditionPost minerals affordable at cap 30");
+  assert((expCost.catnip ?? 0) <= 90 && (expCost.wood ?? 0) <= 90, "expeditionPost res within 90% cap");
+}
 
 // production
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -175,6 +199,72 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
     {}
   );
   assert(forced === 10, "forced timeSec");
+}
+
+{
+  const hint = techReqHint({ buildings: { field: { owned: 1 } } }, "irrigation", {
+    req: (s) => (s.buildings?.field?.owned ?? 0) >= 2,
+  });
+  assert(hint.includes("树果田") && hint.includes("Lv.2"), "tech req hint irrigation");
+  const capState = {
+    buildings: { hut: { owned: 1 } },
+    tech: {},
+    res: {
+      catnip: { value: 0, cap: 100 },
+      wood: { value: 0, cap: 40 },
+      minerals: { value: 0, cap: 30 },
+      pokeball: { value: 0, cap: 10 },
+      rareCandy: { value: 0, cap: 5 },
+      futurecoin: { value: 0, cap: 1 },
+      evolutionEnergy: { value: 0, cap: 1 },
+      evolutionStone: { value: 0, cap: 1 },
+      linkRope: { value: 0, cap: 1 },
+      bigBerry: { value: 0, cap: 1 },
+      hugeBerry: { value: 0, cap: 1 },
+      megaStone: { value: 0, cap: 1 },
+      masterball: { value: 0, cap: 1 },
+      hpPotion: { value: 0, cap: 1 },
+      atkPotion: { value: 0, cap: 1 },
+      defPotion: { value: 0, cap: 1 },
+      spaPotion: { value: 0, cap: 1 },
+      spdPotion: { value: 0, cap: 1 },
+      spePotion: { value: 0, cap: 1 },
+    },
+    unlocks: {},
+    catchCount: 0,
+    meta: {},
+    permanentBoosts: {},
+    skills: {},
+  };
+  const eff = computeDerivedCore(capState, {
+    defs: { buildings: BUILDING_DEFS, resources: pdefs.resources, tech: {} },
+    computeTechEffects: () => ({}),
+    serverBuffMul: () => 1,
+    clamp,
+    addLog: null,
+  });
+  assert(capState.unlocks.wood === true, "computeDerived unlocks wood");
+  assert(typeof eff.woodPerSec === "number", "computeDerived wood rate");
+}
+
+{
+  const capSt = {
+    dex: { caught: {} },
+    catchCount: 0,
+    shinyCount: 0,
+    mons: { nextId: 1, list: [] },
+  };
+  const sp = { id: "bulbasaur", name: "妙蛙种子", dex: 1, tier: "common" };
+  awardCaughtCore(capSt, sp, { isShiny: true, ballType: "greatball" }, {
+    createMonInstance: (p) => ({ id: 1, pid: p.id, name: p.name }),
+    ui: {},
+    bumpEraCounter: () => {},
+    syncEraProgress: () => {},
+  });
+  assert(capSt.catchCount === 1, "capture award catchCount");
+  assert(capSt.dex.caught.bulbasaur === 1, "capture award dex");
+  assert(capSt.shinyCount === 1, "capture award shiny");
+  assert(capSt.mons.list[0]?.caughtWith === "greatball", "capture award ball");
 }
 
 import { createPvpBattle } from "../modules/pvp_battle.js";

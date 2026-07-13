@@ -128,7 +128,12 @@ export function createFriendsSystem({ lbBaseUrl, lbFetchJson, ui, addLog, render
       });
 
       const data = await response.json();
-      
+
+      if (response.status === 429) {
+        addLog(data.message || "今日赠送次数已达上限，明天再来吧", true);
+        return false;
+      }
+
       if (data.error) {
         addLog(`赠送道具失败：${data.error}`, true);
         return false;

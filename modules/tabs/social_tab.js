@@ -35,68 +35,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
   
   // 渲染 PVP 邀请列表
   async function renderPvpInvites() {
-    const elPvpInvites = document.getElementById("pvpInvites");
-    if (!elPvpInvites) return;
-
-    if (!ui.lbUid) {
-      elPvpInvites.innerHTML = `
-        <div class="row">
-          <div class="row__left">
-            <div class="row__title">PVP 对战</div>
-            <div class="row__desc">请先登录查看对战邀请</div>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    const invites = await socialSystem.getPvpInvites();
-    if (invites === null && ui.lbUid) {
-      elPvpInvites.innerHTML = `
-        <div class="row is-locked">
-          <div class="row__left">
-            <div class="row__title">社交服务暂时不可用</div>
-            <div class="row__desc">社交服务暂时不可用（可继续离线游玩）</div>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    if (!invites || invites.length === 0) {
-      elPvpInvites.innerHTML = `
-        <div class="row">
-          <div class="row__left">
-            <div class="row__title">暂无对战邀请</div>
-            <div class="row__desc">好友可以向你发起对战邀请</div>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    let html = "";
-    for (const invite of invites) {
-      const expiresIn = Math.floor((invite.expires_at - Date.now()) / 1000 / 60);
-      html += `
-        <div class="row pvp-invite-card">
-          <div class="row__left">
-            <div class="row__title">${escapeHtml(invite.from_name || invite.from_uid)} 向你发起挑战</div>
-            <div class="row__desc">
-              队伍：${(Array.isArray(invite.team_data) ? invite.team_data : []).map(m => escapeHtml(m?.name || "?")).join(", ") || "未知"}
-              <br>剩余时间：${expiresIn} 分钟
-            </div>
-          </div>
-          <div class="row__right">
-            <button class="btn btn--primary btn--small" data-pvp-action="accept" data-invite-id="${invite.id}">
-              应战
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    elPvpInvites.innerHTML = html;
+    return renderSocial.renderPvpInvites();
   }
 
   // 渲染我的队伍

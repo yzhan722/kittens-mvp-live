@@ -80,7 +80,8 @@ export function initBonfireTab({ elBonfireActions, elBtnGather, ui, getPokeballM
         parts.push(`进化石碎片 +${min}`);
       }
       addLog(`采集：${parts.join("，")}`);
-      if (typeof onGather === "function") onGather(catGained);
+      // Pass intended yield so era berry_earned isn't softlocked by full catnip cap
+      if (typeof onGather === "function") onGather(cat, catGained);
       if (ui) ui.bonfireDirty = true;
       render();
     });

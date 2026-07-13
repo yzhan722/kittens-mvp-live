@@ -2,6 +2,8 @@
 // 维护者窗口：A
 // 纯函数不写 state；apply*/ensure* 显式写回
 
+import { natureResProdMul } from "./gameplay_fun.js";
+
 /**
  * 建筑 effects 汇总为产量/上限/解锁字段
  */
@@ -240,6 +242,13 @@ export function finalizeProductionRates(eff, state, serverProdMul) {
     eff.catnipPerSec *= permProdMul;
     eff.woodPerSec *= permProdMul;
     eff.mineralsPerSec *= permProdMul;
+  }
+
+  const calmMul = natureResProdMul(state);
+  if (calmMul !== 1) {
+    eff.catnipPerSec *= calmMul;
+    eff.woodPerSec *= calmMul;
+    eff.mineralsPerSec *= calmMul;
   }
 
   const breedingOn = Boolean(state?.breeding?.on);

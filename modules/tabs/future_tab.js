@@ -1,4 +1,4 @@
-export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog, render, dailySignin, monthlyCard, dailyTasks }) {
+export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog, render, monthlyCard, dailyTasks }) {
   if (!elFutureShop) return;
 
   const applyPsychicCraftBoost = (state, sec) => {
@@ -19,33 +19,21 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
     } catch (e) {
       saved = null;
     }
+    const foldDefault = (k, folded) =>
+      Boolean(saved && typeof saved === "object" && Object.prototype.hasOwnProperty.call(saved, k) ? saved[k] : folded);
     ui.futureShopFold = {
-      daily: Boolean(saved && typeof saved === "object" ? saved.daily : false),
-      package: Boolean(saved && typeof saved === "object" ? saved.package : false),
-      item: Boolean(saved && typeof saved === "object" ? saved.item : false),
-      boost: Boolean(saved && typeof saved === "object" ? saved.boost : false),
-      permanent: Boolean(saved && typeof saved === "object" ? saved.permanent : false),
-      exchange: Boolean(saved && typeof saved === "object" ? saved.exchange : false),
-      auto: Boolean(saved && typeof saved === "object" ? saved.auto : false),
-      craft: Boolean(saved && typeof saved === "object" ? saved.craft : false),
+      daily: foldDefault("daily", false),
+      exchange: foldDefault("exchange", false),
+      boost: foldDefault("boost", true),
+      permanent: foldDefault("permanent", true),
+      item: foldDefault("item", true),
+      package: foldDefault("package", true),
+      auto: foldDefault("auto", true),
+      craft: foldDefault("craft", true),
     };
   }
 
   elFutureShop.addEventListener("click", (ev) => {
-    // 每日签到
-    const signinBtn = ev.target?.closest?.("button[data-daily-signin]");
-    if (signinBtn && elFutureShop.contains(signinBtn)) {
-      if (signinBtn.disabled) return;
-      if (dailySignin) {
-        const result = dailySignin.signin();
-        if (result.success) {
-          ui.futureDirty = true;
-          render();
-        }
-      }
-      return;
-    }
-
     // 月卡购买
     const monthlyBuyBtn = ev.target?.closest?.("button[data-monthly-buy]");
     if (monthlyBuyBtn && elFutureShop.contains(monthlyBuyBtn)) {
@@ -99,7 +87,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       const k = foldBtn.getAttribute("data-fc-fold");
       if (!k) return;
       if (!ui.futureShopFold || typeof ui.futureShopFold !== "object") {
-        ui.futureShopFold = { daily: false, package: false, item: false, boost: false, permanent: false, exchange: false, auto: false, craft: false };
+        ui.futureShopFold = { daily: false, exchange: false, boost: true, permanent: true, item: true, package: true, auto: true, craft: true };
       }
       if (!Object.prototype.hasOwnProperty.call(ui.futureShopFold, k)) return;
       ui.futureShopFold[k] = !ui.futureShopFold[k];

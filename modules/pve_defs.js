@@ -13,8 +13,8 @@ export const PVE_CHAPTERS = [
         id: "1-1", name: "常磐森林",
         type: "bug",
         enemies: [
-          { dex: 10, name: "绿毛虫", lvl: 5, stars: 0 },
-          { dex: 13, name: "独角虫", lvl: 5, stars: 0 },
+          { dex: 10, name: "绿毛虫", lvl: 3, stars: 0 },
+          { dex: 13, name: "独角虫", lvl: 3, stars: 0 },
         ],
         rewards: { futurecoin: 20, exp: 100 },
         repeatRewards: { futurecoin: 8, exp: 50 },

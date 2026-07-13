@@ -8,6 +8,44 @@ const ERA_COUNTER_DEFAULTS = {
   pokeball_earned: 0,
 };
 
+/** Fields cleared on prestige (hard reset). Product contract — confirmPrestige applies when gated open. */
+export const PRESTIGE_RESET_FIELDS = Object.freeze([
+  "res",
+  "buildings",
+  "tech",
+  "mons",
+  "auto",
+  "skills",
+  "rng",
+  "encounterCharges",
+  "encounterCdSec",
+  "encounterPlusCharges",
+  "encounterPlusCdSec",
+]);
+
+/** Meta progress kept across prestige. */
+export const PRESTIGE_KEEP_FIELDS = Object.freeze([
+  "dex",
+  "permanentBoosts",
+  "unlocks",
+  "catchCount",
+  "shinyCount",
+  "hatchCount",
+  "gatherClicks",
+  "resourceProduced",
+  "dailySignin",
+  "monthlyCard",
+  "pve",
+  "futurecoinSpent",
+]);
+
+// ponytail: flip via save `era.prestigeUnlocked` or ops `globalThis.KITTENS_OPS.eraPrestige === true`
+function isPrestigeGateOpen(state) {
+  const ops = globalThis.KITTENS_OPS;
+  if (ops && ops.eraPrestige === true) return true;
+  return Boolean(state?.era?.prestigeUnlocked);
+}
+
 function eraIndexForId(id) {
   const index = ERA_DEFS.findIndex((e) => e.id === id);
   return index >= 0 ? index : 0;
@@ -24,6 +62,8 @@ export function emptyEraState(index = 0) {
     questCounters: { ...ERA_COUNTER_DEFAULTS },
     completedEraIds: safeIndex > 0 ? ERA_DEFS.slice(0, safeIndex).map((e) => e.id) : [],
     mutatorsActive: collectMutatorsUpTo(safeIndex),
+    prestigeUnlocked: false,
+    prestigeCount: 0,
   };
 }
 
@@ -53,22 +93,135 @@ export function collectMutatorsUpTo(index) {
   return ids;
 }
 
-export function ensureEra(state) {
-  if (!state.era || typeof state.era !== "object" || !state.era.id) {
+function reconcileCompletedEraIds(era) {
+  if (!Array.isArray(era.completedEraIds)) era.completedEraIds = [];
+  const idx = typeof era.index === "number" && Number.isFinite(era.index) ? Math.max(0, Math.floor(era.index)) : 0;
+  if (era.completedEraIds.length === 0 && idx > 0) {
+    era.completedEraIds = ERA_DEFS.slice(0, idx).map((e) => e.id);
+  }
+}
+
+function reconcileMutatorsActive(era) {
+  const idx = typeof era.index === "number" && Number.isFinite(era.index) ? era.index : eraIndexForId(era.id);
+  const expected = collectMutatorsUpTo(idx);
+  if (!Array.isArray(era.mutatorsActive) || era.mutatorsActive.length < expected.length) {
+    era.mutatorsActive = expected;
+  }
+}
+
+/** Migrate missing era fields; never wipes dex/resources/buildings outside era subtree. */
+export function ensureEraState(state) {
+  if (!state || typeof state !== "object") return null;
+
+  if (!state.era || typeof state.era !== "object") {
     state.era = emptyEraState(deriveEraIndex(state));
+  } else if (!state.era.id) {
+    const idx =
+      typeof state.era.index === "number" && Number.isFinite(state.era.index)
+        ? Math.max(0, Math.min(ERA_DEFS.length - 1, Math.floor(state.era.index)))
+        : deriveEraIndex(state);
+    const shell = emptyEraState(idx);
+    state.era = { ...shell, ...state.era, id: shell.id, index: shell.index };
   }
 
   const era = state.era;
   const def = getEraDefById(era.id);
   era.id = def.id;
   era.index = eraIndexForId(def.id);
-  if (era.mode !== "distortion") era.mode = "chronicle";
-  if (!Array.isArray(era.completedEraIds)) era.completedEraIds = [];
-  if (!Array.isArray(era.quests)) era.quests = instantiateQuests(def);
+  if (era.mode !== "chronicle" && era.mode !== "distortion") era.mode = "chronicle";
+  reconcileCompletedEraIds(era);
+  if (!Array.isArray(era.quests) || era.quests.length === 0) era.quests = instantiateQuests(def);
   if (!era.questCounters || typeof era.questCounters !== "object") era.questCounters = {};
   era.questCounters = { ...ERA_COUNTER_DEFAULTS, ...era.questCounters };
-  if (!Array.isArray(era.mutatorsActive)) era.mutatorsActive = collectMutatorsUpTo(era.index);
+  reconcileMutatorsActive(era);
+  if (typeof era.prestigeUnlocked !== "boolean") era.prestigeUnlocked = false;
+  if (typeof era.prestigeCount !== "number" || !Number.isFinite(era.prestigeCount)) {
+    era.prestigeCount = Math.max(0, Math.floor(era.prestigeCount || 0));
+  }
   return era;
+}
+
+export function ensureEra(state) {
+  return ensureEraState(state);
+}
+
+export function canPrestige(state, getCaptureAreas) {
+  if (!isPrestigeGateOpen(state)) return false;
+  const era = syncEraQuests(state, getCaptureAreas);
+  if (era.mode !== "chronicle") return false;
+  if (era.index < ERA_DEFS.length - 1) return false;
+  return era.quests.filter((q) => q.kind === "main").every((q) => q.done);
+}
+
+export function previewPrestige(state, getCaptureAreas) {
+  const gateOpen = isPrestigeGateOpen(state);
+  const era = syncEraQuests(state, getCaptureAreas);
+  const atEnd = era.index >= ERA_DEFS.length - 1;
+  const mainsDone = (era.quests || []).filter((q) => q.kind === "main").every((q) => q.done);
+  const chronicle = era.mode === "chronicle";
+
+  let reason = "";
+  if (!gateOpen) reason = "prestige_locked";
+  else if (!chronicle) reason = "already_distortion";
+  else if (!atEnd) reason = "chronicle_incomplete";
+  else if (!mainsDone) reason = "era_quests_incomplete";
+
+  return {
+    ok: gateOpen && chronicle && atEnd && mainsDone,
+    reason,
+    modeAfter: "distortion",
+    resets: [...PRESTIGE_RESET_FIELDS],
+    keeps: [...PRESTIGE_KEEP_FIELDS],
+    eraAfter: { id: "dawn", index: 0, mode: "distortion" },
+    prestigeCountAfter: Math.max(0, Math.floor(era.prestigeCount || 0)) + 1,
+  };
+}
+
+export function confirmPrestige(state, { addLog, getCaptureAreas } = {}) {
+  const preview = previewPrestige(state, getCaptureAreas);
+  if (!preview.ok) return { ok: false, reason: preview.reason };
+
+  const kept = {};
+  for (const key of PRESTIGE_KEEP_FIELDS) {
+    if (state[key] !== undefined) kept[key] = state[key];
+  }
+
+  if (state.res && typeof state.res === "object") {
+    for (const res of Object.values(state.res)) {
+      if (res && typeof res === "object" && "value" in res) res.value = 0;
+    }
+  }
+  if (state.buildings && typeof state.buildings === "object") {
+    for (const b of Object.values(state.buildings)) {
+      if (b && typeof b === "object" && "owned" in b) b.owned = 0;
+    }
+  }
+  if (state.tech && typeof state.tech === "object") {
+    for (const k of Object.keys(state.tech)) state.tech[k] = false;
+  }
+  if (Array.isArray(state.mons)) state.mons.length = 0;
+  if (state.auto && typeof state.auto === "object") {
+    for (const k of Object.keys(state.auto)) state.auto[k] = false;
+  }
+  state.encounterCharges = 100;
+  state.encounterCdSec = 0;
+  state.encounterPlusCharges = 1;
+  state.encounterPlusCdSec = 0;
+
+  const priorUnlocked = Boolean(state.era?.prestigeUnlocked);
+  const nextEra = emptyEraState(0);
+  nextEra.mode = "distortion";
+  nextEra.prestigeUnlocked = priorUnlocked;
+  nextEra.prestigeCount = preview.prestigeCountAfter;
+  state.era = nextEra;
+
+  for (const [key, val] of Object.entries(kept)) state[key] = val;
+
+  if (typeof addLog === "function") {
+    addLog(`时空歪曲：第 ${preview.prestigeCountAfter} 次扭曲开始（图鉴与永久加成保留）`, true);
+  }
+  syncEraQuests(state, getCaptureAreas);
+  return { ok: true, preview };
 }
 
 /** Highest era index an existing save has plausibly earned from absolute progress. */
@@ -152,6 +305,15 @@ export function syncEraQuests(state, getCaptureAreas) {
     quest.progress = Math.min(progress, quest.target);
     quest.done = done;
   }
+
+  // Endgame spice: completing paradox chronicle unlocks prestige CTA
+  if (era.index >= ERA_DEFS.length - 1) {
+    const mains = era.quests.filter((q) => q.kind === "main");
+    if (mains.length > 0 && mains.every((q) => q.done)) {
+      era.prestigeUnlocked = true;
+    }
+  }
+
   return era;
 }
 

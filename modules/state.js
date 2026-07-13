@@ -10,7 +10,7 @@ import { BUILDING_DEFS } from "./defs_buildings.js";
 
 import { EXTRA_TECH_FLAGS } from "./tech_defs.js?v=0.31.4";
 
-import { ensureEra } from "./systems/era.js";
+import { ensureEraState } from "./systems/era.js";
 
 
 
@@ -1818,7 +1818,7 @@ export function loadFromRaw(raw) {
 
   }
 
-  ensureEra(s);
+  ensureEraState(s);
 
 
 

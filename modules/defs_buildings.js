@@ -208,7 +208,8 @@ export const BUILDING_DEFS = {
     name: "远征所",
     category: "功能建筑",
     desc: "解锁远征功能，并提升可挑战的远征等级。",
-    baseCost: { catnip: 250, wood: 250, minerals: 250 }, // 原1000×0.25
+    // ponytail: minerals 250 exceeded early cap (30); catnip/wood 250 stalled mid-game after dawn pacing
+    baseCost: { catnip: 50, wood: 50, minerals: 25 },
     costMul: 1.395,
     maxLevel: 10,
     effects: () => ({}),
