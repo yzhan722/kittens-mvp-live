@@ -11,7 +11,7 @@
 - [ ] `node scripts/daily_tasks-selfcheck.mjs` 绿
 - [ ] `node scripts/e2e-smoke.mjs` 绿（关键文件 + analytics/daily_tasks/era 子自检）
 - [ ] `node scripts/migrations-selfcheck.mjs` 绿（D1 SQL 文件契约）
-- [ ] `node scripts/playwright-smoke.mjs`：安装 Playwright 时真跑；未安装只会明确 `SKIP`
+- [ ] `npm ci` + `node scripts/playwright-smoke.mjs`（CI 已配置；本地需先 `npm ci`）
 - [ ] GitHub Actions `selfcheck` workflow 全步骤过
 
 ## D1 迁移

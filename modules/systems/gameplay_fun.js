@@ -1,5 +1,6 @@
 // Gameplay fun helpers — nature passives, lucky type-day, catch streak
 import { NATURE_PASSIVE } from "../mons.js";
+import { formatPvpSeasonStats } from "./pvp_narrative.js";
 
 const TYPE_POOL = [
   "normal", "fire", "water", "grass", "electric", "ice", "fighting", "poison",
@@ -293,5 +294,7 @@ export function formatWelcomeBackSummary(state, before = {}, dtSec = 0) {
   const expNow = Math.max(0, Math.floor(state.meta?.expeditionsCompleted || 0));
   const expBefore = Math.max(0, Math.floor(before.expeditionsCompleted || 0));
   if (expNow > expBefore) parts.push(`远征完成 +${expNow - expBefore}`);
+  const pvpLine = formatPvpSeasonStats(state.meta?.pvpStats);
+  if (pvpLine) parts.push(pvpLine);
   return parts.join(" · ");
 }

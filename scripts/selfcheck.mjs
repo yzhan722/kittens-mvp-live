@@ -37,7 +37,7 @@ import { BUILDING_DEFS } from "../modules/defs_buildings.js";
 import { computeDerived as computeDerivedCore } from "../modules/systems/compute_derived.js";
 import { awardCaughtPokemon as awardCaughtCore } from "../modules/app/capture_award.js";
 import { pickWeakMonIds, releaseCandyRefund } from "../modules/systems/mon_release.js";
-import { resetEvoFamilyCacheForTest } from "../modules/evo_utils.js";
+import { resetEvoFamilyCacheForTest, isSameEvoFamily } from "../modules/evo_utils.js";
 import {
   bumpPvpSeasonStats,
   formatPvpSeasonStats,
@@ -316,6 +316,10 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
     familyIds.length === 1 && familyIds[0] === 12,
     "smart release protects last mon per evolution family"
   );
+  globalThis.POKEMON_EVO = { p001: ["p002"], p002: ["p003"] };
+  resetEvoFamilyCacheForTest();
+  assert(isSameEvoFamily("p001", "p003") === true, "evo family same line");
+  assert(isSameEvoFamily("p001", "p999") === false, "evo family different");
   const pvpLine = summarizePvpBattle({
     winner: 2,
     rounds: 8,

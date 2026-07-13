@@ -177,6 +177,18 @@ import {
 }
 
 {
+  const summary = formatWelcomeBackSummary(
+    {
+      luckyDay: { type: "grass", date: "x" },
+      meta: { pvpStats: { wins: 4, losses: 2, draws: 0 } },
+    },
+    {},
+    3600
+  );
+  assert.ok(summary.includes("本赛季 4胜2负"), "welcome back pvp stats");
+}
+
+{
   const ui = {};
   noteCatchNearMiss(ui, "pika", 0.42);
   assert.equal(ui.lastCatchNearMiss?.pct, 42, "near miss pct");

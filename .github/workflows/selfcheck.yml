@@ -29,6 +29,12 @@ jobs:
         run: node scripts/gameplay-fun-selfcheck.mjs
       - name: Migrations selfcheck
         run: node scripts/migrations-selfcheck.mjs
+      - name: Install deps
+        run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install chromium --with-deps
+      - name: Playwright smoke
+        run: node scripts/playwright-smoke.mjs
       - name: Player sim (6h)
         run: node scripts/player-sim.mjs
         env:
