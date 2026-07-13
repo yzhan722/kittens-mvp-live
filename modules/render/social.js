@@ -2,6 +2,7 @@
 
 import { getExpeditionSeasonBlurb, pickExpeditionEventCard, resolveSeasonId } from "../systems/expedition.js";
 import { formatPvpSeasonStats, formatPvpSeasonHeadline } from "../systems/pvp_narrative.js";
+import { fakeSocialFeed, localDateStr } from "../systems/world_presence.js";
 
 export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, getState }) {
   function socialUnavailableRow(title) {
@@ -136,7 +137,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
     const elFeed = document.getElementById("friendFeed");
     if (!elFeed) return;
 
-    if (!ui.lbUid) {
+    if (!socialSystem.hasAuth?.()) {
       elFeed.innerHTML = `
         <div class="row">
           <div class="row__left">
@@ -149,20 +150,33 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
     }
 
     const achievements = await socialSystem.getAchievements();
-    if (achievements === null && ui.lbUid) {
+    if (achievements === null) {
       elFeed.innerHTML = socialUnavailableRow("好友动态加载失败");
       return;
     }
 
     if (!achievements || achievements.length === 0) {
-      elFeed.innerHTML = `
+      const fakes = fakeSocialFeed(localDateStr(), 5);
+      let html = `
         <div class="row">
           <div class="row__left">
-            <div class="row__title">暂无动态</div>
-            <div class="row__desc">添加好友后可以看到他们的成就分享</div>
+            <div class="row__title">氛围动态</div>
+            <div class="row__desc">暂无好友分享；先垫几条假训练家动态暖场。</div>
           </div>
         </div>
       `;
+      for (const it of fakes) {
+        html += `
+          <div class="row achievement-card">
+            <div class="row__left">
+              <div class="row__title">${escapeHtml(it.username)} <span class="badge badge--muted">氛围</span></div>
+              <div class="row__desc">${escapeHtml(it.text)}</div>
+              <div class="row__meta">${formatTime(it.created_at)}</div>
+            </div>
+          </div>
+        `;
+      }
+      elFeed.innerHTML = html;
       return;
     }
 

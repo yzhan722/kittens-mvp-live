@@ -443,18 +443,30 @@ assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
     ghostRivalsForDay,
     seasonGhostsForDay,
     bossHudLine,
+    FAKE_TRAINERS,
+    padLeaderboard,
+    fakeSocialFeed,
   } = await import("../modules/systems/world_presence.js");
   assert(typeof ambientWorldLine() === "string" && ambientWorldLine().length > 4, "ambient line");
   assert(ambientWorldBatch(1, 3).length === 3, "ambient batch");
   const g1 = ghostRivalsForDay("2026-07-13");
   const g2 = ghostRivalsForDay("2026-07-13");
   const g3 = ghostRivalsForDay("2026-07-14");
-  assert(g1.length === 4 && g1[0].dex === g2[0].dex, "ghost day stable");
+  assert(g1.length === 6 && g1[0].dex === g2[0].dex, "ghost day stable");
   assert(g1[0].dex !== g3[0].dex || g1[0].power !== g3[0].power, "ghost day drifts");
   const s1 = seasonGhostsForDay("2026-07-13");
-  assert(s1.length === 4 && s1[0].score > 0, "season ghosts");
+  assert(s1.length === 6 && s1[0].score > 0, "season ghosts");
   assert(bossHudLine(null).includes("林佬"), "boss hud empty");
   assert(bossHudLine({ hp: 50, maxHp: 100 }).includes("50/100"), "boss hud hp");
+  assert(FAKE_TRAINERS.length >= 20, "fake trainer roster");
+  const padded = padLeaderboard([], "dex", "2026-07-13");
+  assert(padded.length >= 12, "empty board padded");
+  assert(padded.every((x) => x.fake), "all fake when empty");
+  assert(padded[0].rank === 1 && padded[1].rank === 2, "ranks assigned");
+  const mixed = padLeaderboard([{ score: 999, name: "真人甲", attrs: { ownerName: "真人甲" } }], "dex", "2026-07-13");
+  assert(mixed[0].attrs.ownerName === "真人甲" || mixed.some((x) => x.attrs?.ownerName === "真人甲"), "real kept");
+  assert(mixed.some((x) => x.fake), "fakes still present");
+  assert(fakeSocialFeed("2026-07-13", 4).length === 4, "fake social feed");
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

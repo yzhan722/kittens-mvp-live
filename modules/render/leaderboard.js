@@ -2,7 +2,7 @@
 // 维护者窗口：C（渲染）/ 数据刷新仍在 app.js SECTION:LEADERBOARD_DATA
 
 import { seasonBarVsGhosts, seasonLocalScore, canClaimLbRivalReward, markLbRivalRewardClaimed, localDateStr } from "../systems/gameplay_fun.js";
-import { ghostRivalsForDay } from "../systems/world_presence.js";
+import { ghostRivalsForDay, padLeaderboard } from "../systems/world_presence.js";
 
 export function createRenderLeaderboard({
   elLeaderboard,
@@ -22,6 +22,37 @@ export function createRenderLeaderboard({
   refreshLeaderboards,
 }) {
   let lbAutoBoot = false;
+
+  function boardRows(board, raw) {
+    if (!Array.isArray(raw)) return null;
+    return padLeaderboard(raw, board, localDateStr());
+  }
+
+  function renderScoreBoard(items, scoreLabel) {
+    if (!items || items.length === 0) {
+      return `<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`;
+    }
+    return items
+      .map((it) => {
+        const rank = typeof it?.rank === "number" ? it.rank : 0;
+        const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
+        const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
+        const score = typeof it?.score === "number" ? it.score : 0;
+        const fake = Boolean(it?.fake || it?.attrs?.fake);
+        const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">氛围</span>` : "";
+        return `
+          <div class="row">
+            <div class="row__left">
+              <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${fakeBadge}${renderOwnerIcon(avatarDataUrl)}</div>
+            </div>
+            <div class="row__right">
+              <div class="badge badge--ok">${escapeHtml(scoreLabel)}：${score}</div>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
 
   return function renderLeaderboard() {
     if (!elLeaderboard) return;
@@ -74,6 +105,7 @@ export function createRenderLeaderboard({
       <div class="row">
         <div class="row__left">
           <div class="row__title">排行榜</div>
+          <div class="row__desc">真人分数优先；人数不足时用「氛围」训练家垫榜，按日微变。</div>
         </div>
       </div>
     `);
@@ -138,7 +170,7 @@ export function createRenderLeaderboard({
         <div class="row">
           <div class="row__left">
             <div class="row__title">幽灵对手（今日）</div>
-            <div class="row__desc">分数每日微变，不上传；刷新日换一批压力。</div>
+            <div class="row__desc">氛围假玩家，分数每日微变；用来追赶，不上传。</div>
           </div>
         </div>
       `);
@@ -161,302 +193,123 @@ export function createRenderLeaderboard({
       }
     }
 
-    if (Array.isArray(ui.lbDexItems)) {
+    const dexItems = boardRows("dex", ui.lbDexItems);
+    if (dexItems) {
       rows.push(sectionHeader("dex", "图鉴榜 Top100"));
-      if (!isFolded("dex")) {
-        const items = ui.lbDexItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${renderOwnerIcon(avatarDataUrl)}</div>
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">图鉴：${score}</div>
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")
-          );
-        }
-      }
+      if (!isFolded("dex")) rows.push(renderScoreBoard(dexItems, "图鉴"));
     }
 
-    if (Array.isArray(ui.lbHatchItems)) {
+    const hatchItems = boardRows("hatch", ui.lbHatchItems);
+    if (hatchItems) {
       rows.push(sectionHeader("hatch", "孵蛋数量榜 Top100"));
-      if (!isFolded("hatch")) {
-        const items = ui.lbHatchItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${renderOwnerIcon(avatarDataUrl)}</div>
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">孵蛋：${score}</div>
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")
-          );
-        }
-      }
+      if (!isFolded("hatch")) rows.push(renderScoreBoard(hatchItems, "孵蛋"));
     }
 
-    if (Array.isArray(ui.lbShinyItems)) {
+    const shinyItems = boardRows("shiny", ui.lbShinyItems);
+    if (shinyItems) {
       rows.push(sectionHeader("shiny", "闪光收集榜 Top100"));
-      if (!isFolded("shiny")) {
-        const items = ui.lbShinyItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${renderOwnerIcon(avatarDataUrl)}</div>
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">闪光：${score}</div>
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")
-          );
-        }
-      }
+      if (!isFolded("shiny")) rows.push(renderScoreBoard(shinyItems, "闪光"));
     }
 
-    if (Array.isArray(ui.lbTotalPowerItems)) {
+    const totalPowerItems = boardRows("totalPower", ui.lbTotalPowerItems);
+    if (totalPowerItems) {
       rows.push(sectionHeader("totalPower", "总战力榜 Top100"));
-      if (!isFolded("totalPower")) {
-        const items = ui.lbTotalPowerItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${renderOwnerIcon(avatarDataUrl)}</div>
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">总战力：${score}</div>
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")
-          );
-        }
-      }
+      if (!isFolded("totalPower")) rows.push(renderScoreBoard(totalPowerItems, "总战力"));
     }
 
-    if (Array.isArray(ui.lbGatherItems)) {
+    const gatherItems = boardRows("gather", ui.lbGatherItems);
+    if (gatherItems) {
       rows.push(sectionHeader("gather", "累计采集次数榜 Top100"));
-      if (!isFolded("gather")) {
-        const items = ui.lbGatherItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${renderOwnerIcon(avatarDataUrl)}</div>
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">采集：${score}</div>
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")
-          );
-        }
-      }
+      if (!isFolded("gather")) rows.push(renderScoreBoard(gatherItems, "采集"));
     }
 
-    if (Array.isArray(ui.lbResourceItems)) {
+    const resourceItems = boardRows("resource", ui.lbResourceItems);
+    if (resourceItems) {
       rows.push(sectionHeader("resource", "累计资源产出榜 Top100"));
-      if (!isFolded("resource")) {
-        const items = ui.lbResourceItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${renderOwnerIcon(avatarDataUrl)}</div>
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">产出：${score}</div>
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")
-          );
-        }
-      }
+      if (!isFolded("resource")) rows.push(renderScoreBoard(resourceItems, "产出"));
     }
 
-    if (Array.isArray(ui.lbCatchItems)) {
+    const catchItems = boardRows("catch", ui.lbCatchItems);
+    if (catchItems) {
       rows.push(sectionHeader("catch", "捕获大师榜 Top100"));
-      if (!isFolded("catch")) {
-        const items = ui.lbCatchItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${renderOwnerIcon(avatarDataUrl)}</div>
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">捕获：${score}</div>
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")
-          );
-        }
-      }
+      if (!isFolded("catch")) rows.push(renderScoreBoard(catchItems, "捕获"));
     }
 
-    if (Array.isArray(ui.lbPowerItems)) {
+    const powerItems = boardRows("power", ui.lbPowerItems);
+    if (powerItems) {
       rows.push(sectionHeader("power", "队伍战力榜 Top100"));
       if (!isFolded("power")) {
-        const items = ui.lbPowerItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                const topMons = Array.isArray(it?.attrs?.topMons) ? it.attrs.topMons : [];
-                const teamScore = topMons.length > 0 ? calcTeamPower(topMons) : score;
-                const isAvatar = Boolean(avatarDataUrl);
-                const avatarSrc = isAvatar ? avatarDataUrl : trainerIconSrc();
-                const avatarStyle = isAvatar ? "" : "image-rendering:pixelated;object-fit:contain";
-                const monsHtml =
-                  topMons.length > 0
-                    ? `<div class="lbTeamWrap"><img class="lbTeamAvatar" src="${escapeHtml(avatarSrc)}" alt="" loading="lazy" decoding="async" style="${avatarStyle}" /><div class="lbTeamMons">${topMons
-                        .slice(0, 6)
-                        .map((m) => {
-                          const dex = typeof m?.dex === "number" && Number.isFinite(m.dex) ? Math.max(1, Math.floor(m.dex)) : 0;
-                          const name = typeof m?.name === "string" ? m.name : dex ? `#${dex}` : "";
-                          const pow = typeof m?.power === "number" && Number.isFinite(m.power) ? Math.max(0, Math.floor(m.power)) : 0;
-                          const shiny = Boolean(m?.isShiny);
-                          return `<div style="display:flex;align-items:center;gap:6px;min-width:0">${dex ? renderPokemonIcon(dex, name, shiny) : ""}<div style="min-width:0"><div style="line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(name)}</div><div class="muted" style="line-height:1.1">${pow}</div></div></div>`;
-                        })
-                        .join("")}</div></div>`
-                    : "";
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span></div>
-                      ${monsHtml}
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">战力：${teamScore}</div>
-                    </div>
+        rows.push(
+          powerItems
+            .map((it) => {
+              const rank = typeof it?.rank === "number" ? it.rank : 0;
+              const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
+              const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
+              const score = typeof it?.score === "number" ? it.score : 0;
+              const topMons = Array.isArray(it?.attrs?.topMons) ? it.attrs.topMons : [];
+              const teamScore = topMons.length > 0 ? calcTeamPower(topMons) : score;
+              const isAvatar = Boolean(avatarDataUrl);
+              const avatarSrc = isAvatar ? avatarDataUrl : trainerIconSrc();
+              const avatarStyle = isAvatar ? "" : "image-rendering:pixelated;object-fit:contain";
+              const fake = Boolean(it?.fake || it?.attrs?.fake);
+              const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">氛围</span>` : "";
+              const monsHtml =
+                topMons.length > 0
+                  ? `<div class="lbTeamWrap"><img class="lbTeamAvatar" src="${escapeHtml(avatarSrc)}" alt="" loading="lazy" decoding="async" style="${avatarStyle}" /><div class="lbTeamMons">${topMons
+                      .slice(0, 6)
+                      .map((m) => {
+                        const dex = typeof m?.dex === "number" && Number.isFinite(m.dex) ? Math.max(1, Math.floor(m.dex)) : 0;
+                        const name = typeof m?.name === "string" ? m.name : dex ? `#${dex}` : "";
+                        const pow = typeof m?.power === "number" && Number.isFinite(m.power) ? Math.max(0, Math.floor(m.power)) : 0;
+                        const shiny = Boolean(m?.isShiny);
+                        return `<div style="display:flex;align-items:center;gap:6px;min-width:0">${dex ? renderPokemonIcon(dex, name, shiny) : ""}<div style="min-width:0"><div style="line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(name)}</div><div class="muted" style="line-height:1.1">${pow}</div></div></div>`;
+                      })
+                      .join("")}</div></div>`
+                  : "";
+              return `
+                <div class="row">
+                  <div class="row__left">
+                    <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${fakeBadge}</div>
+                    ${monsHtml}
                   </div>
-                `;
-              })
-              .join("")
-          );
-        }
+                  <div class="row__right">
+                    <div class="badge badge--ok">战力：${teamScore}</div>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")
+        );
       }
     }
 
-    if (Array.isArray(ui.lbContribItems)) {
+    const contribItems = boardRows("contrib", ui.lbContribItems);
+    if (contribItems) {
       rows.push(sectionHeader("contrib", "贡献榜 Top100"));
       if (!isFolded("contrib")) {
-        const items = ui.lbContribItems.slice(0, 100);
-        if (items.length === 0) {
-          rows.push(`<div class="row"><div class="row__left"><div class="row__desc muted">暂无数据</div></div></div>`);
-        } else {
-          rows.push(
-            items
-              .map((it) => {
-                const rank = typeof it?.rank === "number" ? it.rank : 0;
-                const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
-                const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
-                const score = typeof it?.score === "number" ? it.score : 0;
-                const sec = Math.max(0, Math.floor(score));
-                return `
-                  <div class="row">
-                    <div class="row__left">
-                      <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${renderOwnerIcon(avatarDataUrl)}</div>
-                    </div>
-                    <div class="row__right">
-                      <div class="badge badge--ok">贡献：${escapeHtml(fmtDuration(sec))}</div>
-                    </div>
+        rows.push(
+          contribItems
+            .map((it) => {
+              const rank = typeof it?.rank === "number" ? it.rank : 0;
+              const owner = typeof it?.attrs?.ownerName === "string" ? it.attrs.ownerName : typeof it?.name === "string" ? it.name : "";
+              const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
+              const score = typeof it?.score === "number" ? it.score : 0;
+              const sec = Math.max(0, Math.floor(score));
+              const fake = Boolean(it?.fake || it?.attrs?.fake);
+              const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">氛围</span>` : "";
+              return `
+                <div class="row">
+                  <div class="row__left">
+                    <div class="row__title row__titleLine"><span>#${rank} ${escapeHtml(owner || "-")}</span>${fakeBadge}${renderOwnerIcon(avatarDataUrl)}</div>
                   </div>
-                `;
-              })
-              .join("")
-          );
-        }
+                  <div class="row__right">
+                    <div class="badge badge--ok">贡献：${escapeHtml(fmtDuration(sec))}</div>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")
+        );
       }
     }
 
