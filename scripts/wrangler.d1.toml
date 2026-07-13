@@ -1,0 +1,11 @@
+# Slim Workers-style config for `wrangler d1 execute` (local/CI).
+# Pages `wrangler.toml` with pages_build_output_dir can make older wrangler
+# ignore [[d1_databases]] for d1 execute — keep this file Pages-free.
+name = "kittens-mvp-d1"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kittens-mvp"
+database_id = "df81cbe4-5f90-4ed8-9353-320d9752bb60"
+preview_database_id = "local-kittens-mvp"

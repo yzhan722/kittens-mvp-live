@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const remote = process.argv.includes("--remote");
 const DB = "kittens-mvp";
+const CONFIG = path.join(root, "scripts", "wrangler.d1.toml");
 const files = [
   "scripts/migrations/2026-07-12-rate-limits.sql",
   "scripts/migrations/2026-07-13-iap-orders.sql",
@@ -25,12 +26,21 @@ for (const rel of files) {
   }
 }
 
-const wrangler = spawnSync("npx", ["wrangler", "--version"], { stdio: "pipe", shell: true });
+if (!existsSync(CONFIG)) {
+  console.error(`apply-d1-migrations: FAIL missing ${CONFIG}`);
+  process.exit(1);
+}
+
+const wrangler = spawnSync("npx", ["wrangler", "--version"], {
+  stdio: "pipe",
+  shell: true,
+  cwd: root,
+});
 if (wrangler.status !== 0) {
   console.log("apply-d1-migrations: SKIP (wrangler not available)");
   for (const rel of files) {
     console.log(
-      `  npx wrangler d1 execute ${DB} ${remote ? "--remote" : "--local"} --file ${rel}`
+      `  npx wrangler d1 execute ${DB} ${remote ? "--remote" : "--local"} --config scripts/wrangler.d1.toml --file ${rel}`
     );
   }
   process.exit(0);
@@ -41,8 +51,18 @@ for (const rel of files) {
   console.log(`apply-d1-migrations: ${remote ? "remote" : "local"} ${rel}`);
   const run = spawnSync(
     "npx",
-    ["wrangler", "d1", "execute", DB, remote ? "--remote" : "--local", "--file", full],
-    { stdio: "inherit", shell: true }
+    [
+      "wrangler",
+      "d1",
+      "execute",
+      DB,
+      remote ? "--remote" : "--local",
+      "--config",
+      CONFIG,
+      "--file",
+      full,
+    ],
+    { stdio: "inherit", shell: true, cwd: root }
   );
   if (run.status !== 0) {
     console.error(`apply-d1-migrations: FAIL ${rel}`);
