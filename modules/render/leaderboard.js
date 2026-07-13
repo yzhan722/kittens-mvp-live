@@ -39,7 +39,7 @@ export function createRenderLeaderboard({
         const avatarDataUrl = typeof it?.attrs?.avatarDataUrl === "string" ? it.attrs.avatarDataUrl : "";
         const score = typeof it?.score === "number" ? it.score : 0;
         const fake = Boolean(it?.fake || it?.attrs?.fake);
-        const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">氛围</span>` : "";
+        const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">NPC</span>` : "";
         return `
           <div class="row">
             <div class="row__left">
@@ -105,7 +105,7 @@ export function createRenderLeaderboard({
       <div class="row">
         <div class="row__left">
           <div class="row__title">排行榜</div>
-          <div class="row__desc">真人分数优先；人数不足时用「氛围」训练家垫榜，按日微变。</div>
+          <div class="row__desc">Real scores first; thin boards padded with NPC trainer IDs (ASCII), drifting daily.</div>
         </div>
       </div>
     `);
@@ -170,7 +170,7 @@ export function createRenderLeaderboard({
         <div class="row">
           <div class="row__left">
             <div class="row__title">幽灵对手（今日）</div>
-            <div class="row__desc">氛围假玩家，分数每日微变；用来追赶，不上传。</div>
+            <div class="row__desc">NPC chase targets; scores drift daily; not uploaded.</div>
           </div>
         </div>
       `);
@@ -252,7 +252,7 @@ export function createRenderLeaderboard({
               const avatarSrc = isAvatar ? avatarDataUrl : trainerIconSrc();
               const avatarStyle = isAvatar ? "" : "image-rendering:pixelated;object-fit:contain";
               const fake = Boolean(it?.fake || it?.attrs?.fake);
-              const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">氛围</span>` : "";
+              const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">NPC</span>` : "";
               const monsHtml =
                 topMons.length > 0
                   ? `<div class="lbTeamWrap"><img class="lbTeamAvatar" src="${escapeHtml(avatarSrc)}" alt="" loading="lazy" decoding="async" style="${avatarStyle}" /><div class="lbTeamMons">${topMons
@@ -296,7 +296,7 @@ export function createRenderLeaderboard({
               const score = typeof it?.score === "number" ? it.score : 0;
               const sec = Math.max(0, Math.floor(score));
               const fake = Boolean(it?.fake || it?.attrs?.fake);
-              const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">氛围</span>` : "";
+              const fakeBadge = fake ? `<span class="badge badge--muted" style="margin-left:6px">NPC</span>` : "";
               return `
                 <div class="row">
                   <div class="row__left">

@@ -1,56 +1,57 @@
 /**
  * World presence helpers — fake + soft liveliness without requiring live peers.
  * ponytail: ambient / board padding is seeded theater; upgrade = real events + scores heat.
+ * Trainer handles stay ASCII so CDN/encoding never turns them into mojibake.
  */
 
 export const FAKE_TRAINERS = Object.freeze([
-  "小叶",
-  "阿哲",
-  "迷你裙",
-  "短裤小子",
-  "道馆影子",
-  "青柠",
-  "卡比控",
-  "闪光猎人",
-  "蛋蛋大师",
-  "球球",
-  "夜行者",
-  "林间",
-  "沙暴",
-  "雷云",
-  "波波",
-  "呆呆",
-  "火龙仔",
-  "龟龟",
-  "妙妙",
-  "伊布控",
-  "钢钢",
-  "幽灵屋",
-  "道馆新人",
-  "周末战士",
-  "挂机达人",
-  "图鉴强迫症",
-  "远征队长",
-  "果园主",
-  "搓球手",
-  "试炼爬塔",
+  "LeafGrove",
+  "AshPro",
+  "MiniSkirt",
+  "ShortsKid",
+  "GymShadow",
+  "LimeSoda",
+  "SnorlaxFan",
+  "ShinyHunt",
+  "EggMaster",
+  "BallCraft",
+  "NightOwl",
+  "ForestRun",
+  "SandStorm",
+  "ThunderCloud",
+  "PidgeyScout",
+  "Slowpoke",
+  "CharmKid",
+  "Squirtle",
+  "BulbaFan",
+  "EeveeClub",
+  "SteelWall",
+  "GhostHouse",
+  "GymRookie",
+  "WeekendWar",
+  "IdleAce",
+  "DexCompulse",
+  "ExpeditionLead",
+  "BerryFarm",
+  "BallSpinner",
+  "TowerClimber",
 ]);
 
 const AMBIENT_ACTIONS = [
-  "刚登记了一种新图鉴",
-  "远征带回了不少球果",
-  "捕捉成功，队伍又壮了一点",
-  "研究完成，开始搓球",
-  "试炼塔又爬了一层",
-  "生蛋计时还在走",
-  "果树浇了一轮",
-  "解锁了新的捕捉区域",
-  "进化成功，亲密度还在涨",
-  "闪光收藏又多了一只",
-  "提交了排行榜成绩",
-  "恐吓了全服林佬",
-  "领了每日双礼",
-  "在商店拧了一次转盘",
+  "logged a new dex entry",
+  "came back from expedition",
+  "caught another mon",
+  "finished research and started crafting balls",
+  "climbed another tower floor",
+  "is still incubating an egg",
+  "watered the berry trees",
+  "unlocked a new catch area",
+  "evolved a partner",
+  "added a shiny to the gallery",
+  "refreshed leaderboard scores",
+  "bullied the server boss",
+  "claimed daily gifts",
+  "spun the shop wheel",
 ];
 
 const BOARD_RANGES = {
@@ -67,21 +68,21 @@ const BOARD_RANGES = {
 };
 
 const BASE_LB_GHOSTS = [
-  { name: "氛围·短裤小子", dex: 18, power: 1200 },
-  { name: "氛围·迷你裙", dex: 42, power: 2800 },
-  { name: "氛围·青柠", dex: 65, power: 6500 },
-  { name: "氛围·阿哲", dex: 95, power: 14000 },
-  { name: "氛围·道馆影子", dex: 130, power: 28000 },
-  { name: "氛围·挂机达人", dex: 160, power: 42000 },
+  { name: "NPC_ShortsKid", dex: 18, power: 1200 },
+  { name: "NPC_MiniSkirt", dex: 42, power: 2800 },
+  { name: "NPC_LimeSoda", dex: 65, power: 6500 },
+  { name: "NPC_AshPro", dex: 95, power: 14000 },
+  { name: "NPC_GymShadow", dex: 130, power: 28000 },
+  { name: "NPC_IdleAce", dex: 160, power: 42000 },
 ];
 
 const BASE_SEASON_GHOSTS = [
-  { name: "短裤小子", score: 90 },
-  { name: "迷你裙", score: 240 },
-  { name: "青柠", score: 520 },
-  { name: "阿哲", score: 980 },
-  { name: "道馆影子", score: 1600 },
-  { name: "挂机达人", score: 2400 },
+  { name: "ShortsKid", score: 90 },
+  { name: "MiniSkirt", score: 240 },
+  { name: "LimeSoda", score: 520 },
+  { name: "AshPro", score: 980 },
+  { name: "GymShadow", score: 1600 },
+  { name: "IdleAce", score: 2400 },
 ];
 
 function hashStr(s) {
@@ -116,16 +117,38 @@ function pickTrainer(rnd) {
   return FAKE_TRAINERS[Math.floor(rnd() * FAKE_TRAINERS.length) % FAKE_TRAINERS.length];
 }
 
+/** True if name looks empty, uid-like garbage, or encoding junk. */
+export function looksBrokenName(name) {
+  const n = String(name || "").trim();
+  if (!n) return true;
+  if (n.includes("\uFFFD")) return true;
+  // classic mojibake markers from UTF-8 read as latin1
+  if (/[ÃÂåæçðñòóô]/.test(n) && /[¤¥¦§¨©ª«]/.test(n)) return true;
+  if (/^[\x00-\x1f\x7f-\x9f]+$/.test(n)) return true;
+  // bare uid / hash dumps
+  if (/^[0-9a-f]{16,}$/i.test(n)) return true;
+  if (/^(uid|user|guest)[_-]?\w{8,}$/i.test(n)) return true;
+  return false;
+}
+
+/** Prefer a readable trainer handle for UI. */
+export function displayTrainerId(name, uid = "") {
+  const n = String(name || "").trim();
+  if (!looksBrokenName(n)) return n.slice(0, 32);
+  const seed = hashStr(`${uid || n || "anon"}:display`);
+  return FAKE_TRAINERS[seed % FAKE_TRAINERS.length];
+}
+
 /** Deterministic ambient ticker line for a time bucket (10 min). */
 export function ambientWorldLine(nowMs = Date.now(), salt = 0) {
   const bucket = Math.floor(Math.max(0, Number(nowMs) || 0) / (10 * 60 * 1000));
   const rnd = mulberry32(hashStr(`ambient:${bucket}:${salt}`));
   if (rnd() < 0.18) {
-    return rnd() < 0.5 ? "全服：有人正在恐吓林佬" : "全服：排行榜分数刚被刷新";
+    return rnd() < 0.5 ? "Server: someone is bullying the boss" : "Server: leaderboard scores just refreshed";
   }
   const name = pickTrainer(rnd);
   const action = AMBIENT_ACTIONS[Math.floor(rnd() * AMBIENT_ACTIONS.length) % AMBIENT_ACTIONS.length];
-  return `训练家·${name}：${action}`;
+  return `${name}: ${action}`;
 }
 
 /** Several ambient lines for padding an empty feed. */
@@ -147,10 +170,10 @@ export function fakeSocialFeed(dateStr = localDateStr(), count = 5) {
     const name = pickTrainer(rnd);
     const kind = Math.floor(rnd() * 4);
     let text = "";
-    if (kind === 0) text = `图鉴达到 ${Math.floor(20 + rnd() * 120)} 种`;
-    else if (kind === 1) text = `捕捉成功，队伍战力又涨了一截`;
-    else if (kind === 2) text = `闪光收藏 +${1 + Math.floor(rnd() * 2)}`;
-    else text = `远征归来，带回一堆球果`;
+    if (kind === 0) text = `Dex reached ${Math.floor(20 + rnd() * 120)} species`;
+    else if (kind === 1) text = `Caught another mon — team power up`;
+    else if (kind === 2) text = `Shiny gallery +${1 + Math.floor(rnd() * 2)}`;
+    else text = `Expedition return with a berry haul`;
     out.push({
       id: `fake-${dateStr}-${i}`,
       username: name,
@@ -231,19 +254,31 @@ export function padLeaderboard(items, board, dateStr = localDateStr(), opts = nu
   const need = Math.max(alwaysFake, minRows - real.length);
   const fakes = fakeBoardRows(board, dateStr, need);
 
-  const realNames = new Set(
-    real.map((it) => {
-      const n =
-        typeof it?.attrs?.ownerName === "string"
-          ? it.attrs.ownerName
-          : typeof it?.name === "string"
-            ? it.name
-            : "";
-      return n.trim();
-    })
-  );
+  const realNames = new Set();
+  const cleanedReal = real.map((it) => {
+    const rawName =
+      typeof it?.attrs?.ownerName === "string"
+        ? it.attrs.ownerName
+        : typeof it?.name === "string"
+          ? it.name
+          : "";
+    const uid = typeof it?.uid === "string" ? it.uid : typeof it?.attrs?.uid === "string" ? it.attrs.uid : "";
+    const ownerName = displayTrainerId(rawName, uid);
+    realNames.add(ownerName);
+    return {
+      ...it,
+      name: ownerName,
+      fake: false,
+      attrs: {
+        ...(it.attrs && typeof it.attrs === "object" ? it.attrs : {}),
+        ownerName,
+        fake: false,
+        uid: uid || undefined,
+      },
+    };
+  });
 
-  const merged = real.map((it) => ({ ...it, fake: Boolean(it?.attrs?.fake || it?.fake) }));
+  const merged = cleanedReal.slice();
   for (const f of fakes) {
     if (realNames.has(f.name)) continue;
     merged.push(f);
@@ -261,7 +296,7 @@ export function padLeaderboard(items, board, dateStr = localDateStr(), opts = nu
           ? it.attrs.ownerName
           : typeof it?.name === "string"
             ? it.name
-            : "",
+            : "Trainer_Anon",
       fake: Boolean(it.fake || it?.attrs?.fake),
     },
   }));
@@ -269,11 +304,11 @@ export function padLeaderboard(items, board, dateStr = localDateStr(), opts = nu
 
 /** One-line HUD for林佬 boss. */
 export function bossHudLine(boss) {
-  if (!boss || typeof boss !== "object") return "林佬：连线中…";
+  if (!boss || typeof boss !== "object") return "Boss: connecting…";
   const maxHp = typeof boss.maxHp === "number" && Number.isFinite(boss.maxHp) ? Math.max(1, Math.floor(boss.maxHp)) : 0;
   const hp = typeof boss.hp === "number" && Number.isFinite(boss.hp) ? Math.max(0, Math.floor(boss.hp)) : 0;
-  if (!maxHp) return "林佬：暂无数据";
+  if (!maxHp) return "Boss: no data";
   const pct = Math.min(100, Math.round((hp / maxHp) * 100));
-  if (hp <= 0) return `林佬：已倒下 · 第 ${Math.max(0, Math.floor(boss.killSeq || 0))} 轮`;
-  return `林佬 HP ${hp}/${maxHp}（${pct}%）`;
+  if (hp <= 0) return `Boss: down · round ${Math.max(0, Math.floor(boss.killSeq || 0))}`;
+  return `Boss HP ${hp}/${maxHp} (${pct}%)`;
 }

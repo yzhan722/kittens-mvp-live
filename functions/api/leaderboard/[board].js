@@ -50,6 +50,7 @@ export async function onRequest(context) {
       score: Number(r.score) || 0,
       attrs: {
         ownerName: r.name || "",
+        uid: r.uid || "",
         avatarDataUrl: r.avatarDataUrl || "",
         ...(board === "power" ? { topMons } : {}),
       },

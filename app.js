@@ -76,8 +76,8 @@ import { createTickerSystem } from "./modules/app/ticker.js?v=0.41.2";
 import { createRenderPve } from "./modules/tabs/pve_tab.js";
 import { createFriendsSystem, createRenderFriends } from "./modules/friends.js?v=0.41.3";
 import { createSocialSystem } from "./modules/social.js?v=0.41.3";
-import { createRenderSocial } from "./modules/render/social.js?v=0.41.4";
-import { createRenderLeaderboard } from "./modules/render/leaderboard.js?v=0.41.4";
+import { createRenderSocial } from "./modules/render/social.js?v=0.41.5";
+import { createRenderLeaderboard } from "./modules/render/leaderboard.js?v=0.41.5";
 import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.41.0";
 import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.41.0";
 import {

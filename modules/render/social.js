@@ -160,8 +160,8 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
       let html = `
         <div class="row">
           <div class="row__left">
-            <div class="row__title">氛围动态</div>
-            <div class="row__desc">暂无好友分享；先垫几条假训练家动态暖场。</div>
+            <div class="row__title">NPC Feed</div>
+            <div class="row__desc">No friend shares yet — padded with NPC trainer IDs.</div>
           </div>
         </div>
       `;
@@ -169,7 +169,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
         html += `
           <div class="row achievement-card">
             <div class="row__left">
-              <div class="row__title">${escapeHtml(it.username)} <span class="badge badge--muted">氛围</span></div>
+              <div class="row__title">${escapeHtml(it.username)} <span class="badge badge--muted">NPC</span></div>
               <div class="row__desc">${escapeHtml(it.text)}</div>
               <div class="row__meta">${formatTime(it.created_at)}</div>
             </div>

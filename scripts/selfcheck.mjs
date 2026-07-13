@@ -446,6 +446,8 @@ assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
     FAKE_TRAINERS,
     padLeaderboard,
     fakeSocialFeed,
+    displayTrainerId,
+    looksBrokenName,
   } = await import("../modules/systems/world_presence.js");
   assert(typeof ambientWorldLine() === "string" && ambientWorldLine().length > 4, "ambient line");
   assert(ambientWorldBatch(1, 3).length === 3, "ambient batch");
@@ -456,16 +458,22 @@ assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
   assert(g1[0].dex !== g3[0].dex || g1[0].power !== g3[0].power, "ghost day drifts");
   const s1 = seasonGhostsForDay("2026-07-13");
   assert(s1.length === 6 && s1[0].score > 0, "season ghosts");
-  assert(bossHudLine(null).includes("林佬"), "boss hud empty");
+  assert(bossHudLine(null).includes("Boss"), "boss hud empty");
   assert(bossHudLine({ hp: 50, maxHp: 100 }).includes("50/100"), "boss hud hp");
   assert(FAKE_TRAINERS.length >= 20, "fake trainer roster");
+  assert(FAKE_TRAINERS.every((n) => /^[A-Za-z][A-Za-z0-9_]*$/.test(n)), "ascii trainer ids");
+  assert(displayTrainerId("", "abcdef1234567890") === displayTrainerId("", "abcdef1234567890"), "display id stable");
+  assert(!looksBrokenName("LeafGrove") && looksBrokenName(""), "broken name detect");
   const padded = padLeaderboard([], "dex", "2026-07-13");
   assert(padded.length >= 12, "empty board padded");
   assert(padded.every((x) => x.fake), "all fake when empty");
   assert(padded[0].rank === 1 && padded[1].rank === 2, "ranks assigned");
-  const mixed = padLeaderboard([{ score: 999, name: "真人甲", attrs: { ownerName: "真人甲" } }], "dex", "2026-07-13");
-  assert(mixed[0].attrs.ownerName === "真人甲" || mixed.some((x) => x.attrs?.ownerName === "真人甲"), "real kept");
+  assert(/^[A-Za-z]/.test(padded[0].attrs.ownerName), "padded names ascii");
+  const mixed = padLeaderboard([{ score: 999, name: "RealPlayer", attrs: { ownerName: "RealPlayer" } }], "dex", "2026-07-13");
+  assert(mixed.some((x) => x.attrs?.ownerName === "RealPlayer"), "real kept");
   assert(mixed.some((x) => x.fake), "fakes still present");
+  const garbled = padLeaderboard([{ score: 10, attrs: { ownerName: "", uid: "deadbeefdeadbeef" } }], "dex", "2026-07-13");
+  assert(garbled.some((x) => !x.fake && /^[A-Za-z]/.test(x.attrs.ownerName)), "empty real name remapped");
   assert(fakeSocialFeed("2026-07-13", 4).length === 4, "fake social feed");
 }
 
