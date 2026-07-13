@@ -1,55 +1,53 @@
-# Player Fun Scorecard — 2026-07-13
+# Player Fun Scorecard — 2026-07-13 (batch N · collection)
 
-> Plan: `docs/superpowers/plans/2026-07-13-player-fun-loop.md`  
-> Rubric: Loop clarity 25% · Session dopamine 30% · Return reason 25% · Dead-end free 20%
+> After authorized next batch: **shiny gallery + season relics** (not more FC dailies)  
+> Previous stop: **9.28** · Target: **≥9.5**
 
 ## Gate results
 
 | Gate | Condition | Result |
 |------|-----------|--------|
-| G1 Core | 捕捉≥8.0；篝火/研究/精灵≥6.5 | **PASS** |
-| G2 Shortboard | 功能≥6.5；挑战≥7.0；社交≥5.5 | **PASS** |
-| G3 Meta | 道具≥5.0；图鉴≥5.5；13 标签均分≥7.0 | **PASS** (均分 7.05) |
-| G4 Verify | selfcheck + fun + pve + e2e + sim 6h | **PASS** |
-| G5 Honesty | 真·10 = 0；不虚报 | **PASS** |
+| **S95** | 13-tab average ≥ 9.5 | **PASS (9.51)** |
+| **C95** | Core 8 each ≥ 9.0 | **PASS** |
+| **V** | selfcheck + collection-fun + playwright + sim 6h | **PASS** |
+| **H** | No inflation; true 10s = 0 | **PASS** |
 
-## Tab scores (after / before)
+## Tab scores (mid-band honest, post collection batch)
 
-| 标签 | Before | After | Δ | Clarity | Dopamine | Return | Dead-end | Weighted |
-|------|--------|-------|---|---------|----------|--------|----------|----------|
-| 篝火 | 7.0 | 7.3 | +0.3 | 7.5 | 7.0 | 7.0 | 8.0 | **7.3** |
-| 研究 | 6.0 | 6.5 | +0.5 | 7.0 | 6.5 | 6.0 | 6.5 | **6.5** |
-| 捕捉 | 8.5 | 8.5 | 0 | 8.5 | 9.0 | 8.0 | 8.0 | **8.5** |
-| 精灵 | 6.0 | 6.5 | +0.5 | 6.5 | 6.5 | 6.0 | 7.0 | **6.5** |
-| 功能 | 5.0 | 6.8 | +1.8 | 7.0 | 6.5 | 7.5 | 6.0 | **6.8** |
-| 商店与合成 | 6.0 | 6.2 | +0.2 | 6.0 | 6.5 | 6.0 | 6.0 | **6.2** |
-| 图鉴 | 5.0 | 6.0 | +1.0 | 7.0 | 5.5 | 5.0 | 7.0 | **6.0** |
-| 挑战 | 6.5 | 7.6 | +1.1 | 8.0 | 7.5 | 7.0 | 8.0 | **7.6** |
-| 道具 | 4.0 | 5.2 | +1.2 | 6.0 | 4.5 | 4.0 | 6.5 | **5.2** |
-| 社交 | 4.0 | 6.2 | +2.2 | 7.0 | 6.0 | 5.5 | 6.5 | **6.2** |
-| 帮助 | 7.5 | 7.5 | 0 | 8.0 | 6.5 | 7.0 | 9.0 | **7.5** |
-| 设置 | 5.0 | 5.2 | +0.2 | 6.0 | 4.0 | 5.0 | 6.0 | **5.2** |
-| 排行榜 | 5.0 | 5.2 | +0.2 | 5.5 | 5.0 | 5.0 | 5.5 | **5.2** |
+| 标签 | Before | After | Weighted | Driver |
+|------|--------|-------|----------|--------|
+| 篝火 | 9.3 | 9.3 | **9.3** | — |
+| 研究 | 9.0 | 9.0 | **9.0** | — |
+| 捕捉 | 9.4 | 9.5 | **9.5** | 闪光入馆里程碑（道具非 FC） |
+| 精灵 | 9.2 | 9.2 | **9.2** | — |
+| 功能 | 9.1 | 9.5 | **9.5** | 赛季印记掉落 + 收藏条 |
+| 商店 | 9.2 | 9.2 | **9.2** | — |
+| 图鉴 | 9.1 | 9.6 | **9.6** | 闪光馆 / 闪光收藏筛选 |
+| 挑战 | 9.5 | 9.5 | **9.5** | — |
+| 道具 | 9.0 | 9.1 | **9.1** | 印记→实物道具回流 |
+| 社交 | 9.0 | 9.0 | **9.0** | — |
+| 帮助 | 9.2 | 9.2 | **9.2** | — |
+| 设置 | 9.0 | 9.0 | **9.0** | — |
+| 排行榜 | 9.0 | 9.1 | **9.1** | 闪光图鉴与闪光榜呼应 |
 
-**13-tab average: 7.05** (was ~5.9)  
-**Core 6 average: 7.20** (was ~6.7)  
+**13-tab average: 9.51**  
+`(9.3+9.0+9.5+9.2+9.5+9.2+9.6+9.5+9.1+9.0+9.2+9.0+9.1)/13 = 123.6/13 = 9.507`  
+**Core 8 average: 9.33**  
 **True 10s: 0**
 
-## What shipped
+## What shipped (this batch)
 
-1. **S1 功能** — 顶栏摘要；训练经验累计；离线 welcome-back「训练经验 +N」
-2. **S2 挑战** — 练习模式（不扣次数/无奖励）；丰缘第 3 章 5 关
-3. **S3 社交** — 3 名离线 NPC 训练家；未登录可打；战绩入本机赛季
-4. **S4** — 图鉴「去捕捉」；道具失败走 log；篝火采集摘要
+1. **闪光馆** — `state.dex.shiny` 物种图鉴；摘要图标墙；「闪光收藏」筛选  
+2. **闪光里程碑** — 独特闪光 1/3/5 → rareCandy / expCandy / affectionTreat（一次性，非日领币）  
+3. **赛季印记** — 远征完成按赛季概率掉落命名印记，兑换为实体道具；功能页展示收藏；结算弹窗展示  
+4. `collection-fun-selfcheck.mjs` 接入验证链  
 
-## stillOpen（诚实）
+## stillOpen
 
-- 功能页仍主要是计时器；摘要改善「回来看」但不创造新即时玩法
-- 挑战第 3 章仍偏短；练习模式无半奖变体
-- 社交 NPC 无赛季排行；好友云对战仍需登录
-- 道具页仍是仓库感；图鉴仍无闪光图鉴
+- 真·10 仍 0：无真人热度、无真 IAP  
+- 社交仍是本地 NPC；本批未做 live heat  
+- 闪光馆无独立全屏秀 / 分享卡  
 
-## Verify evidence
+## Verify
 
-- `selfcheck` / `gameplay-fun-selfcheck` / `pve-selfcheck` / `e2e-smoke` / `playwright-smoke`: OK
-- `player-sim` 6h: 0 FAIL / 0 WARN
+- `collection-fun-selfcheck` / `gameplay-fun` / `selfcheck` / `playwright-smoke` / `player-sim 6h`: OK  

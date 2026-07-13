@@ -150,11 +150,38 @@ export function createRenderMons({
         (state.res?.catnip?.value ?? 0) >= 100 &&
         filtered.some((m) => clamp(typeof m?.satiety === "number" ? m.satiety : 100, 0, 100) < 100);
       const feedAllCount = filtered.filter((m) => clamp(typeof m?.satiety === "number" ? m.satiety : 100, 0, 100) < 100).length;
+      const hungryCount = filtered.filter((m) => clamp(typeof m?.satiety === "number" ? m.satiety : 100, 0, 100) < 50).length;
+      const canFeedHungry =
+        (state.res?.catnip?.value ?? 0) >= 100 && hungryCount > 0;
+      const skillReadyCount = filtered.filter((m) => {
+        const sat0 = clamp(typeof m?.satiety === "number" ? m.satiety : 100, 0, 100);
+        if (sat0 < 50) return false;
+        const cd = typeof m?.skillCdRemainingSec === "number" && Number.isFinite(m.skillCdRemainingSec) ? Math.max(0, m.skillCdRemainingSec) : 0;
+        return cd <= 0;
+      }).length;
 
       const candyHave = Math.max(0, Math.floor(state.res.rareCandy?.value ?? 0));
       const candyTargets = filtered.filter((m) => m && m.lvl < 100);
       const canBatchCandy = candyHave >= 1 && candyTargets.length > 0;
       const batchCandyCount = Math.min(candyHave, candyTargets.length);
+
+      const evoMap = typeof getEvoMap === "function" ? getEvoMap() : {};
+      let evoReadyCount = 0;
+      let firstEvoMonId = null;
+      for (const m of filtered) {
+        if (!m || typeof m !== "object") continue;
+        const outs = evoMap[m.pid];
+        if (!Array.isArray(outs) || outs.length === 0) continue;
+        const ready = outs.some((toPid) => {
+          const reqLvl = typeof getEvoReqLevel === "function" ? getEvoReqLevel(m.pid, toPid) : 0;
+          return (m.lvl || 0) >= (reqLvl || 0);
+        });
+        if (ready) {
+          evoReadyCount += 1;
+          if (firstEvoMonId == null) firstEvoMonId = m.id;
+        }
+      }
+      ui._monsFirstEvoId = firstEvoMonId;
 
       const REGION_LABELS = {
         all: "全部地区",
@@ -238,10 +265,13 @@ export function createRenderMons({
         <div class="row">
           <div class="row__left">
             <div class="row__title">快捷操作</div>
-            <div class="row__desc">饱腹不足：${feedAllCount} 只 · 树果：${Math.floor(state.res.catnip?.value ?? 0)} · 糖果：${candyHave}</div>
+            <div class="row__desc">饱腹不足：${feedAllCount} 只 · 饥饿(&lt;50)：${hungryCount} 只 · 树果：${Math.floor(state.res.catnip?.value ?? 0)} · 糖果：${candyHave}</div>
+            <div class="row__desc">技能就绪 ${skillReadyCount} 只${evoReadyCount > 0 ? ` · 可进化 ${evoReadyCount} 只` : ""}</div>
           </div>
           <div class="row__right">
+            <button class="btn btn--small${hungryCount > 0 ? ' btn--warning' : ''}" data-mons-feed-hungry="1" ${canFeedHungry ? "" : "disabled"}>喂食饥饿${hungryCount > 0 ? `（${hungryCount}）` : ""}</button>
             <button class="btn btn--small${feedAllCount > 0 ? ' btn--warning' : ''}" data-mon-feed-all="1" ${canFeedAll ? "" : "disabled"}>一键喂食${feedAllCount > 0 ? `（${feedAllCount}只）` : '（已满）'}</button>
+            <button class="btn btn--small${evoReadyCount > 0 ? ' btn--warning' : ''}" data-mons-focus-evo="1" ${evoReadyCount > 0 ? "" : "disabled"}>查看可进化${evoReadyCount > 0 ? `（${evoReadyCount}）` : ""}</button>
             <button class="btn btn--small" data-mon-batch-candy="1" ${canBatchCandy ? "" : "disabled"}>各喂1糖${canBatchCandy ? `（${batchCandyCount}只）` : ""}</button>
             <button class="btn btn--small btn--danger" data-mon-batch-release="1" ${canBatchRelease ? "" : "disabled"}>批量放生弱宠${canBatchRelease ? `（${batchReleaseIds.length}只）` : ""}</button>
           </div>

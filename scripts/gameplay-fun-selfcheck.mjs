@@ -1,14 +1,33 @@
 import assert from "node:assert/strict";
 import {
   bumpCatchStreak,
+  bumpGatherCombo,
   bumpPveWinStreak,
+  bumpSessionCatch,
+  bumpSessionExpedition,
+  bumpSessionPveWin,
+  catchStreakMilestoneBadges,
   catchStreakReward,
+  canBuyShopDailyDeal,
+  canClaimDailyFreeFc,
+  canClaimDexRegion,
+  dailyGoalsChecklist,
   ensureLuckyDay,
   ensureLuckyWeek,
+  ensureSessionDay,
   expeditionNatureTimeMul,
+  feedOneHungryWithBerry,
+  findHungryMon,
   formatWelcomeBackSummary,
+  gatherNextMilestone,
+  liveGoalsChecklist,
+  liveNextGoalLine,
+  localDateStr,
   luckyCatchMul,
   luckyWeekEncounterMul,
+  markDailyFreeFcClaimed,
+  markDexRegionClaimed,
+  markShopDailyDealBought,
   natureAdvMissingPreferChance,
   natureBreedTimeMul,
   natureDexBonusMul,
@@ -23,10 +42,53 @@ import {
   partyBestPassive,
   partyHasAlwaysEscape,
   pityFailStep,
+  pveDailyFirstWinMul,
+  researchProgressTheater,
   resetCatchStreak,
   resetPveWinStreak,
+  seasonBarVsGhosts,
+  seasonLocalScore,
+  sessionHighlightsLine,
+  SHOP_DAILY_DEAL,
   tryBallSave,
+  canClaimDailySpin,
+  rollDailySpin,
+  markDailySpinClaimed,
+  ensureCaptureSessionGoal,
+  captureSessionProgress,
+  bumpItemsCare,
+  itemsCareProgress,
+  markItemsCareClaimed,
+  canClaimDailyGoalsBundle,
+  markDailyGoalsBundleClaimed,
+  canClaimLbRivalReward,
+  markLbRivalRewardClaimed,
+  bumpLoginStreak,
+  bumpGatherDaily,
+  gatherDailyProgress,
+  markGatherDailyClaimed,
+  shopDailyTripleProgress,
+  markShopDailyTripleClaimed,
+  noteExpeditionDailyDone,
+  expeditionDailyProgress,
+  markExpeditionDailyClaimed,
 } from "../modules/systems/gameplay_fun.js";
+import {
+  applyQuickExpeditionDuration,
+  applyQuickExpeditionReward,
+  BREED_EVENT_CARDS,
+  pickBreedEventCard,
+  tickExpeditionMilestones,
+} from "../modules/systems/expedition.js";
+import {
+  claimNpcWeeklyFc,
+  ensureNpcRecord,
+  noteNpcWeeklyWin,
+  npcRecordLine,
+  npcWeeklyProgress,
+  recordNpcFight,
+} from "../modules/systems/npc_pvp.js";
+import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoWeekKey } from "../modules/systems/pve_tower.js";
 
 {
   const state = {};
@@ -211,6 +273,264 @@ import {
   );
   assert.ok(summary.includes("训练经验 +80"), "welcome back training exp");
   assert.ok(summary.includes("远征完成 +1"), "welcome back expedition");
+}
+
+{
+  assert.deepEqual(catchStreakMilestoneBadges(2), [], "streak badges empty under 3");
+  assert.deepEqual(catchStreakMilestoneBadges(5), ["连捕×3", "连捕×5"], "streak badges 5");
+  assert.equal(catchStreakMilestoneBadges(10).length, 3, "streak badges 10");
+}
+
+{
+  assert.equal(applyQuickExpeditionDuration(1000, false), 1000, "quick off duration");
+  assert.equal(applyQuickExpeditionDuration(1000, true), 300, "quick on duration 0.3x");
+  assert.equal(applyQuickExpeditionReward(100, true), 70, "quick reward 0.7x");
+  assert.equal(applyQuickExpeditionReward(100, false), 100, "quick off reward");
+}
+
+{
+  const exp = { totalSec: 100, milestonesFired: {} };
+  assert.deepEqual(tickExpeditionMilestones(exp, 80, 74), ["远征：深入探索，前方路途渐显。"], "cross 75%");
+  assert.deepEqual(tickExpeditionMilestones(exp, 74, 70), [], "no double fire");
+  assert.ok(tickExpeditionMilestones(exp, 51, 49).length === 1, "cross 50%");
+  assert.ok(tickExpeditionMilestones(exp, 26, 20).length === 1, "cross 25%");
+}
+
+{
+  assert.equal(gatherNextMilestone(0).next, 100, "gather next 100");
+  assert.equal(gatherNextMilestone(100).next, 500, "gather next 500");
+  assert.equal(gatherNextMilestone(1000).done, true, "gather done");
+}
+
+{
+  const today = localDateStr();
+  const meta = {};
+  assert.equal(canClaimDailyFreeFc(meta, today), true, "free fc available");
+  markDailyFreeFcClaimed(meta, today);
+  assert.equal(canClaimDailyFreeFc(meta, today), false, "free fc claimed");
+}
+
+{
+  const state = { catchCount: 0, meta: {} };
+  const list = dailyGoalsChecklist(state);
+  assert.equal(list.length, 3, "daily goals 3");
+  assert.ok(list.every((x) => typeof x.label === "string"), "daily goal labels");
+}
+
+{
+  assert.ok(liveNextGoalLine({}, { eraQuest: "抓一只" }).includes("时代任务"), "live goal era");
+  assert.ok(liveNextGoalLine({}, { pveNext: "1-1" }).includes("挑战"), "live goal pve");
+}
+
+{
+  const state = { meta: {} };
+  ensureNpcRecord(state);
+  recordNpcFight(state, "npc_ace", true);
+  recordNpcFight(state, "npc_ace", false);
+  assert.equal(npcRecordLine(state.meta.npcRecord, "npc_ace"), "1胜1负", "npc ladder wl");
+}
+
+{
+  assert.ok(BREED_EVENT_CARDS.length >= 3, "breed cards");
+  const c = pickBreedEventCard(() => 0);
+  assert.ok(c && c.title, "pick breed card");
+}
+
+{
+  const fun = {};
+  const a = bumpGatherCombo(fun, 1000, 1200);
+  assert.equal(a.combo, 1, "combo start");
+  const b = bumpGatherCombo(fun, 1500, 1200);
+  assert.equal(b.combo, 2, "combo continue");
+  const c = bumpGatherCombo(fun, 4000, 1200);
+  assert.equal(c.combo, 1, "combo reset");
+  fun.gatherCombo = 9;
+  fun.gatherComboAt = 5000;
+  const d = bumpGatherCombo(fun, 5500, 1200);
+  assert.equal(d.combo, 10, "combo 10");
+  assert.equal(d.bonus, true, "combo bonus at 10");
+}
+
+{
+  const t = researchProgressTheater(10, 100);
+  assert.equal(t.pct, 90, "research pct");
+  assert.ok(t.nearDone && t.label.includes("即将完成"), "research near done");
+  assert.equal(researchProgressTheater(50, 100).nearDone, false, "not near");
+}
+
+{
+  const meta = {};
+  assert.equal(canClaimDexRegion(meta, "kanto"), true, "dex region claimable");
+  assert.equal(markDexRegionClaimed(meta, "kanto"), true, "dex claim once");
+  assert.equal(canClaimDexRegion(meta, "kanto"), false, "dex claimed");
+  assert.equal(markDexRegionClaimed(meta, "kanto"), false, "no double claim");
+}
+
+{
+  const meta = {};
+  const a = pveDailyFirstWinMul(meta, "2099-01-01");
+  assert.equal(a.mul, 1.5, "first win mul");
+  assert.equal(a.isFirst, true, "is first");
+  const b = pveDailyFirstWinMul(meta, "2099-01-01");
+  assert.equal(b.mul, 1, "second win no mul");
+}
+
+{
+  const meta = {};
+  const today = localDateStr();
+  assert.equal(canBuyShopDailyDeal(meta, today), true, "deal available");
+  assert.equal(SHOP_DAILY_DEAL.costFc, 3, "deal cost");
+  assert.equal(SHOP_DAILY_DEAL.gainFc, 10, "deal gain");
+  markShopDailyDealBought(meta, today);
+  assert.equal(canBuyShopDailyDeal(meta, today), false, "deal bought");
+}
+
+{
+  assert.equal(seasonLocalScore(5, 2), 52, "season score");
+  const bar = seasonBarVsGhosts(50);
+  assert.ok(bar.tip.includes("再登记") || bar.tip.includes("超过"), "season tip");
+  assert.ok(bar.topPct >= 0 && bar.topPct <= 100, "season pct");
+}
+
+{
+  const state = { meta: {} };
+  ensureSessionDay(state, "2099-06-01");
+  bumpSessionCatch(state);
+  bumpSessionPveWin(state);
+  bumpSessionExpedition(state);
+  // force same day
+  state.meta.sessionDay.date = localDateStr();
+  const line = sessionHighlightsLine(state);
+  assert.ok(line.includes("捕捉"), "session highlights");
+}
+
+{
+  const state = {
+    res: { bigBerry: { value: 1 } },
+    mons: { list: [{ name: "A", satiety: 10 }, { name: "B", satiety: 90 }] },
+  };
+  assert.equal(findHungryMon(state.mons.list, 30)?.name, "A", "find hungry");
+  const r = feedOneHungryWithBerry(state, 30);
+  assert.equal(r.ok, true, "feed ok");
+  assert.equal(state.res.bigBerry.value, 0, "berry consumed");
+  assert.ok(state.mons.list[0].satiety >= 60, "satiety up");
+}
+
+{
+  const state = { catchCount: 0, meta: {} };
+  const list = liveGoalsChecklist(state, { dexPct: 10, eraQuest: "造田" });
+  assert.equal(list.length, 3, "live goals 3");
+}
+
+{
+  const state = { meta: {} };
+  noteNpcWeeklyWin(state, "npc_youngster");
+  noteNpcWeeklyWin(state, "npc_lass");
+  let prog = npcWeeklyProgress(state);
+  assert.equal(prog.canClaim, false, "weekly not all");
+  noteNpcWeeklyWin(state, "npc_ace");
+  prog = npcWeeklyProgress(state);
+  assert.equal(prog.canClaim, true, "weekly ready");
+  const claim = claimNpcWeeklyFc(state, 20);
+  assert.equal(claim.ok, true, "weekly claim");
+  assert.equal(claim.fc, 20, "weekly fc");
+  assert.equal(npcWeeklyProgress(state).canClaim, false, "weekly claimed");
+}
+
+{
+  const meta = {};
+  const today = localDateStr();
+  assert.equal(canClaimDailySpin(meta, today), true, "spin available");
+  const hit = rollDailySpin(() => 0);
+  assert.ok(hit.label, "spin label");
+  markDailySpinClaimed(meta, today);
+  assert.equal(canClaimDailySpin(meta, today), false, "spin claimed");
+}
+
+{
+  const state = { catchCount: 2 };
+  ensureCaptureSessionGoal(state);
+  state.fun.sessionCatchBase = 0;
+  state.fun.sessionCatchGoal = 5;
+  let p = captureSessionProgress(state);
+  assert.equal(p.delta, 2, "session delta");
+  assert.equal(p.canClaim, false, "session not yet");
+  state.catchCount = 5;
+  p = captureSessionProgress(state);
+  assert.equal(p.canClaim, true, "session claimable");
+}
+
+{
+  const state = { meta: {} };
+  bumpItemsCare(state, "2099-02-01");
+  bumpItemsCare(state, "2099-02-01");
+  bumpItemsCare(state, "2099-02-01");
+  const prog = itemsCareProgress(state, "2099-02-01");
+  assert.equal(prog.canClaim, true, "care claimable");
+  assert.equal(markItemsCareClaimed(state, "2099-02-01"), true, "care mark");
+  assert.equal(itemsCareProgress(state, "2099-02-01").canClaim, false, "care done");
+}
+
+{
+  const today = localDateStr();
+  const state = {
+    catchCount: 10,
+    meta: {
+      dailyGoals: { date: today, catchBase: 0, catchTarget: 3, trainDone: true, pveDone: true, trainBase: 0 },
+    },
+  };
+  assert.equal(canClaimDailyGoalsBundle(state, today), true, "goals bundle");
+  assert.equal(markDailyGoalsBundleClaimed(state, today), true, "goals mark");
+  assert.equal(canClaimDailyGoalsBundle(state, today), false, "goals claimed");
+}
+
+{
+  const meta = {};
+  assert.equal(canClaimLbRivalReward(meta, 0), false, "no beat");
+  assert.equal(canClaimLbRivalReward(meta, 2), true, "beat ok");
+  markLbRivalRewardClaimed(meta, localDateStr());
+  assert.equal(canClaimLbRivalReward(meta, 2), false, "rival claimed");
+}
+
+{
+  const meta = {};
+  const n = bumpLoginStreak(meta, localDateStr());
+  assert.ok(n >= 1, "login streak");
+  assert.equal(bumpLoginStreak(meta, localDateStr()), n, "login stable same day");
+}
+
+{
+  const state = { meta: {} };
+  const t = ensureTowerState(state);
+  assert.equal(t.floor, 1, "tower floor1");
+  assert.equal(isTowerCleared(t), false, "tower not cleared");
+  assert.ok(getTowerFloor(1)?.name, "tower floor def");
+  assert.equal(PVE_TOWER_FLOORS.length, 8, "tower 8 floors");
+  assert.ok(isoWeekKey().includes("-W"), "iso week");
+}
+
+{
+  const state = { meta: {} };
+  for (let i = 0; i < 40; i++) bumpGatherDaily(state, "2099-04-01");
+  const g = gatherDailyProgress(state, "2099-04-01");
+  assert.equal(g.canClaim, true, "gather daily claimable");
+  assert.equal(markGatherDailyClaimed(state, "2099-04-01"), true, "gather mark");
+}
+
+{
+  const today = localDateStr();
+  const meta = { dailyFreeFcDate: today, shopDailyDealDate: today, dailySpinDate: today };
+  const t = shopDailyTripleProgress(meta, today);
+  assert.equal(t.canClaim, true, "triple ready");
+  markShopDailyTripleClaimed(meta, today);
+  assert.equal(shopDailyTripleProgress(meta, today).canClaim, false, "triple claimed");
+}
+
+{
+  const state = { meta: {} };
+  noteExpeditionDailyDone(state, "2099-05-01");
+  assert.equal(expeditionDailyProgress(state, "2099-05-01").canClaim, true, "exp daily");
+  assert.equal(markExpeditionDailyClaimed(state, "2099-05-01"), true, "exp claim");
 }
 
 console.log("gameplay-fun-selfcheck: ok");

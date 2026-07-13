@@ -281,6 +281,507 @@ export function clearCatchNearMiss(ui) {
   if (ui && typeof ui === "object") ui.lastCatchNearMiss = null;
 }
 
+/** Catch streak UI badges at 3/5/10 while streak is active. */
+export function catchStreakMilestoneBadges(streak) {
+  const n = Math.max(0, Math.floor(typeof streak === "number" ? streak : 0));
+  const out = [];
+  if (n >= 3) out.push("连捕×3");
+  if (n >= 5) out.push("连捕×5");
+  if (n >= 10) out.push("连捕×10");
+  return out;
+}
+
+/** Gather click milestones 100/500/1000 — next target for camp strip. */
+export function gatherNextMilestone(clicks) {
+  const n = Math.max(0, Math.floor(typeof clicks === "number" && Number.isFinite(clicks) ? clicks : 0));
+  for (const m of [100, 500, 1000]) {
+    if (n < m) return { next: m, left: m - n, done: false };
+  }
+  return { next: null, left: 0, done: true };
+}
+
+export function localDateStr(d = new Date()) {
+  const x = d instanceof Date ? d : new Date();
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+}
+
+/** Daily free futurecoin — once per local calendar day. */
+export function canClaimDailyFreeFc(meta, today = localDateStr()) {
+  const last = meta && typeof meta.dailyFreeFcDate === "string" ? meta.dailyFreeFcDate : "";
+  return last !== today;
+}
+
+export function markDailyFreeFcClaimed(meta, today = localDateStr()) {
+  if (!meta || typeof meta !== "object") return null;
+  meta.dailyFreeFcDate = today;
+  return today;
+}
+
+/** Today's soft goals checklist (local meta). */
+export function ensureDailyGoals(state) {
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  const today = localDateStr();
+  const g = state.meta.dailyGoals;
+  if (!g || typeof g !== "object" || g.date !== today) {
+    state.meta.dailyGoals = {
+      date: today,
+      catchTarget: 3,
+      trainDone: false,
+      pveDone: false,
+    };
+  }
+  return state.meta.dailyGoals;
+}
+
+export function dailyGoalsChecklist(state) {
+  const g = ensureDailyGoals(state);
+  const catchNow = Math.max(0, Math.floor(state.catchCount || 0));
+  const catchBase = typeof g.catchBase === "number" ? g.catchBase : catchNow;
+  if (typeof g.catchBase !== "number") g.catchBase = catchNow;
+  const catchDelta = Math.max(0, catchNow - catchBase);
+  const catchOk = catchDelta >= Math.max(1, Math.floor(g.catchTarget || 3));
+  const trainOk = Boolean(g.trainDone) || Math.max(0, Math.floor(state.meta?.trainingExpGained || 0)) > Math.max(0, Math.floor(g.trainBase || 0));
+  if (typeof g.trainBase !== "number") g.trainBase = Math.max(0, Math.floor(state.meta?.trainingExpGained || 0));
+  const pveOk = Boolean(g.pveDone);
+  return [
+    { id: "catch", label: `捕捉 ${Math.min(catchDelta, g.catchTarget || 3)}/${g.catchTarget || 3}`, done: catchOk },
+    { id: "train", label: "训练一次", done: trainOk },
+    { id: "pve", label: "挑战一次", done: pveOk },
+  ];
+}
+
+/** One-line live next goal for help coach. */
+export function liveNextGoalLine(state, { dexPct = 0, eraQuest = "", pveNext = "" } = {}) {
+  if (eraQuest) return `下一目标：时代任务 — ${eraQuest}`;
+  if (pveNext) return `下一目标：挑战 — ${pveNext}`;
+  if (typeof dexPct === "number" && dexPct < 100) return `下一目标：图鉴完成度 ${Math.max(0, Math.floor(dexPct))}%`;
+  return "下一目标：继续采集、捕捉与远征循环。";
+}
+
+/** Daily free spin table — weighted; once per local day. */
+export const DAILY_SPIN_REWARDS = Object.freeze([
+  { id: "fc5", w: 40, futurecoin: 5, label: "小额未来币 +5" },
+  { id: "fc15", w: 28, futurecoin: 15, label: "中额未来币 +15" },
+  { id: "fc30", w: 15, futurecoin: 30, label: "大额未来币 +30" },
+  { id: "berry", w: 12, bigBerry: 1, label: "大树果 ×1" },
+  { id: "fc80", w: 5, futurecoin: 80, label: "幸运大奖 +80" },
+]);
+
+export function canClaimDailySpin(meta, today = localDateStr()) {
+  const last = meta && typeof meta.dailySpinDate === "string" ? meta.dailySpinDate : "";
+  return last !== today;
+}
+
+export function rollDailySpin(randFloat = Math.random) {
+  const roll = typeof randFloat === "function" ? randFloat() : Math.random();
+  const total = DAILY_SPIN_REWARDS.reduce((s, r) => s + r.w, 0);
+  let x = roll * total;
+  for (const r of DAILY_SPIN_REWARDS) {
+    x -= r.w;
+    if (x <= 0) return { ...r };
+  }
+  return { ...DAILY_SPIN_REWARDS[0] };
+}
+
+export function markDailySpinClaimed(meta, today = localDateStr()) {
+  if (!meta || typeof meta !== "object") return null;
+  meta.dailySpinDate = today;
+  return today;
+}
+
+/** Capture session goal — catch N this session for a one-shot FC toast. */
+export function ensureCaptureSessionGoal(state) {
+  if (!state.fun || typeof state.fun !== "object") state.fun = {};
+  if (typeof state.fun.sessionCatchGoal !== "number") state.fun.sessionCatchGoal = 5;
+  if (typeof state.fun.sessionCatchBase !== "number") {
+    state.fun.sessionCatchBase = Math.max(0, Math.floor(state.catchCount || 0));
+  }
+  if (typeof state.fun.sessionCatchClaimed !== "boolean") state.fun.sessionCatchClaimed = false;
+  return state.fun;
+}
+
+export function captureSessionProgress(state) {
+  const fun = ensureCaptureSessionGoal(state);
+  const now = Math.max(0, Math.floor(state.catchCount || 0));
+  const delta = Math.max(0, now - Math.max(0, Math.floor(fun.sessionCatchBase || 0)));
+  const goal = Math.max(1, Math.floor(fun.sessionCatchGoal || 5));
+  return {
+    delta,
+    goal,
+    done: delta >= goal,
+    claimed: Boolean(fun.sessionCatchClaimed),
+    canClaim: delta >= goal && !fun.sessionCatchClaimed,
+  };
+}
+
+/** Help-tab live checklist: reuse daily goals + optional era/pve/dex hints as 3 rows. */
+export function liveGoalsChecklist(state, { dexPct = 0, eraQuest = "", pveNext = "" } = {}) {
+  const daily = dailyGoalsChecklist(state);
+  const extras = [];
+  if (eraQuest) extras.push({ id: "era", label: `时代：${eraQuest}`, done: false });
+  else if (pveNext) extras.push({ id: "pveNext", label: `挑战：${pveNext}`, done: false });
+  else if (typeof dexPct === "number" && dexPct < 100) {
+    extras.push({ id: "dex", label: `图鉴 ${Math.max(0, Math.floor(dexPct))}%`, done: false });
+  }
+  // Prefer daily three; if we have an extra unfinished coach goal, swap the last done daily.
+  const out = daily.slice(0, 3);
+  if (extras.length && out.every((g) => g.done)) {
+    out[2] = extras[0];
+  } else if (extras.length && out.length >= 3 && out[2].done) {
+    out[2] = extras[0];
+  }
+  return out.slice(0, 3);
+}
+
+/** Gather click combo — within windowMs of last click. */
+export function bumpGatherCombo(fun, nowMs, windowMs = 1200) {
+  if (!fun || typeof fun !== "object") return { combo: 0, bonus: false };
+  const now = typeof nowMs === "number" && Number.isFinite(nowMs) ? nowMs : Date.now();
+  const win = typeof windowMs === "number" && Number.isFinite(windowMs) ? Math.max(0, windowMs) : 1200;
+  const last = typeof fun.gatherComboAt === "number" && Number.isFinite(fun.gatherComboAt) ? fun.gatherComboAt : 0;
+  let combo = Math.max(0, Math.floor(fun.gatherCombo || 0));
+  if (last > 0 && now - last <= win) combo += 1;
+  else combo = 1;
+  fun.gatherCombo = combo;
+  fun.gatherComboAt = now;
+  const bonus = combo > 0 && combo % 10 === 0;
+  return { combo, bonus };
+}
+
+/** Research progress theater — pct done + "即将完成" when >80%. */
+export function researchProgressTheater(remainingSec, totalSec) {
+  const rem = typeof remainingSec === "number" && Number.isFinite(remainingSec) ? Math.max(0, remainingSec) : 0;
+  const tot = typeof totalSec === "number" && Number.isFinite(totalSec) && totalSec > 0 ? totalSec : 0;
+  if (tot <= 0) return { pct: 0, label: "研究中", nearDone: false };
+  const pct = Math.max(0, Math.min(100, Math.round(((tot - rem) / tot) * 100)));
+  const nearDone = pct > 80;
+  return { pct, label: nearDone ? `即将完成 ${pct}%` : `研究中 ${pct}%`, nearDone };
+}
+
+/** Region clear claim: +10 FC once per areaId. */
+export function canClaimDexRegion(meta, areaId) {
+  if (!areaId || areaId === "all") return false;
+  const claimed = meta && typeof meta === "object" && meta.dexRegionClaimed && typeof meta.dexRegionClaimed === "object"
+    ? meta.dexRegionClaimed
+    : null;
+  return !(claimed && claimed[areaId]);
+}
+
+export function markDexRegionClaimed(meta, areaId) {
+  if (!meta || typeof meta !== "object" || !areaId || areaId === "all") return false;
+  if (!meta.dexRegionClaimed || typeof meta.dexRegionClaimed !== "object") meta.dexRegionClaimed = {};
+  if (meta.dexRegionClaimed[areaId]) return false;
+  meta.dexRegionClaimed[areaId] = true;
+  return true;
+}
+
+/** PvE formal first-win of local day → +50% reward mul once. */
+export function pveDailyFirstWinMul(meta, today = localDateStr()) {
+  if (!meta || typeof meta !== "object") return { mul: 1, isFirst: false };
+  const last = typeof meta.pveDailyFirstWinDate === "string" ? meta.pveDailyFirstWinDate : "";
+  if (last === today) return { mul: 1, isFirst: false };
+  meta.pveDailyFirstWinDate = today;
+  return { mul: 1.5, isFirst: true };
+}
+
+/** Shop daily deal: pay 3 FC → +10 FC once/day (honest 50%-off teaser pack). */
+export function canBuyShopDailyDeal(meta, today = localDateStr()) {
+  const last = meta && typeof meta === "object" && typeof meta.shopDailyDealDate === "string" ? meta.shopDailyDealDate : "";
+  return last !== today;
+}
+
+export function markShopDailyDealBought(meta, today = localDateStr()) {
+  if (!meta || typeof meta !== "object") return false;
+  if (!canBuyShopDailyDeal(meta, today)) return false;
+  meta.shopDailyDealDate = today;
+  return true;
+}
+
+export const SHOP_DAILY_DEAL = { costFc: 3, gainFc: 10 };
+
+/** Season score = dex*10 + pveWins; progress vs ghost rivals. */
+export function seasonLocalScore(dexUnique, pveWins) {
+  return Math.max(0, Math.floor(dexUnique || 0)) * 10 + Math.max(0, Math.floor(pveWins || 0));
+}
+
+export const SEASON_GHOST_RIVALS = [
+  { name: "短裤小子", score: 80 },
+  { name: "迷你裙", score: 220 },
+  { name: "精英阿哲", score: 900 },
+  { name: "道馆影子", score: 1800 },
+];
+
+/** Returns progress line vs next/top ghost. */
+export function seasonBarVsGhosts(myScore, ghosts = SEASON_GHOST_RIVALS) {
+  const score = Math.max(0, Math.floor(myScore || 0));
+  const list = Array.isArray(ghosts) ? ghosts.slice().sort((a, b) => a.score - b.score) : [];
+  const top = list.length ? list[list.length - 1] : { name: "顶端", score: score };
+  const next = list.find((g) => g.score > score) || null;
+  const beaten = list.filter((g) => score >= g.score).length;
+  let needDex = 0;
+  let targetName = top.name;
+  if (next) {
+    needDex = Math.max(1, Math.ceil((next.score - score) / 10));
+    targetName = next.name;
+  }
+  const topPct = top.score > 0 ? Math.min(100, Math.round((score / top.score) * 100)) : 100;
+  const tip = next
+    ? `再登记 ${needDex} 种超过 ${targetName}`
+    : `已超过全部 ${list.length} 位幽灵训练家`;
+  return { score, topScore: top.score, topPct, beaten, total: list.length, needDex, tip, nextName: next?.name || null };
+}
+
+/** Session day counters for options highlights. */
+export function ensureSessionDay(state, today = localDateStr()) {
+  if (!state || typeof state !== "object") return null;
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  const s = state.meta.sessionDay;
+  if (!s || typeof s !== "object" || s.date !== today) {
+    state.meta.sessionDay = { date: today, catches: 0, pveWins: 0, expeditions: 0 };
+  }
+  return state.meta.sessionDay;
+}
+
+export function bumpSessionCatch(state) {
+  const s = ensureSessionDay(state);
+  if (!s) return 0;
+  s.catches = Math.max(0, Math.floor(s.catches || 0)) + 1;
+  return s.catches;
+}
+
+export function bumpSessionPveWin(state) {
+  const s = ensureSessionDay(state);
+  if (!s) return 0;
+  s.pveWins = Math.max(0, Math.floor(s.pveWins || 0)) + 1;
+  return s.pveWins;
+}
+
+export function bumpSessionExpedition(state) {
+  const s = ensureSessionDay(state);
+  if (!s) return 0;
+  s.expeditions = Math.max(0, Math.floor(s.expeditions || 0)) + 1;
+  return s.expeditions;
+}
+
+export function sessionHighlightsLine(state) {
+  const s = ensureSessionDay(state);
+  if (!s) return "";
+  return `今日：捕捉 ${Math.floor(s.catches || 0)} · 挑战胜 ${Math.floor(s.pveWins || 0)} · 远征 ${Math.floor(s.expeditions || 0)}`;
+}
+
+/** Find first hungry mon (satiety < thr); for 一键补饱. */
+export function findHungryMon(list, thr = 30) {
+  const arr = Array.isArray(list) ? list : [];
+  const t = typeof thr === "number" && Number.isFinite(thr) ? thr : 30;
+  for (const m of arr) {
+    if (!m || typeof m !== "object") continue;
+    const sat = typeof m.satiety === "number" && Number.isFinite(m.satiety) ? m.satiety : 100;
+    if (sat < t) return m;
+  }
+  return null;
+}
+
+export function feedOneHungryWithBerry(state, thr = 30) {
+  if (!state || typeof state !== "object") return { ok: false, reason: "no_state" };
+  const have = Math.max(0, Math.floor(state.res?.bigBerry?.value ?? 0));
+  if (have < 1) return { ok: false, reason: "no_berry" };
+  const mon = findHungryMon(state.mons?.list, thr);
+  if (!mon) return { ok: false, reason: "none_hungry" };
+  state.res.bigBerry.value = have - 1;
+  const sat0 = typeof mon.satiety === "number" && Number.isFinite(mon.satiety) ? mon.satiety : 0;
+  mon.satiety = Math.max(0, Math.min(100, sat0 + 50));
+  bumpItemsCare(state);
+  return { ok: true, mon, satiety: mon.satiety };
+}
+
+const ITEMS_CARE_GOAL = 3;
+
+/** Items tab daily care — N uses/feeds → claim FC. */
+export function bumpItemsCare(state, today = localDateStr()) {
+  if (!state || typeof state !== "object") return 0;
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  const m = state.meta;
+  if (m.itemsCareDate !== today) {
+    m.itemsCareDate = today;
+    m.itemsCareUses = 0;
+    m.itemsCareClaimed = false;
+  }
+  m.itemsCareUses = Math.max(0, Math.floor(m.itemsCareUses || 0)) + 1;
+  return m.itemsCareUses;
+}
+
+export function itemsCareProgress(state, today = localDateStr()) {
+  if (!state?.meta || typeof state.meta !== "object") {
+    return { uses: 0, goal: ITEMS_CARE_GOAL, canClaim: false, claimed: false };
+  }
+  const m = state.meta;
+  if (m.itemsCareDate !== today) {
+    return { uses: 0, goal: ITEMS_CARE_GOAL, canClaim: false, claimed: false };
+  }
+  const uses = Math.max(0, Math.floor(m.itemsCareUses || 0));
+  const claimed = Boolean(m.itemsCareClaimed);
+  return {
+    uses,
+    goal: ITEMS_CARE_GOAL,
+    claimed,
+    canClaim: uses >= ITEMS_CARE_GOAL && !claimed,
+  };
+}
+
+export function markItemsCareClaimed(state, today = localDateStr()) {
+  if (!state || typeof state !== "object") return false;
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  const prog = itemsCareProgress(state, today);
+  if (!prog.canClaim) return false;
+  state.meta.itemsCareClaimed = true;
+  state.meta.itemsCareDate = today;
+  return true;
+}
+
+/** Claim +FC when all 3 daily goals done (once/day). */
+export function canClaimDailyGoalsBundle(state, today = localDateStr()) {
+  const list = dailyGoalsChecklist(state);
+  if (!list.every((g) => g.done)) return false;
+  const last = state?.meta && typeof state.meta.dailyGoalsClaimDate === "string" ? state.meta.dailyGoalsClaimDate : "";
+  return last !== today;
+}
+
+export function markDailyGoalsBundleClaimed(state, today = localDateStr()) {
+  if (!state || typeof state !== "object") return false;
+  if (!canClaimDailyGoalsBundle(state, today)) return false;
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  state.meta.dailyGoalsClaimDate = today;
+  return true;
+}
+
+/** Leaderboard: once/day claim if beaten ≥1 season ghost. */
+export function canClaimLbRivalReward(meta, beaten, today = localDateStr()) {
+  const n = Math.max(0, Math.floor(beaten || 0));
+  if (n < 1) return false;
+  const last = meta && typeof meta.lbRivalClaimDate === "string" ? meta.lbRivalClaimDate : "";
+  return last !== today;
+}
+
+export function markLbRivalRewardClaimed(meta, today = localDateStr()) {
+  if (!meta || typeof meta !== "object") return false;
+  meta.lbRivalClaimDate = today;
+  return true;
+}
+
+/** Consecutive local-day login streak (call once per render/session open). */
+export function bumpLoginStreak(meta, today = localDateStr()) {
+  if (!meta || typeof meta !== "object") return 0;
+  const last = typeof meta.loginStreakDate === "string" ? meta.loginStreakDate : "";
+  if (last === today) return Math.max(1, Math.floor(meta.loginStreak || 1));
+  const y = (() => {
+    const d = new Date(`${today}T12:00:00`);
+    d.setDate(d.getDate() - 1);
+    return localDateStr(d);
+  })();
+  const prev = Math.max(0, Math.floor(meta.loginStreak || 0));
+  meta.loginStreak = last === y ? prev + 1 : 1;
+  meta.loginStreakDate = today;
+  return meta.loginStreak;
+}
+
+export function loginStreakLine(meta) {
+  const n = Math.max(0, Math.floor(meta?.loginStreak || 0));
+  if (n <= 0) return "";
+  return `连续登录 ${n} 天`;
+}
+
+const GATHER_DAILY_GOAL = 40;
+
+/** Bonfire daily gather quest. */
+export function bumpGatherDaily(state, today = localDateStr()) {
+  if (!state || typeof state !== "object") return 0;
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  const m = state.meta;
+  if (m.gatherDailyDate !== today) {
+    m.gatherDailyDate = today;
+    m.gatherDailyCount = 0;
+    m.gatherDailyClaimed = false;
+  }
+  m.gatherDailyCount = Math.max(0, Math.floor(m.gatherDailyCount || 0)) + 1;
+  return m.gatherDailyCount;
+}
+
+export function gatherDailyProgress(state, today = localDateStr()) {
+  if (!state?.meta || typeof state.meta !== "object") {
+    return { count: 0, goal: GATHER_DAILY_GOAL, canClaim: false, claimed: false };
+  }
+  const m = state.meta;
+  if (m.gatherDailyDate !== today) {
+    return { count: 0, goal: GATHER_DAILY_GOAL, canClaim: false, claimed: false };
+  }
+  const count = Math.max(0, Math.floor(m.gatherDailyCount || 0));
+  const claimed = Boolean(m.gatherDailyClaimed);
+  return {
+    count,
+    goal: GATHER_DAILY_GOAL,
+    claimed,
+    canClaim: count >= GATHER_DAILY_GOAL && !claimed,
+  };
+}
+
+export function markGatherDailyClaimed(state, today = localDateStr()) {
+  if (!state || typeof state !== "object") return false;
+  if (!gatherDailyProgress(state, today).canClaim) return false;
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  state.meta.gatherDailyClaimed = true;
+  state.meta.gatherDailyDate = today;
+  return true;
+}
+
+/** Shop: free + deal + spin all done → bonus claim. */
+export function shopDailyTripleProgress(meta, today = localDateStr()) {
+  const m = meta && typeof meta === "object" ? meta : {};
+  const free = m.dailyFreeFcDate === today;
+  const deal = m.shopDailyDealDate === today;
+  const spin = m.dailySpinDate === today;
+  const n = (free ? 1 : 0) + (deal ? 1 : 0) + (spin ? 1 : 0);
+  const claimed = m.shopTripleClaimDate === today;
+  return { n, goal: 3, free, deal, spin, claimed, canClaim: n >= 3 && !claimed };
+}
+
+export function markShopDailyTripleClaimed(meta, today = localDateStr()) {
+  if (!meta || typeof meta !== "object") return false;
+  if (!shopDailyTripleProgress(meta, today).canClaim) return false;
+  meta.shopTripleClaimDate = today;
+  return true;
+}
+
+/** Functions: complete ≥1 expedition today → claim. */
+export function noteExpeditionDailyDone(state, today = localDateStr()) {
+  if (!state || typeof state !== "object") return;
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  if (state.meta.expeditionDailyDate !== today) {
+    state.meta.expeditionDailyDate = today;
+    state.meta.expeditionDailyDone = false;
+    state.meta.expeditionDailyClaimed = false;
+  }
+  state.meta.expeditionDailyDone = true;
+}
+
+export function expeditionDailyProgress(state, today = localDateStr()) {
+  if (!state?.meta || typeof state.meta !== "object") {
+    return { done: false, claimed: false, canClaim: false };
+  }
+  const m = state.meta;
+  if (m.expeditionDailyDate !== today) {
+    return { done: false, claimed: false, canClaim: false };
+  }
+  const done = Boolean(m.expeditionDailyDone);
+  const claimed = Boolean(m.expeditionDailyClaimed);
+  return { done, claimed, canClaim: done && !claimed };
+}
+
+export function markExpeditionDailyClaimed(state, today = localDateStr()) {
+  if (!expeditionDailyProgress(state, today).canClaim) return false;
+  state.meta.expeditionDailyClaimed = true;
+  return true;
+}
+
 export function formatWelcomeBackSummary(state, before = {}, dtSec = 0) {
   if (!state || typeof state !== "object") return "";
   ensureLuckyDay(state);

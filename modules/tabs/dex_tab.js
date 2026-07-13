@@ -1,11 +1,57 @@
-export function initDexTab({ ui, elDexArea, elDexSearch, elDexOnlyCaught, elDexOnlyMissing, elDexPrev, elDexNext, elDexList, markDexDirty, setActiveTab }) {
-  if (elDexList && typeof setActiveTab === "function") {
-    elDexList.addEventListener("click", (e) => {
-      const btn = e.target?.closest?.("[data-dex-goto-capture]");
-      if (!btn) return;
-      setActiveTab("capture");
+import { canClaimDexRegion, markDexRegionClaimed } from "../systems/gameplay_fun.js";
+
+export function initDexTab({
+  ui,
+  elDexArea,
+  elDexSearch,
+  elDexOnlyCaught,
+  elDexOnlyMissing,
+  elDexOnlyShiny,
+  elDexPrev,
+  elDexNext,
+  elDexList,
+  elDexSummary,
+  markDexDirty,
+  setActiveTab,
+  getState,
+  addRes,
+  addLog,
+  render,
+}) {
+  if (typeof setActiveTab === "function") {
+    for (const host of [elDexList, elDexSummary]) {
+      if (!host) continue;
+      host.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("[data-dex-goto-capture]");
+        if (!btn || !host.contains(btn)) return;
+        setActiveTab("capture");
+      });
+    }
+  }
+
+  const claimHost = elDexSummary || elDexList;
+  if (claimHost) {
+    claimHost.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.("button[data-dex-claim-region]");
+      if (!btn || !claimHost.contains(btn)) return;
+      if (btn.disabled) return;
+      const areaId = btn.getAttribute("data-dex-claim-region");
+      if (!areaId) return;
+      const state = typeof getState === "function" ? getState() : null;
+      if (!state || typeof state !== "object") return;
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (!canClaimDexRegion(state.meta, areaId)) {
+        if (typeof addLog === "function") addLog("该区域奖励已领取");
+        return;
+      }
+      if (!markDexRegionClaimed(state.meta, areaId)) return;
+      if (typeof addRes === "function") addRes("futurecoin", 10);
+      if (typeof addLog === "function") addLog(`图鉴区域完成奖励：未来币 +10`, true);
+      markDexDirty(false);
+      if (typeof render === "function") render();
     });
   }
+
   if (elDexSearch) {
     elDexSearch.value = ui.dexQuery;
     elDexSearch.addEventListener("input", () => {
@@ -27,7 +73,9 @@ export function initDexTab({ ui, elDexArea, elDexSearch, elDexOnlyCaught, elDexO
       ui.dexOnlyCaught = Boolean(elDexOnlyCaught.checked);
       if (ui.dexOnlyCaught) {
         ui.dexOnlyMissing = false;
+        ui.dexOnlyShiny = false;
         if (elDexOnlyMissing) elDexOnlyMissing.checked = false;
+        if (elDexOnlyShiny) elDexOnlyShiny.checked = false;
       }
       markDexDirty(true);
     });
@@ -39,7 +87,23 @@ export function initDexTab({ ui, elDexArea, elDexSearch, elDexOnlyCaught, elDexO
       ui.dexOnlyMissing = Boolean(elDexOnlyMissing.checked);
       if (ui.dexOnlyMissing) {
         ui.dexOnlyCaught = false;
+        ui.dexOnlyShiny = false;
         if (elDexOnlyCaught) elDexOnlyCaught.checked = false;
+        if (elDexOnlyShiny) elDexOnlyShiny.checked = false;
+      }
+      markDexDirty(true);
+    });
+  }
+
+  if (elDexOnlyShiny) {
+    elDexOnlyShiny.checked = ui.dexOnlyShiny;
+    elDexOnlyShiny.addEventListener("change", () => {
+      ui.dexOnlyShiny = Boolean(elDexOnlyShiny.checked);
+      if (ui.dexOnlyShiny) {
+        ui.dexOnlyCaught = false;
+        ui.dexOnlyMissing = false;
+        if (elDexOnlyCaught) elDexOnlyCaught.checked = false;
+        if (elDexOnlyMissing) elDexOnlyMissing.checked = false;
       }
       markDexDirty(true);
     });

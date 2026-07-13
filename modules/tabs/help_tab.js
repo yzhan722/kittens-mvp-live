@@ -1,4 +1,8 @@
-export function createRenderHelp({ elHelp, ui, escapeHtml }) {
+import { liveGoalsChecklist, liveNextGoalLine, canClaimDailyGoalsBundle, markDailyGoalsBundleClaimed, localDateStr } from "../systems/gameplay_fun.js";
+import { ensureEra, questLabel, syncEraQuests } from "../systems/era.js";
+import { PVE_CHAPTERS, isStageUnlocked } from "../pve_defs.js";
+
+export function createRenderHelp({ elHelp, ui, escapeHtml, getState, getCaptureAreas, dexCaughtUnique, defs, addRes, addLog, render }) {
   return function renderHelp() {
     if (!elHelp) return;
     if (ui.activeTab !== "help") return;
@@ -25,6 +29,63 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
       </div>
     `);
 
+    let nextGoal = "下一目标：继续采集、捕捉与远征循环。";
+    let checklistHtml = "";
+    let canBundle = false;
+    let bundleClaimed = false;
+    try {
+      const state = typeof getState === "function" ? getState() : null;
+      if (state) {
+        let eraQuest = "";
+        if (typeof getCaptureAreas === "function") {
+          ensureEra(state);
+          const era = syncEraQuests(state, getCaptureAreas);
+          const nextQ = (era.quests || []).find((q) => q.kind === "main" && !q.done);
+          if (nextQ) eraQuest = questLabel(nextQ);
+        }
+        let pveNext = "";
+        const progress = state.pve?.progress || {};
+        const dexCount = typeof dexCaughtUnique === "function" ? dexCaughtUnique() : 0;
+        outer: for (const ch of PVE_CHAPTERS) {
+          if (dexCount < ch.unlockDex) {
+            pveNext = `解锁「${ch.name}」（需图鉴 ${ch.unlockDex}）`;
+            break;
+          }
+          for (const st of ch.stages) {
+            if (!isStageUnlocked(st.id, progress)) continue;
+            if (!progress[st.id]) {
+              pveNext = `${ch.name} · ${st.name}`;
+              break outer;
+            }
+          }
+        }
+        const totalSpecies = Array.isArray(defs?.pokemon) ? defs.pokemon.length : 0;
+        let unique = 0;
+        const caught = state.dex?.caught || {};
+        for (const v of Object.values(caught)) if (typeof v === "number" && v > 0) unique += 1;
+        const dexPct = totalSpecies > 0 ? Math.round((unique / totalSpecies) * 100) : 0;
+        nextGoal = liveNextGoalLine(state, { dexPct, eraQuest, pveNext });
+        const goals = liveGoalsChecklist(state, { dexPct, eraQuest, pveNext });
+        checklistHtml = goals
+          .map((g) => `<div>${g.done ? "☑" : "☐"} ${escapeHtml(g.label)}</div>`)
+          .join("");
+        canBundle = canClaimDailyGoalsBundle(state, localDateStr());
+        bundleClaimed = state.meta?.dailyGoalsClaimDate === localDateStr();
+      }
+    } catch {
+      // keep default
+    }
+
+    rows.push(block("今日下一目标", `
+      <div style="line-height:1.9">
+        <b>${escapeHtml(nextGoal)}</b>${br}
+        ${checklistHtml || ""}
+        ${gap}<button type="button" class="btn btn--primary btn--small" data-help-goals-claim ${canBundle ? "" : "disabled"}>${bundleClaimed ? "日目标已领" : "三目标全清 +12"}</button>
+        ${gap}也可按下方「快速开始」从营地采集起步。
+      </div>
+      ${tip('清单随存档进度刷新：捕捉/训练/挑战日目标 + 时代或关卡提示。')}
+    `, true));
+
     rows.push(block("快速开始", `
       <div style="line-height:1.9">
         <b>① 营地（篝火）</b>：点【采集】获取树果 → 尽快研究${h('精灵球基础')}（完成赠送精灵球×5）→ 去捕捉${br}
@@ -35,7 +96,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
         <b>⑥ 挑战</b>：图鉴≥5解锁道馆关卡；按推荐属性组队（能打又抗），失败也耗次数
       </div>
       ${tip('精灵球不够？建球果营地产球果，或研究「精灵球容量」科技。')}
-    `, true));
+    `, false));
 
     rows.push(block("营地（篝火页）", `
       <div style="line-height:1.8">
@@ -198,6 +259,21 @@ export function createRenderHelp({ elHelp, ui, escapeHtml }) {
     `));
 
     elHelp.innerHTML = rows.join("");
+    const claimBtn = elHelp.querySelector("[data-help-goals-claim]");
+    if (claimBtn) {
+      claimBtn.addEventListener("click", () => {
+        const state = typeof getState === "function" ? getState() : null;
+        if (!state) return;
+        if (!markDailyGoalsBundleClaimed(state, localDateStr())) {
+          if (typeof addLog === "function") addLog("日目标未完成或已领取");
+          return;
+        }
+        if (typeof addRes === "function") addRes("futurecoin", 12);
+        if (typeof addLog === "function") addLog("日目标全清：未来币 +12", true);
+        ui.helpDirty = true;
+        if (typeof render === "function") render();
+      });
+    }
     ui.helpDirty = false;
   };
 }

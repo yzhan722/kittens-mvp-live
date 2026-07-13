@@ -56,3 +56,84 @@ export function buildNpcTeam(trainerId) {
     stats: { hp: m.hp, atk: m.attack, def: m.defense, spe: m.speed },
   }));
 }
+
+/** Persist W/L vs each NPC trainer under state.meta.npcRecord. */
+export function ensureNpcRecord(state) {
+  if (!state || typeof state !== "object") return {};
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  if (!state.meta.npcRecord || typeof state.meta.npcRecord !== "object") state.meta.npcRecord = {};
+  return state.meta.npcRecord;
+}
+
+export function recordNpcFight(state, trainerId, won) {
+  const rec = ensureNpcRecord(state);
+  const id = typeof trainerId === "string" ? trainerId : "";
+  if (!id) return { w: 0, l: 0 };
+  const cur = rec[id] && typeof rec[id] === "object" ? rec[id] : { w: 0, l: 0 };
+  const w = Math.max(0, Math.floor(cur.w || 0));
+  const l = Math.max(0, Math.floor(cur.l || 0));
+  const next = won ? { w: w + 1, l } : { w, l: l + 1 };
+  rec[id] = next;
+  return next;
+}
+
+export function npcRecordLine(record, trainerId) {
+  const cur = record && typeof record === "object" ? record[trainerId] : null;
+  if (!cur || typeof cur !== "object") return "0胜0负";
+  const w = Math.max(0, Math.floor(cur.w || 0));
+  const l = Math.max(0, Math.floor(cur.l || 0));
+  return `${w}胜${l}负`;
+}
+
+/** Mon-based week key (same style as lucky week). */
+export function npcWeekKey(d = new Date()) {
+  const x = d instanceof Date ? d : new Date();
+  const day = (x.getDay() + 6) % 7;
+  const monday = new Date(x);
+  monday.setDate(x.getDate() - day);
+  return `${monday.getFullYear()}-W${String(monday.getMonth() + 1).padStart(2, "0")}${String(monday.getDate()).padStart(2, "0")}`;
+}
+
+/** Weekly: beat all 3 trainers once → claim +20 FC. */
+export function ensureNpcWeekly(state, week = npcWeekKey()) {
+  if (!state || typeof state !== "object") return null;
+  if (!state.meta || typeof state.meta !== "object") state.meta = {};
+  const cur = state.meta.npcWeekly;
+  if (!cur || typeof cur !== "object" || cur.week !== week) {
+    state.meta.npcWeekly = { week, beaten: {}, claimed: false };
+  }
+  if (!state.meta.npcWeekly.beaten || typeof state.meta.npcWeekly.beaten !== "object") {
+    state.meta.npcWeekly.beaten = {};
+  }
+  return state.meta.npcWeekly;
+}
+
+export function noteNpcWeeklyWin(state, trainerId) {
+  const w = ensureNpcWeekly(state);
+  if (!w || !trainerId) return w;
+  w.beaten[trainerId] = true;
+  return w;
+}
+
+export function npcWeeklyProgress(state) {
+  const w = ensureNpcWeekly(state);
+  const ids = NPC_TRAINERS.map((t) => t.id);
+  const beaten = ids.filter((id) => Boolean(w?.beaten?.[id]));
+  const allDone = beaten.length >= ids.length;
+  return {
+    week: w?.week || "",
+    beatenIds: beaten,
+    total: ids.length,
+    allDone,
+    claimed: Boolean(w?.claimed),
+    canClaim: allDone && !w?.claimed,
+  };
+}
+
+export function claimNpcWeeklyFc(state, amount = 20) {
+  const w = ensureNpcWeekly(state);
+  const prog = npcWeeklyProgress(state);
+  if (!prog.canClaim || !w) return { ok: false, fc: 0 };
+  w.claimed = true;
+  return { ok: true, fc: Math.max(0, Math.floor(amount)) };
+}

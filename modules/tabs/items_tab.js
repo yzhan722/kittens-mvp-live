@@ -1,3 +1,12 @@
+import {
+  bumpItemsCare,
+  feedOneHungryWithBerry,
+  findHungryMon,
+  itemsCareProgress,
+  localDateStr,
+  markItemsCareClaimed,
+} from "../systems/gameplay_fun.js";
+
 export function createRenderItems({ defs, getState, itemUsage, ui, render, markMonsDirty, addLog }) {
   const failMsg = (msg) => {
     if (typeof addLog === "function") addLog(String(msg || "使用失败"));
@@ -49,6 +58,110 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
           return;
         }
 
+        const teamPotBtn = ev.target?.closest?.("button[data-item-team-hppotion]");
+        if (teamPotBtn && elItems.contains(teamPotBtn)) {
+          if (teamPotBtn.disabled) return;
+          const list = Array.isArray(state.mons?.list) ? state.mons.list : [];
+          const pveIds = Array.isArray(state.pve?.selectedIds) ? state.pve.selectedIds.slice(0, 6) : [];
+          const targets =
+            pveIds.length > 0
+              ? pveIds.map((id) => list.find((m) => m && m.id === id)).filter(Boolean)
+              : list.slice(0, 6);
+          let stock = Math.max(0, Math.floor(state.res?.hpPotion?.value ?? 0));
+          let used = 0;
+          for (const m of targets) {
+            if (stock < 1) break;
+            if (!m.statBonus || typeof m.statBonus !== "object") {
+              m.statBonus = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+            }
+            const cur = typeof m.statBonus.hp === "number" && Number.isFinite(m.statBonus.hp) ? m.statBonus.hp : 0;
+            if (cur >= 50) continue;
+            state.res.hpPotion.value = Math.max(0, stock - 1);
+            stock -= 1;
+            m.statBonus.hp = Math.min(50, cur + 5);
+            used += 1;
+          }
+          if (used > 0) {
+            for (let i = 0; i < used; i++) bumpItemsCare(state);
+            if (typeof addLog === "function") addLog(`队伍 HP药剂：强化 ${used} 只`, true);
+            if (typeof markMonsDirty === "function") markMonsDirty();
+          } else if (typeof addLog === "function") {
+            addLog("队伍 HP药剂：无可用目标或库存不足");
+          }
+          renderItems();
+          return;
+        }
+
+        const feedHungryBtn = ev.target?.closest?.("button[data-item-feed-hungry]");
+        if (feedHungryBtn && elItems.contains(feedHungryBtn)) {
+          if (feedHungryBtn.disabled) return;
+          const res = feedOneHungryWithBerry(state, 30);
+          if (res.ok) {
+            if (typeof addLog === "function") addLog(`一键补饱：${res.mon.name} 饱腹 → ${Math.floor(res.satiety)}`, true);
+            if (typeof markMonsDirty === "function") markMonsDirty();
+          } else if (typeof addLog === "function") {
+            if (res.reason === "no_berry") addLog("没有巨大树果");
+            else if (res.reason === "none_hungry") addLog("没有饱腹度低于 30 的精灵");
+            else addLog("一键补饱失败");
+          }
+          renderItems();
+          return;
+        }
+
+        const careClaimBtn = ev.target?.closest?.("button[data-item-care-claim]");
+        if (careClaimBtn && elItems.contains(careClaimBtn)) {
+          if (careClaimBtn.disabled) return;
+          if (!markItemsCareClaimed(state, localDateStr())) {
+            if (typeof addLog === "function") addLog("护理任务未完成或已领取");
+            return;
+          }
+          if (!state.res || typeof state.res !== "object") state.res = {};
+          if (!state.res.futurecoin || typeof state.res.futurecoin !== "object") state.res.futurecoin = { value: 0 };
+          state.res.futurecoin.value = Math.max(0, Math.floor(state.res.futurecoin.value || 0)) + 8;
+          if (typeof addLog === "function") addLog("今日护理达成：未来币 +8", true);
+          renderItems();
+          return;
+        }
+
+        const sortieBtn = ev.target?.closest?.("button[data-item-sortie-kit]");
+        if (sortieBtn && elItems.contains(sortieBtn)) {
+          if (sortieBtn.disabled) return;
+          let fed = 0;
+          const feed = feedOneHungryWithBerry(state, 30);
+          if (feed.ok) fed = 1;
+          const list = Array.isArray(state.mons?.list) ? state.mons.list : [];
+          const pveIds = Array.isArray(state.pve?.selectedIds) ? state.pve.selectedIds.slice(0, 6) : [];
+          const targets =
+            pveIds.length > 0
+              ? pveIds.map((id) => list.find((m) => m && m.id === id)).filter(Boolean)
+              : list.slice(0, 6);
+          let stock = Math.max(0, Math.floor(state.res?.hpPotion?.value ?? 0));
+          let potUsed = 0;
+          for (const m of targets) {
+            if (stock < 1) break;
+            if (!m.statBonus || typeof m.statBonus !== "object") {
+              m.statBonus = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+            }
+            const cur = typeof m.statBonus.hp === "number" && Number.isFinite(m.statBonus.hp) ? m.statBonus.hp : 0;
+            if (cur >= 50) continue;
+            state.res.hpPotion.value = Math.max(0, stock - 1);
+            stock -= 1;
+            m.statBonus.hp = Math.min(50, cur + 5);
+            potUsed += 1;
+            bumpItemsCare(state);
+          }
+          if (fed || potUsed) {
+            if (typeof addLog === "function") {
+              addLog(`出征套装：补饱 ${fed} · HP药 ${potUsed}`, true);
+            }
+            if (typeof markMonsDirty === "function") markMonsDirty();
+          } else if (typeof addLog === "function") {
+            addLog("出征套装：无需补饱或无可用 HP 药");
+          }
+          renderItems();
+          return;
+        }
+
         // 使用道具按钮
         const useBtn = ev.target?.closest?.("button[data-item-use]");
         if (useBtn && elItems.contains(useBtn)) {
@@ -66,6 +179,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
               const sat0 = typeof m.satiety === "number" && Number.isFinite(m.satiety) ? m.satiety : 100;
               m.satiety = Math.max(0, Math.min(100, sat0 + 50));
             }
+            bumpItemsCare(state);
             renderItems();
             return;
           }
@@ -82,6 +196,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
                 ? state.skills.hugeBerryBuffRemainingSec
                 : 0;
             state.skills.hugeBerryBuffRemainingSec = rem0 + 86400;
+            bumpItemsCare(state);
             renderItems();
             return;
           }
@@ -297,7 +412,52 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
     };
     const globalExpRem = state.expBoostRemainingSec ?? 0;
     const shinyCharmRem = state.shinyCharmRemainingSec ?? 0;
-    let html = `<div class="row"><div class="row__left"><div class="row__title">道具状态</div><div class="row__desc">全局双倍经验：${globalExpRem > 0 ? fmtRemain(globalExpRem) : "未激活"}${shinyCharmRem > 0 ? ` · 闪耀护符：${fmtRemain(shinyCharmRem)}` : ""} · 捕捉类在捕捉页用，培养类点「使用」选精灵</div></div></div>`;
+
+    const recommendOrder = [
+      "hpPotion", "bigBerry", "expCandy", "rareCandy", "pokeball", "affectionTreat", "atkPotion",
+    ];
+    let recommendRid = null;
+    for (const rid of recommendOrder) {
+      if ((state.res?.[rid]?.value ?? 0) >= 1) {
+        recommendRid = rid;
+        break;
+      }
+    }
+    const recommendName = recommendRid ? (defs.resources[recommendRid]?.name ?? recommendRid) : null;
+    const recommendEffect = recommendRid ? (effectTextByRid[recommendRid] || "") : "";
+    const hpStock = Math.max(0, Math.floor(state.res?.hpPotion?.value ?? 0));
+    const berryStock = Math.max(0, Math.floor(state.res?.bigBerry?.value ?? 0));
+    const hungry = findHungryMon(state.mons?.list, 30);
+    const feedOk = berryStock >= 1 && Boolean(hungry);
+    const pveSel = Array.isArray(state.pve?.selectedIds) ? state.pve.selectedIds.length : 0;
+    const teamSizeHint = pveSel > 0 ? `挑战队 ${Math.min(6, pveSel)} 只` : "前 6 只精灵";
+    const care = itemsCareProgress(state, localDateStr());
+    const careDesc = care.claimed
+      ? `今日护理已领 · 使用 ${Math.min(care.uses, care.goal)}/${care.goal}`
+      : `护理进度 ${Math.min(care.uses, care.goal)}/${care.goal}（喂食/用药）→ +8 未来币`;
+
+    let html = `
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">今日推荐</div>
+          <div class="row__desc">${
+            recommendName
+              ? `建议使用：${recommendName}${recommendEffect ? ` — ${recommendEffect}` : ""}`
+              : "暂无可用推荐道具，去远征或商店补充。"
+          }</div>
+          <div class="row__desc">${careDesc}</div>
+        </div>
+        <div class="row__right">
+          ${recommendRid && ["bigBerry", "hugeBerry", "shinyCharm", "expCandy", "expCandyL", "expCandyXL", "affectionTreat", "friendshipBracelet", "luckyEgg", "bottleCap", "goldBottleCap", "megaStone"].includes(recommendRid)
+            ? `<button class="btn btn--small" data-item-use="${recommendRid}">去使用</button>`
+            : ""}
+          <button class="btn btn--small" data-item-feed-hungry="1" ${feedOk ? "" : "disabled"}>一键补饱${hungry ? `（${hungry.name}）` : ""}</button>
+          <button class="btn btn--small" data-item-team-hppotion="1" ${hpStock >= 1 ? "" : "disabled"}>队伍各用1瓶HP（${teamSizeHint} · 库存${hpStock}）</button>
+          <button class="btn btn--small" data-item-sortie-kit="1" ${feedOk || hpStock >= 1 ? "" : "disabled"}>出征套装</button>
+          <button class="btn btn--primary btn--small" data-item-care-claim ${care.canClaim ? "" : "disabled"}>${care.claimed ? "护理已领" : "领取护理 +8"}</button>
+        </div>
+      </div>
+      <div class="row"><div class="row__left"><div class="row__title">道具状态</div><div class="row__desc">全局双倍经验：${globalExpRem > 0 ? fmtRemain(globalExpRem) : "未激活"}${shinyCharmRem > 0 ? ` · 闪耀护符：${fmtRemain(shinyCharmRem)}` : ""} · 捕捉类在捕捉页用，培养类点「使用」选精灵</div></div></div>`;
     for (const [catName, rids] of Object.entries(categories)) {
       html += renderCategory(catName, rids);
     }

@@ -7,7 +7,15 @@ import {
   questLabel,
   syncEraQuests,
 } from "../systems/era.js";
-import { ensureLuckyDay, ensureLuckyWeek, luckyCatchMul, natureWildCatchMul, typeZh } from "../systems/gameplay_fun.js";
+import {
+  catchStreakMilestoneBadges,
+  captureSessionProgress,
+  ensureLuckyDay,
+  ensureLuckyWeek,
+  luckyCatchMul,
+  natureWildCatchMul,
+  typeZh,
+} from "../systems/gameplay_fun.js";
 import { NATURE_PASSIVE } from "../mons.js";
 
 const MUTATOR_LABELS = {
@@ -90,8 +98,11 @@ export function createRenderCapture({
     const week = ensureLuckyWeek(state);
     const streak = Math.max(0, Math.floor(state.fun?.catchStreak || 0));
     const streakBest = Math.max(0, Math.floor(state.fun?.catchStreakBest || 0));
+    const streakBadges = catchStreakMilestoneBadges(streak)
+      .map((b) => `<span class="badge badge--ok">${escapeHtml(b)}</span>`)
+      .join("");
     const luckyHtml =
-      lucky?.type || week?.type
+      lucky?.type || week?.type || streak > 0 || streakBest > 0
         ? `<div class="row" style="margin-bottom:8px">
           <div class="row__left">
             <div class="row__title">${
@@ -106,9 +117,23 @@ export function createRenderCapture({
                   ? ` 连捕纪录 ${streakBest}`
                   : ""
             }</div>
+            ${streakBadges ? `<div class="row__desc">${streakBadges}</div>` : ""}
           </div>
         </div>`
         : "";
+
+    const session = captureSessionProgress(state);
+    const sessionHtml = `
+      <div class="row" style="margin-bottom:8px">
+        <div class="row__left">
+          <div class="row__title">本会话目标</div>
+          <div class="row__desc">再抓 ${Math.max(0, session.goal - session.delta)} 只达成（${session.delta}/${session.goal}）· 奖励 +15 未来币</div>
+        </div>
+        <div class="row__right">
+          <button type="button" class="btn btn--primary btn--small" data-capture-session-claim ${session.canClaim ? "" : "disabled"}>${session.claimed ? "已领取" : session.done ? "领取奖励" : "进行中"}</button>
+        </div>
+      </div>
+    `;
 
     const eraPanelHtml = `
       <div class="era-panel">
@@ -224,6 +249,7 @@ export function createRenderCapture({
     elCaptureInfo.innerHTML = `
       ${eraPanelHtml}
       ${luckyHtml}
+      ${sessionHtml}
       <div class="row">
         <div class="row__left">
           <div class="row__title">当前区域</div>
@@ -258,9 +284,30 @@ export function createRenderCapture({
         .map(([rid, v]) => `${defs.resources[rid].name}${v}`)
         .join(" / ");
 
+      const pbNow = Math.max(0, Math.floor(state.res.pokeball.value ?? 0));
+      const oneCost = getPokeballMakeCost(1);
+      const oneOk = pbNow === 0 && space >= 1 && canAfford(oneCost);
+      const oneCostText = Object.entries(oneCost)
+        .map(([rid, v]) => `${defs.resources[rid].name}${v}`)
+        .join(" / ");
+
       const encPidEarly = typeof ui.encounterPid === "string" ? ui.encounterPid : null;
       const encEarly = encPidEarly ? getSpeciesByPid(encPidEarly) : null;
       const toolRows = [];
+
+      if (pbNow === 0) {
+        toolRows.push(`
+          <div class="row">
+            <div class="row__left">
+              <div class="row__title">球空了</div>
+              <div class="row__desc">快捷制作 1 个精灵球（花费：${oneCostText || "-"}）。</div>
+            </div>
+            <div class="row__right">
+              <button class="btn btn--primary" data-capture-action="makeBall1" ${oneOk ? "" : "disabled"}>制作1个精灵球</button>
+            </div>
+          </div>
+        `);
+      }
 
       toolRows.push(`
         <div class="row">
@@ -384,6 +431,7 @@ export function createRenderCapture({
             : `高级遭遇 ${advCharges}/${advMaxCharges}`;
 
       const nearMissActive = Boolean(enc && ui.lastCatchNearMiss?.pid === enc.id);
+      const encFullBadge = encCharges >= 100 ? `<div class="badge badge--ok">充能已满</div>` : "";
 
       rows.push(`
         <div class="row${nearMissActive ? " capture-near-miss" : ""}">
@@ -392,6 +440,7 @@ export function createRenderCapture({
             <div class="row__desc">${enc ? `你遇到了：${escapeHtml(enc.name)}（${tierText}）` : "点击遭遇开始搜寻宝可梦。"}</div>
           </div>
           <div class="row__right">
+            ${encFullBadge}
             ${enc ? `<div class="badge ${encSeen ? "badge--muted" : "badge--ok"}">${encSeen ? "已有" : "首次"}</div>` : ""}
             ${enc && encIsShiny ? `<div class="badge badge--ok">！！！闪光！！！</div>` : ""}
             ${enc && encIsMythic ? `<div class="badge badge--ok">！！！神兽！！！</div>` : ""}

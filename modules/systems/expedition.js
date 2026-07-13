@@ -6,9 +6,9 @@ import { getTypeMul, TYPE_MUL } from "../type_chart.js";
 
 /** @type {Record<string, string>} */
 export const EXPEDITION_SEASON_BLURBS = {
-  s1: "赛季奖励：标准经验与未来币",
-  s2: "赛季奖励：药剂掉落权重提升",
-  s3: "赛季奖励：高阶副本额外未来币",
+  s1: "赛季奖励：标准经验与未来币；概率掉落「余烬印记」",
+  s2: "赛季奖励：药剂掉落权重提升；概率掉落「药剂印记」",
+  s3: "赛季奖励：高阶副本额外未来币；概率掉落「峰顶印记」",
 };
 
 /** Random flavor event on expedition complete — small bonus already in tick rewards. */
@@ -24,6 +24,70 @@ export function pickExpeditionEventCard(randFloat = Math.random) {
   const roll = typeof randFloat === "function" ? randFloat() : Math.random();
   const idx = Math.floor(roll * EXPEDITION_EVENT_CARDS.length);
   return EXPEDITION_EVENT_CARDS[Math.max(0, Math.min(EXPEDITION_EVENT_CARDS.length - 1, idx))];
+}
+
+/** Flavor cards on egg hatch — optional tiny FC. */
+export const BREED_EVENT_CARDS = [
+  { id: "warm_nest", title: "暖巢微光", blurb: "蛋壳裂开时透出一缕暖光。", bonusFuturecoin: 1 },
+  { id: "soft_chirp", title: "轻鸣初啼", blurb: "新生轻轻叫了一声，队伍围了过来。", bonusFuturecoin: 0 },
+  { id: "lucky_shell", title: "幸运碎壳", blurb: "碎壳里滚出一枚旧币。", bonusFuturecoin: 1 },
+  { id: "nurse_note", title: "保育笔记", blurb: "保育员记下了这次孵化的细节。", bonusFuturecoin: 0 },
+  { id: "sibling_bond", title: "亲缘共鸣", blurb: "父母似乎认出了新生命。", bonusFuturecoin: 1 },
+];
+
+export function pickBreedEventCard(randFloat = Math.random) {
+  const roll = typeof randFloat === "function" ? randFloat() : Math.random();
+  const idx = Math.floor(roll * BREED_EVENT_CARDS.length);
+  return BREED_EVENT_CARDS[Math.max(0, Math.min(BREED_EVENT_CARDS.length - 1, idx))];
+}
+
+/** Quick/急行: shorter run (~0.3×), lower rewards (~0.7×). Pure. */
+export const EXPEDITION_QUICK_TIME_MUL = 0.3;
+export const EXPEDITION_QUICK_REWARD_MUL = 0.7;
+
+export function applyQuickExpeditionDuration(totalSec, quick) {
+  const base = Math.max(60, Math.ceil(typeof totalSec === "number" && Number.isFinite(totalSec) ? totalSec : 60));
+  if (!quick) return base;
+  return Math.max(60, Math.ceil(base * EXPEDITION_QUICK_TIME_MUL));
+}
+
+export function applyQuickExpeditionReward(amount, quick) {
+  const n = Math.max(0, Math.floor(typeof amount === "number" && Number.isFinite(amount) ? amount : 0));
+  if (!quick) return n;
+  return Math.floor(n * EXPEDITION_QUICK_REWARD_MUL);
+}
+
+const EXP_MILESTONE_LINES = {
+  p75: "远征：深入探索，前方路途渐显。",
+  p50: "远征：行程过半，队伍保持节奏。",
+  p25: "远征：归途将近，补给见底。",
+};
+
+/** Fire once when remaining crosses below 75%/50%/25% of totalSec. Returns fired lines. */
+export function tickExpeditionMilestones(expedition, remBefore, remAfter) {
+  if (!expedition || typeof expedition !== "object") return [];
+  const total =
+    typeof expedition.totalSec === "number" && Number.isFinite(expedition.totalSec) && expedition.totalSec > 0
+      ? expedition.totalSec
+      : 0;
+  if (total <= 0) return [];
+  if (!expedition.milestonesFired || typeof expedition.milestonesFired !== "object") {
+    expedition.milestonesFired = {};
+  }
+  const fired = [];
+  for (const [key, frac] of [
+    ["p75", 0.75],
+    ["p50", 0.5],
+    ["p25", 0.25],
+  ]) {
+    if (expedition.milestonesFired[key]) continue;
+    const thr = total * frac;
+    if (remBefore > thr && remAfter <= thr) {
+      expedition.milestonesFired[key] = true;
+      fired.push(EXP_MILESTONE_LINES[key]);
+    }
+  }
+  return fired;
 }
 
 export function resolveExpeditionSeasonLabel(remoteConfig) {

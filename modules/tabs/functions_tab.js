@@ -1,5 +1,7 @@
 import { EXP_LEVELS, getExpLevelDef } from "../expedition_defs.js";
 import {
+  applyQuickExpeditionDuration,
+  applyQuickExpeditionReward,
   ensureExpeditionDungeonTiers,
   expeditionTypeMul,
   getExpeditionSeasonBlurb,
@@ -8,7 +10,8 @@ import {
   resolveExpeditionSeasonLabel,
   resolveSeasonId,
 } from "../systems/expedition.js";
-import { expeditionNatureTimeMul, natureTrainExpMul } from "../systems/gameplay_fun.js";
+import { expeditionNatureTimeMul, natureTrainExpMul, expeditionDailyProgress, markExpeditionDailyClaimed, localDateStr } from "../systems/gameplay_fun.js";
+import { seasonRelicLines } from "../systems/collection_fun.js";
 import { NATURE_PASSIVE, getNatureInfo } from "../mons.js";
 
 export function createRenderFunctions({
@@ -95,11 +98,21 @@ export function createRenderFunctions({
       statusBits.push(`远征已完成 ${Math.floor(state.meta.expeditionsCompleted)} 次`);
     }
     if (trainExpTotal > 0) statusBits.push(`累计训练经验 ${trainExpTotal}`);
+    const expDaily = expeditionDailyProgress(state, localDateStr());
+    const expDailyDesc = expDaily.claimed
+      ? "今日远征任务已领"
+      : expDaily.done
+        ? "今日远征完成 → 可领 +10 未来币"
+        : "今日远征任务：完成 1 次远征 → +10 未来币";
     rows.push(`
       <div class="row">
         <div class="row__left">
           <div class="row__title">功能摘要</div>
           <div class="row__desc">${statusBits.length ? escapeHtml(statusBits.join(" · ")) : "派遣训练或远征后，回来这里看进度与收获。"}</div>
+          <div class="row__desc">${escapeHtml(expDailyDesc)}</div>
+        </div>
+        <div class="row__right">
+          <button type="button" class="btn btn--primary btn--small" data-func-exp-daily-claim ${expDaily.canClaim ? "" : "disabled"}>${expDaily.claimed ? "已领" : "领取 +10"}</button>
         </div>
       </div>
     `);
@@ -618,12 +631,18 @@ export function createRenderFunctions({
     const hideExpedition = Boolean(ui.functionsHideExpedition);
     const expeditionSeasonLabel = resolveExpeditionSeasonLabel(ui.remoteConfig);
     const expeditionSeasonBlurb = getExpeditionSeasonBlurb(resolveSeasonId(ui.remoteConfig));
+    const relicLines = seasonRelicLines(state);
+    const relicDesc =
+      relicLines.length > 0
+        ? `本季印记：${relicLines.map((r) => `${r.name}×${r.count}`).join(" · ")}`
+        : "本季印记：尚未获得（远征完成有概率掉落独特印记道具）";
 
     rows.push(`
       <div class="row">
         <div class="row__left">
           <div class="row__title">远征所 <span class="muted">· ${escapeHtml(expeditionSeasonLabel)}</span></div>
           <div class="row__desc">${escapeHtml(expeditionSeasonBlurb)}。派遣精灵下副本：完成后获得经验与未来币，并概率掉落药剂。属性克制可提高远征收益。</div>
+          <div class="row__desc">${escapeHtml(relicDesc)}</div>
         </div>
         <div class="row__right">
           <button class="btn btn--small btn--ghost" data-func-toggle="expedition">${hideExpedition ? "▸" : "▾"}</button>
@@ -859,14 +878,20 @@ export function createRenderFunctions({
         }
 
         if (!expOn) {
+          const quickOn = Boolean(ui.expeditionQuick);
           rows.push(`
         <div class="row">
           <div class="row__left">
             <div class="row__title">开始远征</div>
             <div class="row__desc">奖励：经验 +${rewardExp}（每只参与精灵）· 未来币 +${rewardCoin} · 药剂掉落总数 ${lvlDef.pot} · 属性相性 x${rewardMul.toFixed(2)}</div>
+            <div class="row__desc muted">急行：时长约 ×0.3，奖励约 ×0.7</div>
           </div>
           <div class="row__right">
-            <button class="btn btn--primary" data-exp-start ${canStartExp ? "" : "disabled"}>出征</button>
+            <label class="check" style="margin-right:8px">
+              <input type="checkbox" data-exp-quick ${quickOn ? "checked" : ""} />
+              <span>急行</span>
+            </label>
+            <button class="btn btn--primary" data-exp-start ${canStartExp ? "" : "disabled"}>${quickOn ? "急行出征" : "出征"}</button>
           </div>
         </div>
       `);
@@ -946,6 +971,7 @@ export function initFunctionsTab({
   markFunctionsDirty,
   markMonListDirty,
   addLog,
+  addRes,
   render,
   getState,
 }) {
@@ -1158,6 +1184,20 @@ export function initFunctionsTab({
   elFunctionsTraining.addEventListener("click", (ev) => {
     const state = stateRef();
     if (!state || typeof state !== "object") return;
+
+    const expDailyClaim = ev.target?.closest?.("button[data-func-exp-daily-claim]");
+    if (expDailyClaim && elFunctionsTraining.contains(expDailyClaim)) {
+      if (expDailyClaim.disabled) return;
+      if (!markExpeditionDailyClaimed(state, localDateStr())) {
+        addLog("今日远征任务未完成或已领取");
+        return;
+      }
+      addRes("futurecoin", 10);
+      addLog("今日远征任务：未来币 +10", true);
+      markFunctionsDirty();
+      render();
+      return;
+    }
 
     const toggleBtn = ev.target?.closest?.("button[data-func-toggle]");
     if (toggleBtn && elFunctionsTraining.contains(toggleBtn)) {
@@ -1479,7 +1519,9 @@ export function initFunctionsTab({
       const baseSec = 7200;
       const excessPct = Math.max(0, (effPower - lvlDef.req) / lvlDef.req);
       const natureTimeMul = expeditionNatureTimeMul(selMonsSorted);
-      const totalSec = Math.max(60, Math.ceil((baseSec / Math.pow(1.01, excessPct * 100)) * natureTimeMul));
+      const totalSec0 = Math.max(60, Math.ceil((baseSec / Math.pow(1.01, excessPct * 100)) * natureTimeMul));
+      const quick = Boolean(ui.expeditionQuick);
+      const totalSec = applyQuickExpeditionDuration(totalSec0, quick);
       const rewardMul0 = selMonsSorted.reduce((acc, m) => acc + typeMul(m, d.type), 0) / selMonsSorted.length;
       const rewardMul = Math.max(0.75, Math.min(1.5, rewardMul0));
 
@@ -1487,12 +1529,15 @@ export function initFunctionsTab({
       state.expedition.activeIds = selMonsSorted.map((m) => m.id);
       state.expedition.remainingSec = totalSec;
       state.expedition.totalSec = totalSec;
-      state.expedition.rewardExp = Math.floor(lvlDef.exp * rewardMul);
-      state.expedition.rewardCoin = Math.floor(lvlDef.coin * rewardMul);
-      state.expedition.rewardPotionTotal = lvlDef.pot;
+      state.expedition.quick = quick;
+      state.expedition.milestonesFired = {};
+      state.expedition.rewardExp = applyQuickExpeditionReward(Math.floor(lvlDef.exp * rewardMul), quick);
+      state.expedition.rewardCoin = applyQuickExpeditionReward(Math.floor(lvlDef.coin * rewardMul), quick);
+      state.expedition.rewardPotionTotal = applyQuickExpeditionReward(lvlDef.pot, quick);
       state.expedition.dungeonType = d.type;
       const impishN = selMonsSorted.filter((m) => NATURE_PASSIVE[m?.nature]?.key === "expeditionTimeBonus").length;
-      addLog(impishN > 0 ? `开始远征（淘气性格加速 ×${impishN}）` : "开始远征", true);
+      const quickLabel = quick ? "（急行）" : "";
+      addLog(impishN > 0 ? `开始远征${quickLabel}（淘气性格加速 ×${impishN}）` : `开始远征${quickLabel}`, true);
       markFunctionsDirty();
       render();
       return;
@@ -1510,6 +1555,8 @@ export function initFunctionsTab({
       state.expedition.rewardCoin = 0;
       state.expedition.rewardPotionTotal = 0;
       state.expedition.dungeonType = null;
+      state.expedition.quick = false;
+      state.expedition.milestonesFired = {};
       addLog("远征已取消", true);
       markFunctionsDirty();
       render();
@@ -1517,6 +1564,13 @@ export function initFunctionsTab({
   });
 
   elFunctionsTraining.addEventListener("change", (ev) => {
+    const quickChk = ev.target?.closest?.("input[data-exp-quick]");
+    if (quickChk && elFunctionsTraining.contains(quickChk)) {
+      ui.expeditionQuick = Boolean(quickChk.checked);
+      markFunctionsDirty();
+      render();
+      return;
+    }
     const state = stateRef();
     if (!state || typeof state !== "object") return;
 

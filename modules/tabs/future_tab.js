@@ -1,3 +1,5 @@
+import { canClaimDailySpin, localDateStr, markDailySpinClaimed, markShopDailyTripleClaimed, rollDailySpin, shopDailyTripleProgress } from "../systems/gameplay_fun.js";
+
 export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog, render, monthlyCard, dailyTasks }) {
   if (!elFutureShop) return;
 
@@ -34,6 +36,92 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
   }
 
   elFutureShop.addEventListener("click", (ev) => {
+    const dailyFreeBtn = ev.target?.closest?.("button[data-fc-daily-free]");
+    if (dailyFreeBtn && elFutureShop.contains(dailyFreeBtn)) {
+      if (dailyFreeBtn.disabled) return;
+      const state = getState();
+      const today = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (state.meta.dailyFreeFcDate === today) {
+        addLog("今日免费未来币已领取");
+        return;
+      }
+      state.meta.dailyFreeFcDate = today;
+      addRes("futurecoin", 5);
+      addLog("领取每日免费未来币 +5", true);
+      ui.futureDirty = true;
+      render();
+      return;
+    }
+
+    const dailyDealBtn = ev.target?.closest?.("button[data-fc-daily-deal]");
+    if (dailyDealBtn && elFutureShop.contains(dailyDealBtn)) {
+      if (dailyDealBtn.disabled) return;
+      const state = getState();
+      const today = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (state.meta.shopDailyDealDate === today) {
+        addLog("今日特惠小包已购买");
+        return;
+      }
+      const have = Math.max(0, Math.floor(state.res?.futurecoin?.value ?? 0));
+      if (have < 3) {
+        addLog("未来币不足");
+        return;
+      }
+      state.res.futurecoin.value = have - 3;
+      state.meta.shopDailyDealDate = today;
+      addRes("futurecoin", 10);
+      addLog("今日特惠：花费 3 未来币，获得 +10", true);
+      ui.futureDirty = true;
+      render();
+      return;
+    }
+
+    const spinBtn = ev.target?.closest?.("button[data-fc-daily-spin]");
+    if (spinBtn && elFutureShop.contains(spinBtn)) {
+      if (spinBtn.disabled) return;
+      const state = getState();
+      const today = localDateStr();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (!canClaimDailySpin(state.meta, today)) {
+        addLog("今日幸运转盘已转过");
+        return;
+      }
+      const hit = rollDailySpin();
+      markDailySpinClaimed(state.meta, today);
+      if (hit.futurecoin > 0) addRes("futurecoin", hit.futurecoin);
+      if (hit.bigBerry > 0) addRes("bigBerry", hit.bigBerry);
+      addLog(`幸运转盘：${hit.label}`, true);
+      ui.futureDirty = true;
+      render();
+      return;
+    }
+
+    const tripleBtn = ev.target?.closest?.("button[data-fc-daily-triple]");
+    if (tripleBtn && elFutureShop.contains(tripleBtn)) {
+      if (tripleBtn.disabled) return;
+      const state = getState();
+      const today = localDateStr();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (!shopDailyTripleProgress(state.meta, today).canClaim) {
+        addLog("请先完成免费币、特惠与转盘");
+        return;
+      }
+      markShopDailyTripleClaimed(state.meta, today);
+      addRes("futurecoin", 15);
+      addLog("每日三连达成：未来币 +15", true);
+      ui.futureDirty = true;
+      render();
+      return;
+    }
+
     // 月卡购买
     const monthlyBuyBtn = ev.target?.closest?.("button[data-monthly-buy]");
     if (monthlyBuyBtn && elFutureShop.contains(monthlyBuyBtn)) {

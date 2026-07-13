@@ -1,6 +1,8 @@
 // 排行榜渲染（只写 DOM，不改业务 state）
 // 维护者窗口：C（渲染）/ 数据刷新仍在 app.js SECTION:LEADERBOARD_DATA
 
+import { seasonBarVsGhosts, seasonLocalScore, canClaimLbRivalReward, markLbRivalRewardClaimed, localDateStr } from "../systems/gameplay_fun.js";
+
 export function createRenderLeaderboard({
   elLeaderboard,
   ui,
@@ -104,6 +106,64 @@ export function createRenderLeaderboard({
         </div>
       </div>
     `);
+
+    {
+      const pveWins = Math.max(0, Math.floor(state.meta?.pveWins || 0));
+      const myScore = seasonLocalScore(dexNow, pveWins);
+      const bar = seasonBarVsGhosts(myScore);
+      const today = localDateStr();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      const canRival = canClaimLbRivalReward(state.meta, bar.beaten, today);
+      const rivalClaimed = state.meta.lbRivalClaimDate === today;
+      rows.push(`
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">赛季进度（本地）</div>
+            <div class="row__desc">积分 ${bar.score}（图鉴×10 + PvE胜场）· 对顶端 ${bar.topPct}%</div>
+            <div class="dex-progress" aria-label="赛季进度 ${bar.topPct}%"><div class="dex-progress__fill" style="width:${bar.topPct}%"></div></div>
+            <div class="row__desc">${escapeHtml(bar.tip)} · 已超 ${bar.beaten}/${bar.total} 幽灵</div>
+          </div>
+          <div class="row__right">
+            <button class="btn btn--primary btn--small" data-lb-act="claimRival" ${canRival ? "" : "disabled"}>${rivalClaimed ? "对决赏已领" : "幽灵对决赏 +8"}</button>
+          </div>
+        </div>
+      `);
+    }
+
+    // 本地幽灵对手（静态 NPC 分数，无服务器）
+    {
+      const ghosts = [
+        { name: "幽灵·短裤小子", dex: 12, power: 800 },
+        { name: "幽灵·迷你裙", dex: 35, power: 2200 },
+        { name: "幽灵·精英阿哲", dex: 80, power: 12000 },
+        { name: "幽灵·道馆影子", dex: 120, power: 28000 },
+      ];
+      rows.push(`
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">幽灵对手（本地）</div>
+            <div class="row__desc">与静态 NPC 分数对比，不上传。</div>
+          </div>
+        </div>
+      `);
+      for (const g of ghosts) {
+        const dexCmp = dexNow >= g.dex ? "领先" : `差 ${g.dex - dexNow}`;
+        const powCmp = teamNow >= g.power ? "领先" : `差 ${g.power - teamNow}`;
+        const chaseTab = dexNow < g.dex ? "capture" : "pve";
+        const chaseLabel = dexNow < g.dex ? "去捕捉追赶" : "去挑战追赶";
+        rows.push(`
+          <div class="row">
+            <div class="row__left">
+              <div class="row__title">${escapeHtml(g.name)}</div>
+              <div class="row__desc">图鉴目标 ${g.dex}（你 ${dexNow} · ${dexCmp}）· 战力目标 ${g.power}（你 ${teamNow} · ${powCmp}）</div>
+            </div>
+            <div class="row__right">
+              <button class="btn btn--small" data-lb-act="chase" data-lb-chase="${chaseTab}">${chaseLabel}</button>
+            </div>
+          </div>
+        `);
+      }
+    }
 
     if (Array.isArray(ui.lbDexItems)) {
       rows.push(sectionHeader("dex", "图鉴榜 Top100"));

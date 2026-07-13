@@ -1,6 +1,9 @@
 /**
  * Award a caught Pokémon — shared by app.js and headless player-sim.
  */
+import { bumpSessionCatch } from "../systems/gameplay_fun.js";
+import { noteShinySpecies } from "../systems/collection_fun.js";
+
 export function awardCaughtPokemon(state, species, opts, ctx) {
   const p = species;
   if (!p?.id) return null;
@@ -10,6 +13,7 @@ export function awardCaughtPokemon(state, species, opts, ctx) {
     createMonInstance,
     ui,
     addLog,
+    addRes,
     bumpEraCounter,
     syncEraProgress,
     afterAward,
@@ -28,6 +32,7 @@ export function awardCaughtPokemon(state, species, opts, ctx) {
       ? state.catchCount
       : 0;
   state.catchCount = Math.max(0, Math.floor(prevCatch)) + 1;
+  bumpSessionCatch(state);
 
   if (typeof bumpEraCounter === "function") bumpEraCounter(state, "catch_count", 1);
   if (typeof syncEraProgress === "function") syncEraProgress();
@@ -38,6 +43,11 @@ export function awardCaughtPokemon(state, species, opts, ctx) {
         ? state.shinyCount
         : 0;
     state.shinyCount = Math.max(0, Math.floor(prevShiny)) + 1;
+    const mile = noteShinySpecies(state, p);
+    if (mile?.item && typeof addRes === "function") {
+      addRes(mile.item, 1);
+      if (typeof addLog === "function") addLog(mile.label, true);
+    }
   }
 
   if (!state.mons) state.mons = { nextId: 1, list: [] };

@@ -1,7 +1,17 @@
 // 社交标签页
 import { escapeHtml } from "../utils.js";
 import { summarizePvpBattle, bumpPvpSeasonStats, normalizePvpRecent } from "../systems/pvp_narrative.js";
-import { listNpcTrainers, buildNpcTeam, getNpcTrainer } from "../systems/npc_pvp.js";
+import {
+  listNpcTrainers,
+  buildNpcTeam,
+  getNpcTrainer,
+  ensureNpcRecord,
+  recordNpcFight,
+  npcRecordLine,
+  noteNpcWeeklyWin,
+  npcWeeklyProgress,
+  claimNpcWeeklyFc,
+} from "../systems/npc_pvp.js";
 
 export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friendsSystem, state, createPvpBattle, getMonCurrentStats, getPokeApiDataByDex }) {
   
@@ -179,21 +189,47 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     const el = document.getElementById("npcTrainers");
     if (!el) return;
     const trainers = listNpcTrainers();
-    el.innerHTML = trainers
+    const record = ensureNpcRecord(state);
+    const weekly = npcWeeklyProgress(state);
+    const ladderRows = trainers
       .map((t) => {
-        const full = getNpcTrainer(t.id);
-        return `
+        const line = npcRecordLine(record, t.id);
+        const weekMark = weekly.beatenIds.includes(t.id) ? " ✓本周" : "";
+        return `<div class="row__desc">${escapeHtml(t.name)}：${escapeHtml(line)}${weekMark}</div>`;
+      })
+      .join("");
+    const weeklyLine = weekly.claimed
+      ? "本周挑战奖励已领取"
+      : weekly.canClaim
+        ? "已击败全部 3 位训练家 — 可领取 +20 未来币"
+        : `本周挑战：击败全部训练家（${weekly.beatenIds.length}/${weekly.total}）→ +20 未来币`;
+    el.innerHTML =
+      trainers
+        .map((t) => {
+          const full = getNpcTrainer(t.id);
+          const wl = npcRecordLine(record, t.id);
+          return `
         <div class="row">
           <div class="row__left">
             <div class="row__title">${escapeHtml(t.name)}</div>
-            <div class="row__desc">${escapeHtml(full?.blurb || "")} · ${t.size} 只</div>
+            <div class="row__desc">${escapeHtml(full?.blurb || "")} · ${t.size} 只 · ${escapeHtml(wl)}</div>
           </div>
           <div class="row__right">
             <button type="button" class="btn btn--primary btn--small" data-npc-fight="${escapeHtml(t.id)}">挑战</button>
           </div>
         </div>`;
-      })
-      .join("");
+        })
+        .join("") +
+      `<div class="row"><div class="row__left"><div class="row__title">NPC 战绩榜</div>${ladderRows}</div></div>` +
+      `<div class="row">
+        <div class="row__left">
+          <div class="row__title">本周挑战</div>
+          <div class="row__desc">${escapeHtml(weeklyLine)}</div>
+        </div>
+        <div class="row__right">
+          <button type="button" class="btn btn--primary btn--small" data-npc-weekly-claim ${weekly.canClaim ? "" : "disabled"}>领取 +20</button>
+        </div>
+      </div>`;
   }
 
   function recordLocalPvpResult(result, label) {
@@ -249,6 +285,24 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     if (!panelSocial) return;
 
     panelSocial.addEventListener("click", async (e) => {
+      const claimBtn = e.target.closest("[data-npc-weekly-claim]");
+      if (claimBtn && panelSocial.contains(claimBtn)) {
+        if (claimBtn.disabled) return;
+        const res = claimNpcWeeklyFc(state, 20);
+        if (res.ok) {
+          if (!state.res || typeof state.res !== "object") state.res = {};
+          if (!state.res.futurecoin || typeof state.res.futurecoin !== "object") {
+            state.res.futurecoin = { value: 0, cap: 0 };
+          }
+          state.res.futurecoin.value = Math.max(0, Math.floor(state.res.futurecoin.value || 0)) + res.fc;
+          addLog(`本周 NPC 挑战奖励：未来币 +${res.fc}`, true);
+          renderNpcTrainers();
+        } else {
+          addLog("本周挑战奖励不可领取");
+        }
+        return;
+      }
+
       const npcBtn = e.target.closest("[data-npc-fight]");
       if (!npcBtn) return;
       const trainerId = npcBtn.getAttribute("data-npc-fight");
@@ -265,6 +319,9 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
       // simulateBattle: team1=对手, team2=你 → winner 2 = 你赢（与好友应战一致）
       const result = pvpBattle.simulateBattle(npcTeam, selectedTeam, trainer.name, "你");
       recordLocalPvpResult(result, trainer.name);
+      recordNpcFight(state, trainerId, result.winner === 2);
+      if (result.winner === 2) noteNpcWeeklyWin(state, trainerId);
+      renderNpcTrainers();
       showBattleResult(result);
       npcBtn.disabled = false;
     });

@@ -79,6 +79,71 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
       </div>
     `);
 
+    {
+      const today = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      const claimed = state.meta.dailyFreeFcDate === today;
+      dailyRows.push(`
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">每日免费未来币</div>
+            <div class="row__desc">每天可领 +5 未来币（本地日界）。</div>
+          </div>
+          <div class="row__right">
+            <button class="btn btn--primary btn--small" data-fc-daily-free ${claimed ? "disabled" : ""}>${claimed ? "今日已领" : "领取 +5"}</button>
+          </div>
+        </div>
+      `);
+      const dealBought = state.meta.shopDailyDealDate === today;
+      const haveFc = Math.max(0, Math.floor(state.res.futurecoin?.value ?? 0));
+      const dealOk = !dealBought && haveFc >= 3;
+      dailyRows.push(`
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">今日特惠小包</div>
+            <div class="row__desc">半价：花 3 未来币得 +10 未来币（每日限一次，诚实小赚）。</div>
+          </div>
+          <div class="row__right">
+            <button class="btn btn--primary btn--small" data-fc-daily-deal ${dealOk ? "" : "disabled"}>${dealBought ? "今日已购" : "购买（3→+10）"}</button>
+          </div>
+        </div>
+      `);
+      const spinClaimed = state.meta.dailySpinDate === today;
+      dailyRows.push(`
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">每日幸运转盘</div>
+            <div class="row__desc">免费转一次：未来币或大树果（加权随机，诚实表）。</div>
+          </div>
+          <div class="row__right">
+            <button class="btn btn--primary btn--small" data-fc-daily-spin ${spinClaimed ? "disabled" : ""}>${spinClaimed ? "今日已转" : "免费转一次"}</button>
+          </div>
+        </div>
+      `);
+      const triple = (() => {
+        const free = state.meta.dailyFreeFcDate === today;
+        const deal = state.meta.shopDailyDealDate === today;
+        const spin = state.meta.dailySpinDate === today;
+        const n = (free ? 1 : 0) + (deal ? 1 : 0) + (spin ? 1 : 0);
+        const claimed = state.meta.shopTripleClaimDate === today;
+        return { n, claimed, canClaim: n >= 3 && !claimed };
+      })();
+      dailyRows.push(`
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">每日三连</div>
+            <div class="row__desc">免费币 + 特惠 + 转盘全做完（${triple.n}/3）→ 额外 +15 未来币</div>
+          </div>
+          <div class="row__right">
+            <button class="btn btn--primary btn--small" data-fc-daily-triple ${triple.canClaim ? "" : "disabled"}>${triple.claimed ? "三连已领" : "领取三连 +15"}</button>
+          </div>
+        </div>
+      `);
+    }
+
     // 月卡（每日签到已并入上方「每日任务」领取，避免双入口）
     if (monthlyCard) {
       const cardInfo = monthlyCard.getInfo();

@@ -1,8 +1,14 @@
 import { clamp, randFloat } from "./utils.js";
 import { runAutomation } from "./automation.js?v=0.31.4";
 import { eraEncounterRechargeMul } from "./systems/era.js";
-import { pickExpeditionEventCard } from "./systems/expedition.js";
 import {
+  pickBreedEventCard,
+  pickExpeditionEventCard,
+  resolveSeasonId,
+  tickExpeditionMilestones,
+} from "./systems/expedition.js";
+import {
+  bumpSessionExpedition,
   natureAffectionMul,
   natureBreedTimeMul,
   natureEncounterRechargeMul,
@@ -10,7 +16,9 @@ import {
   natureSatietyDecayMul,
   natureSatietyRegenMul,
   natureTrainExpMul,
+  noteExpeditionDailyDone,
 } from "./systems/gameplay_fun.js";
+import { noteSeasonRelic, noteShinySpecies, rollSeasonRelic } from "./systems/collection_fun.js";
 
 export function createTick(ctx) {
   const ui = ctx.ui;
@@ -252,12 +260,23 @@ export function createTick(ctx) {
     if (shiny) {
       const prevShiny = typeof state.shinyCount === "number" && Number.isFinite(state.shinyCount) ? state.shinyCount : 0;
       state.shinyCount = Math.max(0, Math.floor(prevShiny)) + 1;
+      const mile = noteShinySpecies(state, sp);
+      if (mile?.item) {
+        addRes(mile.item, 1);
+        addLog(mile.label, true);
+      }
     }
     if (!state.mons) state.mons = { nextId: 1, list: [] };
     if (!Array.isArray(state.mons.list)) state.mons.list = [];
     state.mons.list.push(mon);
     state.mons.nextId = Math.max(state.mons.nextId ?? 1, (mon?.id ?? 0) + 1);
     addLog(`生蛋成功：${sp.name} +1`, true);
+    const breedCard = pickBreedEventCard(randFloat);
+    if (breedCard?.title) {
+      addLog(`孵化奇遇：${breedCard.title} — ${breedCard.blurb}`, true);
+      const fc = Math.max(0, Math.floor(breedCard.bonusFuturecoin || 0));
+      if (fc > 0) addRes("futurecoin", fc);
+    }
     if (ui) {
       ui.monsDirty = true;
       ui.functionsDirty = true;
@@ -971,6 +990,8 @@ export function createTick(ctx) {
     if (expOn && expRem0 > 0) {
       const expRem1 = Math.max(0, expRem0 - dtSec);
       if (expRem1 !== expRem0) {
+        const lines = tickExpeditionMilestones(state.expedition, expRem0, expRem1);
+        for (const line of lines) addLog(line);
         state.expedition.remainingSec = expRem1;
         if (ui) ui.functionsDirty = true;
       }
@@ -1015,6 +1036,18 @@ export function createTick(ctx) {
         const masterballAdd = lvlKey === "master" ? 1 : 0;
         if (masterballAdd > 0) addRes("masterball", masterballAdd);
 
+        const seasonId = resolveSeasonId(ui?.remoteConfig);
+        const relicRoll = rollSeasonRelic(seasonId, randFloat);
+        let seasonRelic = null;
+        if (relicRoll) {
+          seasonRelic = noteSeasonRelic(state, relicRoll);
+          if (seasonRelic?.item) {
+            addRes(seasonRelic.item, 1);
+            addLog(`赛季掉落：${seasonRelic.name}（${seasonRelic.blurb}）→ 获得道具`, true);
+          }
+        }
+
+        const wasQuick = Boolean(state.expedition.quick);
         state.expedition.on = false;
         state.expedition.activeIds = [];
         state.expedition.remainingSec = 0;
@@ -1023,13 +1056,17 @@ export function createTick(ctx) {
         state.expedition.rewardCoin = 0;
         state.expedition.rewardPotionTotal = 0;
         state.expedition.dungeonType = null;
+        state.expedition.quick = false;
+        state.expedition.milestonesFired = {};
         regenExpeditionDungeons(state);
 
         if (!state.meta || typeof state.meta !== "object") state.meta = {};
         state.meta.expeditionsCompleted =
           Math.max(0, Math.floor(state.meta.expeditionsCompleted || 0)) + 1;
+        bumpSessionExpedition(state);
+        noteExpeditionDailyDone(state);
 
-        addLog("远征完成", true);
+        addLog(wasQuick ? "远征完成（急行）" : "远征完成", true);
         if (eventCard?.title) addLog(`奇遇：${eventCard.title} — ${eventCard.blurb}`, true);
         if (ui) {
           ui.expeditionRewardModalOpen = true;
@@ -1040,6 +1077,8 @@ export function createTick(ctx) {
             potions: potMap,
             masterball: masterballAdd,
             eventCard,
+            seasonRelic,
+            quick: wasQuick,
           };
           ui.functionsDirty = true;
           ui.futureDirty = true;

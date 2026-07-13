@@ -2,11 +2,16 @@
 import { EXP_LEVELS, getExpLevelDef, getExpLevelKeys } from "../modules/expedition_defs.js";
 import {
   EXPEDITION_SEASON_BLURBS,
+  applyQuickExpeditionDuration,
+  applyQuickExpeditionReward,
+  BREED_EVENT_CARDS,
   ensureExpeditionDungeonTiers,
   getExpeditionSeasonBlurb,
+  pickBreedEventCard,
   pickExpeditionDungeons,
   resolveExpeditionSeasonLabel,
   resolveSeasonId,
+  tickExpeditionMilestones,
 } from "../modules/systems/expedition.js";
 import { REMOTE_CONFIG_DEFAULTS } from "../modules/remote_config.js";
 
@@ -39,6 +44,19 @@ assert(getExpeditionSeasonBlurb("unknown").length > 0, "fallback blurb");
   const dungeons = { basic: [{ key: "a", type: "fire" }] };
   assert(ensureExpeditionDungeonTiers(dungeons, ["fire", "water", "grass"]) === true, "fills tiers");
   assert(Array.isArray(dungeons.elite) && dungeons.elite.length === 3, "elite pool");
+}
+
+{
+  assert(applyQuickExpeditionDuration(2000, true) === 600, "quick duration");
+  assert(applyQuickExpeditionReward(10, true) === 7, "quick reward");
+  const exp = { totalSec: 200, milestonesFired: {} };
+  assert(tickExpeditionMilestones(exp, 160, 140).length === 1, "milestone 75");
+}
+
+{
+  assert(BREED_EVENT_CARDS.length >= 5, "breed event cards");
+  const card = pickBreedEventCard(() => 0.99);
+  assert(card && typeof card.title === "string", "pick breed event");
 }
 
 if (failed) {

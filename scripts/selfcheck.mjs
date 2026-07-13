@@ -37,7 +37,7 @@ import { BUILDING_DEFS } from "../modules/defs_buildings.js";
 import { computeDerived as computeDerivedCore } from "../modules/systems/compute_derived.js";
 import { awardCaughtPokemon as awardCaughtCore } from "../modules/app/capture_award.js";
 import { pickWeakMonIds, releaseCandyRefund } from "../modules/systems/mon_release.js";
-import { listNpcTrainers, buildNpcTeam } from "../modules/systems/npc_pvp.js";
+import { listNpcTrainers, buildNpcTeam, recordNpcFight, npcRecordLine } from "../modules/systems/npc_pvp.js";
 import { resetEvoFamilyCacheForTest, isSameEvoFamily } from "../modules/evo_utils.js";
 import {
   bumpPvpSeasonStats,
@@ -340,6 +340,11 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
   assert(ev?.id && ev?.title, "expedition event card");
   assert(listNpcTrainers().length >= 3, "npc trainers");
   assert(buildNpcTeam("npc_youngster").length >= 2, "npc team build");
+  {
+    const st = { meta: {} };
+    recordNpcFight(st, "npc_youngster", true);
+    assert(npcRecordLine(st.meta.npcRecord, "npc_youngster") === "1胜0负", "npc record helper");
+  }
   const rareIds = pickWeakMonIds(
     [
       { id: 20, pid: "a", lvl: 10, dex: 1, tier: "rare", baseStats: bs, iv },
@@ -376,6 +381,8 @@ assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const era = spawnSync(process.execPath, [path.join(__dirname, "era-selfcheck.mjs")], { stdio: "inherit" });
 if (era.status !== 0) failed += 1;
+const collection = spawnSync(process.execPath, [path.join(__dirname, "collection-fun-selfcheck.mjs")], { stdio: "inherit" });
+if (collection.status !== 0) failed += 1;
 const pve = spawnSync(process.execPath, [path.join(__dirname, "pve-selfcheck.mjs")], { stdio: "inherit" });
 if (pve.status !== 0) failed += 1;
 

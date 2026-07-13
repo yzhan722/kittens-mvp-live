@@ -514,6 +514,68 @@ export function initMonsTab({
         return;
       }
 
+      const feedHungryBtn = ev.target?.closest?.("button[data-mons-feed-hungry]");
+      if (feedHungryBtn && elMonList.contains(feedHungryBtn)) {
+        if (feedHungryBtn.disabled) return;
+        const list = state.mons?.list ?? [];
+        const hungry = list
+          .filter((m) => m && clamp(typeof m.satiety === "number" ? m.satiety : 100, 0, 100) < 50)
+          .sort((a, b) => {
+            const sa = clamp(typeof a.satiety === "number" ? a.satiety : 100, 0, 100);
+            const sb = clamp(typeof b.satiety === "number" ? b.satiety : 100, 0, 100);
+            return sa - sb;
+          });
+        if (hungry.length === 0) return;
+        let haveCatnip = Math.max(0, Math.floor(state.res.catnip.value ?? 0));
+        let fedCount = 0;
+        for (const m of hungry) {
+          if (haveCatnip < 100) break;
+          const sat0 = clamp(typeof m.satiety === "number" && Number.isFinite(m.satiety) ? m.satiety : 100, 0, 100);
+          if (sat0 >= 50) continue;
+          const needSat = Math.max(0, 50 - sat0);
+          const stepsNeed = Math.max(0, Math.ceil(needSat / 5));
+          const needCatnip = stepsNeed * 100;
+          if (needCatnip <= 0) continue;
+          if (haveCatnip >= needCatnip) {
+            haveCatnip -= needCatnip;
+            state.res.catnip.value = Math.max(0, state.res.catnip.value - needCatnip);
+            m.satiety = Math.max(sat0, 50);
+            addLog(`喂食饥饿：${m.name} 饱腹→${Math.floor(m.satiety)}（树果 ${needCatnip}）`, true);
+            fedCount += 1;
+          } else {
+            const steps = Math.max(0, Math.floor(haveCatnip / 100));
+            const cost = steps * 100;
+            const addSat = steps * 5;
+            const sat1 = clamp(sat0 + addSat, 0, 100);
+            haveCatnip -= cost;
+            state.res.catnip.value = Math.max(0, state.res.catnip.value - cost);
+            m.satiety = sat1;
+            addLog(`喂食饥饿：${m.name} 饱腹 +${Math.floor(sat1 - sat0)}（树果不足）`, true);
+            fedCount += 1;
+            break;
+          }
+        }
+        if (fedCount <= 0) addLog("喂食饥饿：无目标或树果不足", true);
+        markMonListDirty(false);
+        render();
+        return;
+      }
+
+      const focusEvoBtn = ev.target?.closest?.("button[data-mons-focus-evo]");
+      if (focusEvoBtn && elMonList.contains(focusEvoBtn)) {
+        if (focusEvoBtn.disabled) return;
+        const id = ui._monsFirstEvoId;
+        if (id == null) {
+          addLog("当前筛选下没有可进化精灵");
+          return;
+        }
+        ui.monSelectedId = id;
+        markMonListDirty(false);
+        addLog("已定位可进化精灵，查看右侧详情进化", true);
+        render();
+        return;
+      }
+
       const batchCandyBtn = ev.target?.closest?.("button[data-mon-batch-candy]");
       if (batchCandyBtn && elMonList.contains(batchCandyBtn)) {
         if (batchCandyBtn.disabled) return;

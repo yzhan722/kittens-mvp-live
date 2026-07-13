@@ -125,6 +125,12 @@ try {
   const ch3 = PVE_CHAPTERS.find((c) => c.id === "3");
   assert(ch3 && ch3.unlockDex === 55 && ch3.stages.length >= 5, "chapter 3 has 5+ stages @ dex 55");
   assert(ch3.stages[0].id === "3-1" && ch3.stages[0].unlockReq === null, "3-1 first stage open");
+
+  assert(PVE_CHAPTERS.length >= 4, "chapter 4 exists");
+  const ch4 = PVE_CHAPTERS.find((c) => c.id === "4");
+  assert(ch4 && ch4.unlockDex === 90 && ch4.stages.length >= 4, "chapter 4 has 4+ stages @ dex 90");
+  assert(ch4.stages[0].id === "4-1" && ch4.stages[0].unlockReq === null, "4-1 first stage open");
+  assert(ch4.name.includes("神奥"), "chapter 4 sinnoh name");
 } finally {
   Math.random = realRandom;
 }

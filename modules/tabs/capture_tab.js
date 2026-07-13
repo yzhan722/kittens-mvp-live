@@ -15,6 +15,7 @@ import {
   clearCatchNearMiss,
   tryBallSave,
   typeZh,
+  captureSessionProgress,
 } from "../systems/gameplay_fun.js";
 
 export function initCaptureTab({
@@ -100,6 +101,20 @@ export function initCaptureTab({
           markCaptureDirty();
           render();
         }
+        return;
+      }
+
+      const sessionClaim = ev.target?.closest?.("button[data-capture-session-claim]");
+      if (sessionClaim && elCaptureInfo.contains(sessionClaim)) {
+        if (sessionClaim.disabled) return;
+        const state = getState();
+        const prog = captureSessionProgress(state);
+        if (!prog.canClaim) return;
+        state.fun.sessionCatchClaimed = true;
+        addRes("futurecoin", 15);
+        addLog("本会话捕捉目标达成：未来币 +15", true);
+        markCaptureDirty();
+        render();
         return;
       }
 
@@ -386,8 +401,8 @@ export function initCaptureTab({
         return true;
       };
 
-      if (act === "makeBall") {
-        const qtyWanted = typeof ui.makeBallQty === "number" ? Math.floor(ui.makeBallQty) : 1;
+      if (act === "makeBall" || act === "makeBall1") {
+        const qtyWanted = act === "makeBall1" ? 1 : typeof ui.makeBallQty === "number" ? Math.floor(ui.makeBallQty) : 1;
         const space = Math.max(0, (state.res.pokeball.cap ?? 0) - (state.res.pokeball.value ?? 0));
         const qty = Math.max(0, Math.min(clamp(qtyWanted, 1, 1000), space));
         if (qty <= 0) return;

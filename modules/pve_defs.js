@@ -267,6 +267,58 @@ export const PVE_CHAPTERS = [
       },
     ],
   },
+  {
+    id: "4",
+    name: "神奥试炼",
+    unlockDex: 90,
+    stages: [
+      {
+        id: "4-1", name: "黑金道馆",
+        type: "rock",
+        enemies: [
+          { dex: 408, name: "头盖龙", lvl: 38, stars: 0 },
+          { dex: 409, name: "战槌龙", lvl: 44, stars: 1 },
+        ],
+        rewards: { futurecoin: 480, exp: 8000, evolutionEnergy: 2 },
+        repeatRewards: { futurecoin: 170, exp: 2800 },
+        unlockReq: null,
+      },
+      {
+        id: "4-2", name: "百代道馆",
+        type: "grass",
+        enemies: [
+          { dex: 406, name: "含羞苞", lvl: 40, stars: 0 },
+          { dex: 407, name: "罗丝雷朵", lvl: 46, stars: 2 },
+        ],
+        rewards: { futurecoin: 540, exp: 9500, evolutionStone: 1 },
+        repeatRewards: { futurecoin: 190, exp: 3200 },
+        unlockReq: "4-1",
+      },
+      {
+        id: "4-3", name: "临青道馆",
+        type: "ice",
+        enemies: [
+          { dex: 459, name: "雪笠怪", lvl: 42, stars: 1 },
+          { dex: 460, name: "暴雪王", lvl: 48, stars: 2 },
+        ],
+        rewards: { futurecoin: 600, exp: 11000, evolutionStone: 2 },
+        repeatRewards: { futurecoin: 210, exp: 3600 },
+        unlockReq: "4-2",
+      },
+      {
+        id: "4-4", name: "神奥冠军之路",
+        type: "dragon",
+        enemies: [
+          { dex: 443, name: "圆陆鲨", lvl: 44, stars: 1 },
+          { dex: 444, name: "尖牙陆鲨", lvl: 50, stars: 2 },
+          { dex: 445, name: "烈咬陆鲨", lvl: 55, stars: 2 },
+        ],
+        rewards: { futurecoin: 720, exp: 14000, evolutionStone: 3, linkRope: 1 },
+        repeatRewards: { futurecoin: 250, exp: 4500 },
+        unlockReq: "4-3",
+      },
+    ],
+  },
 ];
 
 // 根据 stage id 快速查找

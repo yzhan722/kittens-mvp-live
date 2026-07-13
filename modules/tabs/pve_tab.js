@@ -2,14 +2,16 @@
 import { PVE_CHAPTERS, PVE_DAILY_MAX, getStageById, isStageUnlocked } from "../pve_defs.js";
 import { simulateBattle, recommendedTypes, typeMatchScore, estimateStageEnemyPower, pveFightModifiers } from "../pve_battle.js";
 import { getEraDefById } from "../defs_eras.js";
-import { natureIncomingDamageMul, bumpPveWinStreak, resetPveWinStreak } from "../systems/gameplay_fun.js";
+import { natureIncomingDamageMul, bumpPveWinStreak, resetPveWinStreak, pveDailyFirstWinMul, bumpSessionPveWin, localDateStr } from "../systems/gameplay_fun.js";
 import { ensureEra } from "../systems/era.js";
+import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS } from "../systems/pve_tower.js";
 
 // ponytail: blurbs live here — pve_defs is data-only, no chapter copy field yet
 const PVE_CHAPTER_BLURBS = {
   "1": "关都八大道馆试炼：从森林虫系到地面系，循序渐进熟悉属性克制。",
   "2": "城都进阶挑战：幽灵、格斗、钢系轮番上阵，终盘龙系需要克制与练度。",
   "3": "丰缘试炼：草火水起步，中段格斗/水系加压，终盘幽灵需特防与克制。",
+  "4": "神奥试炼：岩石→草→冰加压，终盘陆地鲨龙系需冰/龙克制与高练度。",
 };
 
 const PVE_STAR_NARRATIVE = {
@@ -105,17 +107,49 @@ export function createRenderPve({
 
     // 每日次数
     const practiceOn = Boolean(ui.pvePracticeMode);
+    const practiceHalf = Boolean(ui.pvePracticeHalf);
+    const practiceDesc = practiceOn
+      ? practiceHalf
+        ? " · 练习+半奖（不扣次数、半奖励、不改通关进度）"
+        : " · 练习模式（不扣次数、无奖励）"
+      : "";
     rows.push(`
       <div class="row">
         <div class="row__left">
           <div class="row__title">PvE 关卡挑战</div>
-          <div class="row__desc">今日剩余次数：${Math.max(0, PVE_DAILY_MAX - state.pve.dailyAttempts)} / ${PVE_DAILY_MAX}${practiceOn ? " · 练习模式（不扣次数、无奖励）" : ""}</div>
+          <div class="row__desc">今日剩余次数：${Math.max(0, PVE_DAILY_MAX - state.pve.dailyAttempts)} / ${PVE_DAILY_MAX}${practiceDesc}</div>
         </div>
         <div class="row__right">
           <label class="check">
             <input type="checkbox" data-pve-practice ${practiceOn ? "checked" : ""} />
             <span>练习模式</span>
           </label>
+          <label class="check" style="margin-left:8px">
+            <input type="checkbox" data-pve-practice-half ${practiceHalf ? "checked" : ""} ${practiceOn ? "" : "disabled"} />
+            <span>半奖励</span>
+          </label>
+        </div>
+      </div>
+    `);
+
+    // 每周试炼塔
+    const tower = ensureTowerState(state);
+    const towerDone = isTowerCleared(tower);
+    const towerFloor = towerDone ? null : getTowerFloor(tower.floor);
+    const towerLocked = dexCount < 10;
+    const towerDesc = towerLocked
+      ? "图鉴≥10 解锁。"
+      : towerDone
+        ? `本周已通关全部 ${PVE_TOWER_FLOORS.length} 层 · 最佳 ${tower.best}F`
+        : `本周进度 ${tower.floor}/${PVE_TOWER_FLOORS.length}F · 最佳 ${tower.best}F · ${escapeHtml(towerFloor?.name || "")}`;
+    rows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">每周试炼塔</div>
+          <div class="row__desc">${towerDesc}</div>
+        </div>
+        <div class="row__right">
+          <button class="btn btn--primary btn--small" data-pve-tower-fight ${towerLocked || towerDone || !towerFloor || !(state.pve.selectedIds && state.pve.selectedIds.length) ? "disabled" : ""}>${towerDone ? "本周通关" : "挑战本层"}</button>
         </div>
       </div>
     `);
@@ -296,7 +330,9 @@ export function createRenderPve({
       const fightLabel = !selectedMons.length
         ? "请选择队员"
         : practiceOn
-          ? "练习开战（无奖励）"
+          ? practiceHalf
+            ? "练习开战（半奖励）"
+            : "练习开战（无奖励）"
           : dailyLeft
             ? "开战！"
             : "今日次数已用完 · 可开练习";
@@ -304,7 +340,13 @@ export function createRenderPve({
         <div class="row">
           <div class="row__left">
             <div class="row__title">开始挑战</div>
-            <div class="row__desc">${practiceOn ? "练习不扣每日次数，胜利无奖励，用来测阵容。" : "正式挑战消耗 1 次每日额度。"}</div>
+            <div class="row__desc">${
+              practiceOn
+                ? practiceHalf
+                  ? "练习不扣次数；胜利给半奖励，且不改通关/星级进度。"
+                  : "练习不扣每日次数，胜利无奖励，用来测阵容。"
+                : "正式挑战消耗 1 次每日额度。"
+            }</div>
           </div>
           <div class="row__right">
             <button class="btn btn--primary" data-pve-fight="${st.id}" ${canFight ? "" : "disabled"}>${fightLabel}</button>
@@ -454,7 +496,8 @@ export function createRenderPve({
     if (selectedMons.length === 0) return;
 
     const practice = Boolean(ui.pvePracticeMode);
-    // 正式挑战才扣次数；练习不扣、无奖励
+    const practiceHalf = practice && Boolean(ui.pvePracticeHalf);
+    // 正式挑战才扣次数；练习不扣
     if (!practice) state.pve.dailyAttempts++;
 
     // 准备玩家队伍数据
@@ -488,24 +531,14 @@ export function createRenderPve({
     result.stageName = st.name;
     result.recTypes = recommendedTypes(st.type);
     result.practice = practice;
+    result.practiceHalf = practiceHalf;
     if (typeof onPveAttempt === "function" && !practice) onPveAttempt();
 
-    if (practice) {
-      result.rewardText = "练习模式：无奖励";
-      result.winStreak = 0;
-      if (typeof addLog === "function") {
-        addLog(result.win ? `PvE 练习通关：${st.name}（${result.stars}星）` : `PvE 练习失败：${st.name}`);
-      }
-    } else if (result.win) {
-      if (typeof onPveWin === "function") onPveWin();
+    function grantRewards(mulExtra, { ignoreStarBonus = false } = {}) {
       const cleared = Boolean(state.pve.progress[st.id]);
-      const bestStars = typeof state.pve.progress[`${st.id}_stars`] === "number" ? state.pve.progress[`${st.id}_stars`] : 0;
-      state.pve.progress[st.id] = true;
-      if (result.stars > bestStars) state.pve.progress[`${st.id}_stars`] = result.stars;
-
       const rewards = cleared ? (st.repeatRewards ?? st.rewards) : st.rewards;
-      // 3星额外 50% 奖励
-      const mul = result.stars >= 3 ? 1.5 : 1;
+      const starMul = ignoreStarBonus ? 1 : result.stars >= 3 ? 1.5 : 1;
+      const mul = starMul * mulExtra;
       const rewardParts = [];
 
       if (rewards.futurecoin) {
@@ -535,21 +568,130 @@ export function createRenderPve({
         }
         rewardParts.push(`经验 +${v}（每只）`);
       }
+      return rewardParts.join("、");
+    }
 
-      result.rewardText = rewardParts.join("、");
+    if (practice && !practiceHalf) {
+      result.rewardText = "练习模式：无奖励";
+      result.winStreak = 0;
+      if (typeof addLog === "function") {
+        addLog(result.win ? `PvE 练习通关：${st.name}（${result.stars}星）` : `PvE 练习失败：${st.name}`);
+      }
+    } else if (practice && practiceHalf) {
+      // 半奖励练习：不改通关进度，不扣次数
+      if (result.win) {
+        result.rewardText = grantRewards(0.5, { ignoreStarBonus: true }) || "半奖励：无";
+        result.rewardText = `练习半奖：${result.rewardText}`;
+        result.winStreak = 0;
+        if (typeof addLog === "function") addLog(`PvE 练习半奖通关：${st.name}（${result.stars}星）`, true);
+      } else {
+        result.rewardText = "";
+        result.winStreak = 0;
+        if (typeof addLog === "function") addLog(`PvE 练习失败：${st.name}`);
+      }
+    } else if (result.win) {
+      if (typeof onPveWin === "function") onPveWin();
+      const bestStars = typeof state.pve.progress[`${st.id}_stars`] === "number" ? state.pve.progress[`${st.id}_stars`] : 0;
+      state.pve.progress[st.id] = true;
+      if (result.stars > bestStars) state.pve.progress[`${st.id}_stars`] = result.stars;
+
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      state.meta.pveWins = Math.max(0, Math.floor(state.meta.pveWins || 0)) + 1;
+      bumpSessionPveWin(state);
+      const firstWin = pveDailyFirstWinMul(state.meta, localDateStr());
+      result.rewardText = grantRewards(firstWin.mul);
+      if (firstWin.isFirst && result.rewardText) {
+        result.rewardText = `首胜日加成×1.5：${result.rewardText}`;
+      }
       const streakInfo = bumpPveWinStreak(state);
       result.winStreak = streakInfo.streak;
       if (streakInfo.milestone && typeof addLog === "function") {
         addLog(`★ ${streakInfo.milestone}`, true);
       }
       if (typeof addLog === "function") {
-        addLog(`PvE 通关：${st.name}（${result.stars}星 · 连胜 ×${streakInfo.streak}）`, true);
+        addLog(`PvE 通关：${st.name}（${result.stars}星 · 连胜 ×${streakInfo.streak}${firstWin.isFirst ? " · 今日首胜" : ""}）`, true);
       }
+      const goals = state.meta.dailyGoals;
+      if (goals && typeof goals === "object") goals.pveDone = true;
     } else {
       resetPveWinStreak(state);
       result.rewardText = "";
       result.winStreak = 0;
       if (typeof addLog === "function") addLog(`PvE 失败：${st.name}（连胜中断）`);
+    }
+
+    ui.pveBattleResult = result;
+    ui.pveDirty = true;
+    if (typeof render === "function") render();
+  }
+
+  function doTowerFight(state) {
+    ensurePveState(state);
+    const tower = ensureTowerState(state);
+    const floorDef = getTowerFloor(tower.floor);
+    if (!floorDef) return;
+    const dexCount = typeof dexCaughtUnique === "function" ? dexCaughtUnique() : 0;
+    if (dexCount < 10) return;
+
+    const list = Array.isArray(state.mons?.list) ? state.mons.list : [];
+    const selectedIds = state.pve.selectedIds.slice(0, 6);
+    const selectedMons = selectedIds.map((id) => list.find((m) => m && m.id === id)).filter(Boolean);
+    if (selectedMons.length === 0) return;
+
+    const team = selectedMons.map((m) => {
+      const stats0 = typeof getMonCurrentStats === "function" ? getMonCurrentStats(m) : { hp: 50, atk: 20, def: 20, spa: 20, spd: 20, spe: 20 };
+      const hasMegaAura =
+        typeof m.megaAuraRemainingSec === "number" && Number.isFinite(m.megaAuraRemainingSec) && m.megaAuraRemainingSec > 0;
+      const stats = hasMegaAura
+        ? Object.fromEntries(Object.entries(stats0).map(([k, v]) => [k, Math.max(1, Math.floor((typeof v === "number" ? v : 0) * 1.2))]))
+        : stats0;
+      return { id: m.id, name: m.name, types: getMonTypes(m), stats };
+    });
+
+    const darkBoostOn =
+      typeof state.skills?.darkPveDamageBoostRemainingSec === "number" &&
+      Number.isFinite(state.skills.darkPveDamageBoostRemainingSec) &&
+      state.skills.darkPveDamageBoostRemainingSec > 0;
+    const result = simulateBattle(team, floorDef.enemies, floorDef.type, {
+      playerDamageMul: darkBoostOn ? 1.5 : 1,
+      incomingDamageMul: natureIncomingDamageMul(state),
+      enemyHpMul: 1 + (floorDef.floor - 1) * 0.05,
+    });
+    result.stageType = floorDef.type;
+    result.stageName = floorDef.name;
+    result.recTypes = recommendedTypes(floorDef.type);
+    result.practice = false;
+    result.practiceHalf = false;
+
+    if (result.win) {
+      const rw = floorDef.rewards || {};
+      const parts = [];
+      if (rw.futurecoin && typeof addRes === "function") {
+        addRes("futurecoin", rw.futurecoin);
+        parts.push(`未来币 +${rw.futurecoin}`);
+      }
+      if (rw.evolutionStone && typeof addRes === "function") {
+        addRes("evolutionStone", rw.evolutionStone);
+        parts.push(`进化石 +${rw.evolutionStone}`);
+      }
+      if (rw.exp) {
+        for (const m of selectedMons) {
+          if (typeof addExpToMon === "function") addExpToMon(m, rw.exp);
+        }
+        parts.push(`经验 +${rw.exp}（每只）`);
+      }
+      result.rewardText = parts.join("、") || "通关";
+      tower.best = Math.max(tower.best || 0, floorDef.floor);
+      if (tower.floor >= PVE_TOWER_FLOORS.length) tower.cleared = true;
+      else tower.floor += 1;
+      result.winStreak = 0;
+      bumpSessionPveWin(state);
+      if (typeof addLog === "function") addLog(`试炼塔通关：${floorDef.name} → ${tower.floor}F`, true);
+      if (typeof onPveWin === "function") onPveWin();
+    } else {
+      result.rewardText = "";
+      result.winStreak = 0;
+      if (typeof addLog === "function") addLog(`试炼塔失败：${floorDef.name}`);
     }
 
     ui.pveBattleResult = result;
@@ -563,6 +705,16 @@ export function createRenderPve({
     if (practiceChk) {
       practiceChk.addEventListener("change", () => {
         ui.pvePracticeMode = Boolean(practiceChk.checked);
+        if (!ui.pvePracticeMode) ui.pvePracticeHalf = false;
+        ui.pveDirty = true;
+        if (typeof render === "function") render();
+      });
+    }
+    const halfChk = el.querySelector("[data-pve-practice-half]");
+    if (halfChk) {
+      halfChk.addEventListener("change", () => {
+        ui.pvePracticeHalf = Boolean(halfChk.checked);
+        if (ui.pvePracticeHalf) ui.pvePracticeMode = true;
         ui.pveDirty = true;
         if (typeof render === "function") render();
       });
@@ -672,6 +824,10 @@ export function createRenderPve({
         const stageId = btn.getAttribute("data-pve-fight");
         doFight(state, stageId);
       });
+    });
+
+    el.querySelectorAll("[data-pve-tower-fight]").forEach((btn) => {
+      btn.addEventListener("click", () => doTowerFight(state));
     });
 
     // 结果弹窗关闭

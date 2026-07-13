@@ -97,7 +97,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
 import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era.js";
 import { createAnalytics } from "./modules/analytics.js";
 import { load as loadRemoteConfig } from "./modules/remote_config.js";
-import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatchStreak, natureResCapMul, formatWelcomeBackSummary } from "./modules/systems/gameplay_fun.js";
+import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatchStreak, natureResCapMul, formatWelcomeBackSummary, dailyGoalsChecklist, canClaimDexRegion, markDexRegionClaimed, sessionHighlightsLine, canClaimDailyGoalsBundle, markDailyGoalsBundleClaimed, bumpLoginStreak, loginStreakLine, localDateStr } from "./modules/systems/gameplay_fun.js";
 
 (() => {
   setupGlobalErrorHandling();
@@ -713,6 +713,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     dexAreaId: "all",
     dexOnlyCaught: false,
     dexOnlyMissing: false,
+    dexOnlyShiny: false,
     dexPage: 0,
   // ===== SECTION:UI_STATE — ui状态对象定义 — 维护者窗口C =====
     dexPageSize: 50,
@@ -870,6 +871,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   const elDexSearch = document.getElementById("dexSearch");
   const elDexOnlyCaught = document.getElementById("dexOnlyCaught");
   const elDexOnlyMissing = document.getElementById("dexOnlyMissing");
+  const elDexOnlyShiny = document.getElementById("dexOnlyShiny");
   const elDexPrev = document.getElementById("dexPrev");
   const elDexNext = document.getElementById("dexNext");
   const elDexPageInfo = document.getElementById("dexPageInfo");
@@ -1007,10 +1009,16 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     elDexSearch,
     elDexOnlyCaught,
     elDexOnlyMissing,
+    elDexOnlyShiny,
     elDexPrev,
     elDexNext,
     elDexList,
+    elDexSummary,
     markDexDirty,
+    getState: () => state,
+    addRes,
+    addLog,
+    render: () => render(),
     setActiveTab: (name) => {
       try {
         document.querySelector(`.tab[data-tab="${name}"]`)?.click();
@@ -1074,7 +1082,69 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     renderLeaderboard: () => renderLeaderboard(),
     renderHelp: () => renderHelp(),
     renderPve: () => renderPve(),
+    renderOptions: () => renderOptionsGoals(),
   });
+
+  function renderOptionsGoals() {
+    const el = document.getElementById("dailyGoalsList");
+    if (!el) return;
+    if (!state.meta || typeof state.meta !== "object") state.meta = {};
+    const streak = bumpLoginStreak(state.meta, localDateStr());
+    const streakLine = loginStreakLine(state.meta) || `连续登录 ${streak} 天`;
+    const items = dailyGoalsChecklist(state);
+    const highlights = sessionHighlightsLine(state);
+    const canBundle = canClaimDailyGoalsBundle(state, localDateStr());
+    const bundleClaimed = state.meta.dailyGoalsClaimDate === localDateStr();
+    el.innerHTML = `
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">今日指挥部</div>
+          <div class="row__desc">${items
+            .map((g) => `${g.done ? "☑" : "☐"} ${escapeHtml(g.label)}`)
+            .join(" · ")}</div>
+          <div class="row__desc muted">${escapeHtml(highlights)}${highlights ? " · " : ""}${escapeHtml(streakLine)}</div>
+        </div>
+        <div class="row__right">
+          <button type="button" class="btn btn--primary btn--small" data-opt-goals-claim ${canBundle ? "" : "disabled"}>${bundleClaimed ? "日目标已领" : "完成三目标 +12"}</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">一键出发</div>
+          <div class="row__desc">点按钮直达核心循环，不用在菜单里找。</div>
+        </div>
+        <div class="row__right">
+          <button type="button" class="btn btn--primary btn--small" data-opt-goto="capture">去捕捉</button>
+          <button type="button" class="btn btn--small" data-opt-goto="pve">去挑战</button>
+          <button type="button" class="btn btn--small" data-opt-goto="functions">去功能</button>
+          <button type="button" class="btn btn--small" data-opt-goto="future">去商店</button>
+        </div>
+      </div>
+    `;
+    el.querySelectorAll("[data-opt-goto]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const name = btn.getAttribute("data-opt-goto");
+        if (name) activateTab(name);
+      });
+    });
+    const claimBtn = el.querySelector("[data-opt-goals-claim]");
+    if (claimBtn) {
+      claimBtn.addEventListener("click", () => {
+        if (!markDailyGoalsBundleClaimed(state, localDateStr())) {
+          if (typeof addLog === "function") addLog("日目标未完成或已领取");
+          return;
+        }
+        if (typeof addRes === "function") addRes("futurecoin", 12);
+        else {
+          if (!state.res.futurecoin) state.res.futurecoin = { value: 0 };
+          state.res.futurecoin.value = Math.max(0, Math.floor(state.res.futurecoin.value || 0)) + 12;
+        }
+        if (typeof addLog === "function") addLog("日目标全清：未来币 +12", true);
+        renderOptionsGoals();
+      });
+    }
+    ui.optionsDirty = false;
+  }
 
   function activateTab(name) {
     tabController.activateTab(name);
@@ -1087,11 +1157,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   } catch {
   }
 
-  renderHelp = createRenderHelp({
-    elHelp,
-    ui,
-    escapeHtml,
-  });
+  renderHelp = () => {};
 
   const itemUsage = createItemUsage({
     state,
@@ -1136,6 +1202,19 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     getBaseCatchChanceByTier: baseCatchChanceByTier,
     pickRandomFromPool,
   } = captureSystem;
+
+  renderHelp = createRenderHelp({
+    elHelp,
+    ui,
+    escapeHtml,
+    getState: () => state,
+    getCaptureAreas,
+    dexCaughtUnique,
+    defs,
+    addRes,
+    addLog,
+    render: () => render(),
+  });
 
   initCaptureTab({
     elCaptureArea,
@@ -1790,6 +1869,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
               ${mb > 0 ? `<div class="badge">${escapeHtml(defs.resources?.masterball?.name ?? "大师球")} x${mb}</div>` : ""}
               <div class="badge">药剂：${potText}</div>
               ${expData.eventCard?.title ? `<div class="badge badge--ok">奇遇 · ${escapeHtml(expData.eventCard.title)}：${escapeHtml(expData.eventCard.blurb || "")}</div>` : ""}
+              ${expData.seasonRelic?.name ? `<div class="badge badge--ok">赛季印记 · ${escapeHtml(expData.seasonRelic.name)}（累计 ${Math.floor(expData.seasonRelic.count || 1)}）→ ${escapeHtml(defs.resources?.[expData.seasonRelic.item]?.name ?? expData.seasonRelic.item)}</div>` : ""}
             </div>
           </div>
         </div>
@@ -2543,6 +2623,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       createMonInstance,
       ui,
       addLog,
+      addRes,
       bumpEraCounter,
       syncEraProgress: () => syncEraProgress(),
       afterAward: ({ species, prev, isShiny, prevCatchCount }) => {
@@ -2756,6 +2837,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     markFunctionsDirty,
     markMonListDirty,
     addLog,
+    addRes,
     render,
     getState: () => state,
   });
@@ -2769,6 +2851,11 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     markLeaderboardDirty,
     render,
     submitScoreAndRefresh,
+    getState: () => state,
+    addRes,
+    addLog,
+    dexCaughtUnique,
+    activateTab,
   });
 
   initFutureTab({
@@ -2801,6 +2888,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     dexCaughtCount,
     computeDexEffects,
     getCaptureAreas,
+    canClaimDexRegion,
+    markDexRegionClaimed,
   });
 
   const renderLog = createRenderLog({
