@@ -254,6 +254,20 @@ export function resetPveWinStreak(state) {
 }
 
 /** One-line offline return summary for the log sidebar. */
+export function noteCatchNearMiss(ui, speciesId, chance) {
+  if (!ui || typeof ui !== "object") return;
+  const c = typeof chance === "number" && Number.isFinite(chance) ? chance : 0;
+  if (c >= 0.35 && speciesId) {
+    ui.lastCatchNearMiss = { pct: Math.round(c * 100), pid: speciesId };
+  } else {
+    ui.lastCatchNearMiss = null;
+  }
+}
+
+export function clearCatchNearMiss(ui) {
+  if (ui && typeof ui === "object") ui.lastCatchNearMiss = null;
+}
+
 export function formatWelcomeBackSummary(state, before = {}, dtSec = 0) {
   if (!state || typeof state !== "object") return "";
   ensureLuckyDay(state);

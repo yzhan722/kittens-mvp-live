@@ -1,3 +1,9 @@
+import {
+  BOX_SOFT_LIMIT,
+  busyMonIds,
+  pickWeakMonIds,
+} from "../systems/mon_release.js";
+
 export function createRenderMons({
   elMonList,
   elMonDetail,
@@ -199,6 +205,8 @@ export function createRenderMons({
         if (cdCnt > 0) batchSkillCooldownCounts[t] = cdCnt;
       }
       const hasBatchSkill = Object.keys(batchSkillCounts).length > 0 || Object.keys(batchSkillCooldownCounts).length > 0;
+      const batchReleaseIds = pickWeakMonIds(filtered, { protectIds: busyMonIds(state) });
+      const canBatchRelease = batchReleaseIds.length > 0;
 
       if (elMonPageInfo) {
         elMonPageInfo.textContent = `第 ${ui.monPage + 1}/${totalPages} 页（共 ${total} 只）`;
@@ -211,7 +219,7 @@ export function createRenderMons({
           <div class="row is-locked">
             <div class="row__left">
               <div class="row__title">盒子较满（${total} 只）</div>
-              <div class="row__desc">低战力精灵可放生换取神奇糖果；升星也会消耗同进化系材料。</div>
+              <div class="row__desc">低战力精灵可放生换取神奇糖果；超过 ${BOX_SOFT_LIMIT} 只时可批量放生最弱的一批。</div>
             </div>
           </div>
         `);
@@ -232,6 +240,7 @@ export function createRenderMons({
           <div class="row__right">
             <button class="btn btn--small${feedAllCount > 0 ? ' btn--warning' : ''}" data-mon-feed-all="1" ${canFeedAll ? "" : "disabled"}>一键喂食${feedAllCount > 0 ? `（${feedAllCount}只）` : '（已满）'}</button>
             <button class="btn btn--small" data-mon-batch-candy="1" ${canBatchCandy ? "" : "disabled"}>各喂1糖${canBatchCandy ? `（${batchCandyCount}只）` : ""}</button>
+            <button class="btn btn--small btn--danger" data-mon-batch-release="1" ${canBatchRelease ? "" : "disabled"}>批量放生弱宠${canBatchRelease ? `（${batchReleaseIds.length}只）` : ""}</button>
           </div>
         </div>
       `);

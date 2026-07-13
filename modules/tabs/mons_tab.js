@@ -1,3 +1,9 @@
+import {
+  busyMonIds,
+  pickWeakMonIds,
+  releaseMonIds,
+} from "../systems/mon_release.js";
+
 export function initMonsTab({
   elMonBack,
   elMonList,
@@ -558,6 +564,28 @@ export function initMonsTab({
           addLog(`批量喂糖：${fed} 只各 +1Lv（消耗神奇糖果 ${fed}）`, true);
         } else {
           addLog("批量喂糖：无可用精灵或糖果不足", true);
+        }
+        markMonListDirty(false);
+        render();
+        return;
+      }
+
+      const batchReleaseBtn = ev.target?.closest?.("button[data-mon-batch-release]");
+      if (batchReleaseBtn && elMonList.contains(batchReleaseBtn)) {
+        if (batchReleaseBtn.disabled) return;
+        const list = state.mons?.list ?? [];
+        const ids = pickWeakMonIds(list, { protectIds: busyMonIds(state) });
+        if (!ids.length) {
+          addLog("批量放生：盒子未满或没有可放生的弱宠", true);
+          return;
+        }
+        const { removed, candy, sampleNames } = releaseMonIds(state, ids, { addRes });
+        const names = sampleNames.join("、");
+        const suffix = removed > sampleNames.length ? ` 等 ${removed} 只` : "";
+        if (candy > 0) {
+          addLog(`批量放生：${names}${suffix} → 神奇糖果 +${candy}`, true);
+        } else {
+          addLog(`批量放生：${names}${suffix}`, true);
         }
         markMonListDirty(false);
         render();

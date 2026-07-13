@@ -10,6 +10,8 @@ import {
   partyHasAlwaysEscape,
   pityFailStep,
   resetCatchStreak,
+  noteCatchNearMiss,
+  clearCatchNearMiss,
   tryBallSave,
   typeZh,
 } from "../systems/gameplay_fun.js";
@@ -354,6 +356,7 @@ export function initCaptureTab({
           if (!state.rng) state.rng = { catchFails: 0 };
           state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + pityFailStep(state, randFloat, ui.encounterNature));
           onCatchFailFun(state);
+          noteCatchNearMiss(ui, p.id, chance);
           ui.encounterPid = null;
           ui.encounterNature = null;
           ui.encounterIsShiny = false;
@@ -366,6 +369,7 @@ export function initCaptureTab({
         }
         if (!state.rng) state.rng = { catchFails: 0 };
         state.rng.catchFails = 0;
+        clearCatchNearMiss(ui);
         ui.encounterPid = null;
         ui.encounterNature = null;
         const isShiny = Boolean(ui.encounterIsShiny);
@@ -621,6 +625,7 @@ export function initCaptureTab({
           if (!state.rng) state.rng = { catchFails: 0 };
           state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + pityFailStep(state, randFloat, ui.encounterNature));
           onCatchFailFun(state);
+          noteCatchNearMiss(ui, p.id, chance);
 
           if (Boolean(ui.captureAutoEncounter)) {
             ui.encounterPid = null;
@@ -645,7 +650,7 @@ export function initCaptureTab({
             setTimeout(() => elCaptureActions.classList.remove("capture-fail-shake"), 500);
           }
 
-          if (chance >= 0.5) addLog(`差一点！成功率约 ${Math.round(chance * 100)}%`);
+          if (chance >= 0.35) addLog(`差一点！成功率约 ${Math.round(chance * 100)}%`);
 
           const clearEncounter = randFloat() < 0.5;
           if (clearEncounter) {
@@ -666,6 +671,7 @@ export function initCaptureTab({
 
         if (!state.rng) state.rng = { catchFails: 0 };
         state.rng.catchFails = 0;
+        clearCatchNearMiss(ui);
         ui.encounterPid = null;
         ui.encounterNature = null;
         const isShiny = Boolean(ui.encounterIsShiny);
@@ -727,6 +733,7 @@ export function initCaptureTab({
 
         if (!state.rng) state.rng = { catchFails: 0 };
         state.rng.catchFails = 0;
+        clearCatchNearMiss(ui);
         ui.encounterPid = null;
         ui.encounterNature = null;
         const isShiny = Boolean(ui.encounterIsShiny);

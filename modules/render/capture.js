@@ -471,6 +471,7 @@ export function createRenderCapture({
           </div>
           <div class="row__right">
             ${enc ? `<div class="badge">成功率：${Math.round(effChance * 100)}%</div>` : ""}
+            ${enc && ui.lastCatchNearMiss?.pid === enc.id ? `<div class="badge badge--warning">差一点！上次约 ${ui.lastCatchNearMiss.pct}%</div>` : ""}
             <div class="badge">${escapeHtml(pityText)}</div>
             <div class="badge">精灵球：${pbVal}/${pbCap}</div>
             ${mbVal > 0 ? `<div class="badge">大师球：${mbVal}</div>` : ""}

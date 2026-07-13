@@ -19,6 +19,13 @@ import {
   monPower,
 } from "../modules/mons.js";
 import { clamp } from "../modules/utils.js";
+import { calcTypeMul } from "../modules/type_chart.js";
+import {
+  busyMonIds,
+  pickWeakMonIds,
+  releaseMonIds,
+  BOX_SOFT_LIMIT,
+} from "../modules/systems/mon_release.js";
 import { pokemon } from "../modules/pokemon_defs.js";
 import { BUILDING_DEFS } from "../modules/defs_buildings.js";
 import { RESOURCE_DEFS } from "../modules/defs_resources.js";
@@ -275,24 +282,24 @@ function gatherOnce() {
   return true;
 }
 
-const BOX_SOFT_LIMIT = 120;
-const BOX_RELEASE_BATCH = 24;
+
+function pveTeamScore(mon, stage) {
+  const atkTypes = globalThis.POKEMON_TYPES?.[mon.dex] || ["normal"];
+  let typeBonus = 0;
+  for (const e of stage.enemies || []) {
+    const defTypes = Array.isArray(e.types) && e.types.length ? e.types : [stage.type || "normal"];
+    const mul = calcTypeMul(atkTypes, defTypes);
+    if (mul >= 2) typeBonus += 400;
+    else if (mul <= 0.5) typeBonus -= 150;
+  }
+  return monPower(mon) + typeBonus;
+}
 
 function tryReleaseWeakMons() {
   const list = state.mons?.list || [];
-  if (list.length <= BOX_SOFT_LIMIT) return 0;
-  const ranked = list
-    .slice()
-    .sort((a, b) => monPower(a) - monPower(b) || (a.lvl || 1) - (b.lvl || 1));
-  const dropN = Math.min(BOX_RELEASE_BATCH, list.length - BOX_SOFT_LIMIT);
-  const dropIds = new Set(ranked.slice(0, dropN).map((m) => m.id));
-  let removed = 0;
-  state.mons.list = list.filter((m) => {
-    if (!m || !dropIds.has(m.id)) return true;
-    removed += 1;
-    return false;
-  });
-  return removed;
+  const ids = pickWeakMonIds(list, { protectIds: busyMonIds(state) });
+  if (!ids.length) return 0;
+  return releaseMonIds(state, ids).removed;
 }
 
 function maintainBallStock() {
@@ -488,7 +495,7 @@ function tryPve() {
   const st = info.stage;
   const teamMons = list
     .slice()
-    .sort((a, b) => monPower(b) - monPower(a))
+    .sort((a, b) => pveTeamScore(b, st) - pveTeamScore(a, st) || monPower(b) - monPower(a))
     .slice(0, 6);
   state.pve.selectedIds = teamMons.map((m) => m.id);
   state.pve.dailyAttempts = (state.pve.dailyAttempts || 0) + 1;

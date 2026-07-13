@@ -18,6 +18,7 @@ import {
   natureResCapMul,
   natureResProdMul,
   natureTrainExpMul,
+  noteCatchNearMiss,
   partyBestPassive,
   partyHasAlwaysEscape,
   pityFailStep,
@@ -173,6 +174,14 @@ import {
     7200
   );
   assert.ok(summary.includes("远征完成 +2"), "expedition offline delta");
+}
+
+{
+  const ui = {};
+  noteCatchNearMiss(ui, "pika", 0.42);
+  assert.equal(ui.lastCatchNearMiss?.pct, 42, "near miss pct");
+  noteCatchNearMiss(ui, "pika", 0.2);
+  assert.equal(ui.lastCatchNearMiss, null, "near miss clear low");
 }
 
 console.log("gameplay-fun-selfcheck: ok");

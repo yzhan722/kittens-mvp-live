@@ -88,6 +88,30 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
 
     elPvpInvites.innerHTML = html;
   }
+
+  function renderPvpRecent() {
+    const el = document.getElementById("pvpRecent");
+    if (!el) return;
+    const recent = Array.isArray(ui.pvpRecent) ? ui.pvpRecent : [];
+    if (!recent.length) {
+      el.innerHTML = "";
+      return;
+    }
+    let html = `<div class="row"><div class="row__left"><div class="row__title">最近战果</div></div></div>`;
+    for (const item of recent) {
+      const tone =
+        item.winner === 2 ? "badge--success" : item.winner === 1 ? "badge--warning" : "badge--muted";
+      html += `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__desc"><span class="badge ${tone}">${item.winner === 2 ? "胜" : item.winner === 1 ? "负" : "平"}</span> ${escapeHtml(item.line || "")}</div>
+            <div class="row__meta">${formatTime(item.at || Date.now())}</div>
+          </div>
+        </div>
+      `;
+    }
+    el.innerHTML = html;
+  }
   
   // 渲染好友动态（成就分享）
   async function renderFriendFeed() {
@@ -299,6 +323,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     renderMessages,
     renderFriendProfile,
     renderPvpInvites,
+    renderPvpRecent,
   };
 }
 

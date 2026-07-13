@@ -35,6 +35,8 @@ import { EXP_LEVELS, getExpLevelDef } from "../modules/expedition_defs.js";
 import { BUILDING_DEFS } from "../modules/defs_buildings.js";
 import { computeDerived as computeDerivedCore } from "../modules/systems/compute_derived.js";
 import { awardCaughtPokemon as awardCaughtCore } from "../modules/app/capture_award.js";
+import { pickWeakMonIds, releaseCandyRefund } from "../modules/systems/mon_release.js";
+import { summarizePvpBattle } from "../modules/systems/pvp_narrative.js";
 import { techReqHint } from "../modules/tech_req_hint.js";
 import { getTypeMul, TYPE_MUL } from "../modules/type_chart.js";
 import {
@@ -265,6 +267,27 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
   assert(capSt.dex.caught.bulbasaur === 1, "capture award dex");
   assert(capSt.shinyCount === 1, "capture award shiny");
   assert(capSt.mons.list[0]?.caughtWith === "greatball", "capture award ball");
+}
+
+{
+  assert(releaseCandyRefund(250) === 2, "release candy refund");
+  const bs = { hp: 50, atk: 50, def: 50, spa: 50, spd: 50, spe: 50 };
+  const iv = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+  const ids = pickWeakMonIds(
+    [
+      { id: 1, lvl: 5, dex: 1, baseStats: bs, iv },
+      { id: 2, lvl: 10, dex: 2, baseStats: bs, iv },
+      { id: 3, lvl: 1, dex: 3, baseStats: bs, iv },
+    ],
+    { softLimit: 1, batch: 2, protectIds: new Set([2]) }
+  );
+  assert(ids.length === 2 && !ids.includes(2), "pick weak mon ids");
+  const pvpLine = summarizePvpBattle({
+    winner: 2,
+    rounds: 8,
+    battleLog: ["你 派出 皮卡丘！", "对手 倒下了！", "你获胜！"],
+  });
+  assert(pvpLine.includes("险胜"), "pvp narrative win");
 }
 
 import { createPvpBattle } from "../modules/pvp_battle.js";

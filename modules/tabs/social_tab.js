@@ -1,5 +1,6 @@
 // 社交标签页
 import { escapeHtml } from "../utils.js";
+import { summarizePvpBattle } from "../systems/pvp_narrative.js";
 
 export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friendsSystem, state, createPvpBattle, getMonCurrentStats, getPokeApiDataByDex }) {
   
@@ -36,6 +37,10 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
   // 渲染 PVP 邀请列表
   async function renderPvpInvites() {
     return renderSocial.renderPvpInvites();
+  }
+
+  async function renderPvpRecent() {
+    return renderSocial.renderPvpRecent();
   }
 
   // 渲染我的队伍
@@ -102,6 +107,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
         </div>
         <div class="social-section">
           <h3>PVP 对战</h3>
+          <div id="pvpRecent"></div>
           <div id="pvpInvites"></div>
           <div class="pvp-team-selector" style="margin-top: 1rem;">
             <h4>我的队伍</h4>
@@ -147,6 +153,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     loadFriendsList();
 
     // 渲染初始内容
+    renderPvpRecent();
     renderPvpInvites();
     renderSocial.renderFriendFeed();
     renderSocial.renderMessages();
@@ -240,10 +247,17 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
         result.battleLog
       );
 
+      const line = summarizePvpBattle(result);
+      addLog(`PvP：${line}`, result.winner === 2);
+      if (!ui.pvpRecent) ui.pvpRecent = [];
+      ui.pvpRecent.unshift({ line, winner: result.winner, at: Date.now() });
+      ui.pvpRecent = ui.pvpRecent.slice(0, 5);
+
       // 显示战斗结果
       showBattleResult(result);
 
       // 刷新邀请列表
+      renderPvpRecent();
       renderPvpInvites();
     });
 
