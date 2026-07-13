@@ -23,6 +23,8 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
       quickball: "首次遭遇捕获率 x5",
       luxuryball: "捕获后亲密度 +20",
       masterball: "用于捕捉精灵（必定成功）",
+      netball: "对虫/水/草属性捕获率 ×3",
+      duskball: "夜间捕获率 ×3，其余时段 ×1.2",
       futurecoin: "用于未来币商店兑换/升级",
       evolutionStone: "用于进化页的石之进化（消耗 x1）",
       megaStone: "超级觉醒：1小时内 PvE 能力+20%",
@@ -30,6 +32,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
       rareCandy: "喂食精灵 +1Lv",
       bigBerry: "使用：全体精灵饱腹度 +50",
       hugeBerry: "使用：获得 24 小时巨大树果加成",
+      expCandyS: "使用：精灵获得 200 经验",
       expCandy: "使用：精灵获得 1000 经验",
       expCandyL: "使用：精灵获得 5000 经验",
       expCandyXL: "使用：精灵获得 20000 经验",
@@ -39,6 +42,10 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
       luckyEgg: "使用：指定精灵 1小时经验 x1.5（与商店全局双倍可叠加）",
       bottleCap: "使用：精灵单项个体值提升至31",
       goldBottleCap: "使用：精灵所有个体值提升至31（6V）",
+      energyDrink: "使用：采集充能 +250",
+      searchFlare: "使用：遭遇充能 +25",
+      advSearchCell: "使用：高级搜索次数 +2",
+      sootheBell: "使用：全体精灵亲密度 +3",
       hpPotion: "使用：HP 永久 +5（单项上限 +50）",
       atkPotion: "使用：攻击 永久 +5（单项上限 +50）",
       defPotion: "使用：防御 永久 +5（单项上限 +50）",
@@ -189,7 +196,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
             if (have < 1) return;
             state.res.hugeBerry.value = Math.max(0, have - 1);
             if (!state.skills || typeof state.skills !== "object") {
-              state.skills = { trainingStacks: [], normalBoostStacks: [], bullyHp: 100, hugeBerryBuffRemainingSec: 0 };
+              state.skills = { trainingStacks: [], normalBoostStacks: [], hugeBerryBuffRemainingSec: 0 };
             }
             const rem0 =
               typeof state.skills.hugeBerryBuffRemainingSec === "number" && Number.isFinite(state.skills.hugeBerryBuffRemainingSec)
@@ -208,9 +215,35 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
             return;
           }
 
+          if (rid === "energyDrink") {
+            const result = itemUsage.useEnergyDrink();
+            if (!result.success) failMsg(result.message);
+            render();
+            return;
+          }
+          if (rid === "searchFlare") {
+            const result = itemUsage.useSearchFlare();
+            if (!result.success) failMsg(result.message);
+            render();
+            return;
+          }
+          if (rid === "advSearchCell") {
+            const result = itemUsage.useAdvSearchCell();
+            if (!result.success) failMsg(result.message);
+            render();
+            return;
+          }
+          if (rid === "sootheBell") {
+            const result = itemUsage.useSootheBell();
+            if (!result.success) failMsg(result.message);
+            else if (typeof markMonsDirty === "function") markMonsDirty();
+            render();
+            return;
+          }
+
           // 需要选择精灵的道具
           const needMonSelection = [
-            "expCandy", "expCandyL", "expCandyXL",
+            "expCandyS", "expCandy", "expCandyL", "expCandyXL",
             "affectionTreat", "friendshipBracelet",
             "luckyEgg", "bottleCap", "goldBottleCap", "megaStone"
           ];
@@ -264,7 +297,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
 
           let result = { success: false, message: "未知错误" };
 
-          if (["expCandy", "expCandyL", "expCandyXL"].includes(itemType)) {
+          if (["expCandyS", "expCandy", "expCandyL", "expCandyXL"].includes(itemType)) {
             result = itemUsage.useExpCandy(monId, itemType);
           } else if (["affectionTreat", "friendshipBracelet"].includes(itemType)) {
             result = itemUsage.useAffectionItem(monId, itemType);
@@ -296,22 +329,29 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
       { rid: "ultraball", category: "捕捉" },
       { rid: "quickball", category: "捕捉" },
       { rid: "luxuryball", category: "捕捉" },
+      { rid: "netball", category: "捕捉" },
+      { rid: "duskball", category: "捕捉" },
       { rid: "masterball", category: "捕捉" },
       { rid: "futurecoin", category: "货币" },
       { rid: "evolutionStone", category: "进化" },
       { rid: "megaStone", category: "进化" },
       { rid: "linkRope", category: "进化" },
       { rid: "rareCandy", category: "培养" },
+      { rid: "expCandyS", category: "培养" },
       { rid: "expCandy", category: "培养" },
       { rid: "expCandyL", category: "培养" },
       { rid: "expCandyXL", category: "培养" },
       { rid: "affectionTreat", category: "培养" },
       { rid: "friendshipBracelet", category: "培养" },
+      { rid: "sootheBell", category: "培养" },
       { rid: "luckyEgg", category: "培养" },
       { rid: "bottleCap", category: "培养" },
       { rid: "goldBottleCap", category: "培养" },
       { rid: "bigBerry", category: "消耗品" },
       { rid: "hugeBerry", category: "消耗品" },
+      { rid: "energyDrink", category: "消耗品" },
+      { rid: "searchFlare", category: "消耗品" },
+      { rid: "advSearchCell", category: "消耗品" },
       { rid: "shinyCharm", category: "特殊" },
       { rid: "hpPotion", category: "药剂" },
       { rid: "atkPotion", category: "药剂" },
@@ -367,11 +407,11 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
 
         // 判断是否可以使用
         const needMonSelection = [
-          "expCandy", "expCandyL", "expCandyXL",
+          "expCandyS", "expCandy", "expCandyL", "expCandyXL",
           "affectionTreat", "friendshipBracelet",
           "luckyEgg", "bottleCap", "goldBottleCap", "megaStone"
         ];
-        const simpleUse = ["bigBerry", "hugeBerry", "shinyCharm"];
+        const simpleUse = ["bigBerry", "hugeBerry", "shinyCharm", "energyDrink", "searchFlare", "advSearchCell", "sootheBell"];
         const canUse = (r?.value ?? 0) >= 1;
         const showUseBtn = simpleUse.includes(rid) || needMonSelection.includes(rid);
         const useBtn = showUseBtn
@@ -448,7 +488,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
           <div class="row__desc">${careDesc}</div>
         </div>
         <div class="row__right">
-          ${recommendRid && ["bigBerry", "hugeBerry", "shinyCharm", "expCandy", "expCandyL", "expCandyXL", "affectionTreat", "friendshipBracelet", "luckyEgg", "bottleCap", "goldBottleCap", "megaStone"].includes(recommendRid)
+          ${recommendRid && ["bigBerry", "hugeBerry", "shinyCharm", "energyDrink", "searchFlare", "advSearchCell", "sootheBell", "expCandyS", "expCandy", "expCandyL", "expCandyXL", "affectionTreat", "friendshipBracelet", "luckyEgg", "bottleCap", "goldBottleCap", "megaStone"].includes(recommendRid)
             ? `<button class="btn btn--small" data-item-use="${recommendRid}">去使用</button>`
             : ""}
           <button class="btn btn--small" data-item-feed-hungry="1" ${feedOk ? "" : "disabled"}>一键补饱${hungry ? `（${hungry.name}）` : ""}</button>
@@ -466,6 +506,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
     if (ui.itemUseModalOpen && ui.itemUseType) {
       const itemType = ui.itemUseType;
       const itemNames = {
+        expCandyS: "经验糖果S",
         expCandy: "经验糖果",
         expCandyL: "经验糖果L",
         expCandyXL: "经验糖果XL",

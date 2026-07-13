@@ -2,7 +2,7 @@
 import { PVE_CHAPTERS, PVE_DAILY_MAX, getStageById, isStageUnlocked } from "../pve_defs.js";
 import { simulateBattle, recommendedTypes, typeMatchScore, estimateStageEnemyPower, pveFightModifiers } from "../pve_battle.js";
 import { getEraDefById } from "../defs_eras.js";
-import { natureIncomingDamageMul, bumpPveWinStreak, resetPveWinStreak, pveDailyFirstWinMul, bumpSessionPveWin, localDateStr } from "../systems/gameplay_fun.js";
+import { natureIncomingDamageMul, abilityOutgoingDamageMul, bumpPveWinStreak, resetPveWinStreak, pveDailyFirstWinMul, bumpSessionPveWin, localDateStr } from "../systems/gameplay_fun.js";
 import { ensureEra } from "../systems/era.js";
 import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS } from "../systems/pve_tower.js";
 
@@ -523,7 +523,7 @@ export function createRenderPve({
     const clearedBefore = Boolean(state.pve.progress[st.id]);
     const tut = pveFightModifiers(st.id, clearedBefore);
     const result = simulateBattle(team, st.enemies, st.type, {
-      playerDamageMul: (darkBoostOn ? 1.5 : 1) * tut.playerDamageMul,
+      playerDamageMul: (darkBoostOn ? 1.5 : 1) * tut.playerDamageMul * abilityOutgoingDamageMul(state),
       incomingDamageMul: natureIncomingDamageMul(state) * tut.incomingDamageMul,
       enemyHpMul: tut.enemyHpMul,
     });
@@ -653,7 +653,7 @@ export function createRenderPve({
       Number.isFinite(state.skills.darkPveDamageBoostRemainingSec) &&
       state.skills.darkPveDamageBoostRemainingSec > 0;
     const result = simulateBattle(team, floorDef.enemies, floorDef.type, {
-      playerDamageMul: darkBoostOn ? 1.5 : 1,
+      playerDamageMul: (darkBoostOn ? 1.5 : 1) * abilityOutgoingDamageMul(state),
       incomingDamageMul: natureIncomingDamageMul(state),
       enemyHpMul: 1 + (floorDef.floor - 1) * 0.05,
     });

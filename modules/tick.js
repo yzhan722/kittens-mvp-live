@@ -320,7 +320,6 @@ export function createTick(ctx) {
       state.skills = {
         trainingStacks: [],
         normalBoostStacks: [],
-        bullyHp: 100,
         hugeBerryBuffRemainingSec: 0,
         steelBallDiscountCharges: 0,
         iceSatietySlowRemainingSec: 0,
@@ -401,6 +400,26 @@ export function createTick(ctx) {
       if (ui.activeTab === "future") ui.futureDirty = true;
     }
     const expBoostOn = expBoost1 > 0;
+
+    const captureBoost0 =
+      typeof state.captureBoostRemainingSec === "number" && Number.isFinite(state.captureBoostRemainingSec)
+        ? state.captureBoostRemainingSec
+        : 0;
+    const captureBoost1 = captureBoost0 > 0 ? Math.max(0, captureBoost0 - dtSec) : 0;
+    if (captureBoost0 !== captureBoost1) {
+      state.captureBoostRemainingSec = captureBoost1;
+      if (ui.activeTab === "future") ui.futureDirty = true;
+    }
+
+    const prodBoost0 =
+      typeof state.prodBoostRemainingSec === "number" && Number.isFinite(state.prodBoostRemainingSec)
+        ? state.prodBoostRemainingSec
+        : 0;
+    const prodBoost1 = prodBoost0 > 0 ? Math.max(0, prodBoost0 - dtSec) : 0;
+    if (prodBoost0 !== prodBoost1) {
+      state.prodBoostRemainingSec = prodBoost1;
+      if (ui.activeTab === "future") ui.futureDirty = true;
+    }
 
     const shinyCharm0 =
       typeof state.shinyCharmRemainingSec === "number" && Number.isFinite(state.shinyCharmRemainingSec) ? state.shinyCharmRemainingSec : 0;

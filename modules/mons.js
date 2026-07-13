@@ -1,5 +1,6 @@
 import { clamp, nowMs, randFloat } from "./utils.js";
 import { getStarBonusMul } from "./stars.js";
+import { getAbilityInfo, monPassive, rollAbility } from "./abilities.js";
 
 // ========== 性格系统 ==========
 export const NATURES = [
@@ -31,30 +32,28 @@ export const NATURES = [
 ];
 
 // 特殊性格的被动技能加成
+// @deprecated 效果已迁至 abilities.js；保留映射仅供旧代码/测试对照，运行时请用 monPassive()
 export const NATURE_PASSIVE = {
-  // 原有 8 种
-  adamant: { desc: "训练经验 +5%",          key: "trainExpBonus",       val: 0.05 },
-  timid:   { desc: "捕获省球（10%概率）",    key: "ballSaveChance",      val: 0.10 },
-  serious: { desc: "研究速度 +3%",          key: "researchSpeedBonus",  val: 0.03 },
-  relaxed: { desc: "饱腹恢复 +10%",         key: "satietyRegenBonus",   val: 0.10 },
-  impish:  { desc: "远征时间 -5%",          key: "expeditionTimeBonus", val: 0.05 },
-  jolly:   { desc: "亲密度获取 +5%",        key: "affectionBonus",      val: 0.05 },
-  modest:  { desc: "图鉴加成 +2%",          key: "dexBonusExtra",       val: 0.02 },
-  calm:    { desc: "资源产量 +3%",          key: "resProdBonus",        val: 0.03 },
-  // 新增 8 种
-  lonely:  { desc: "单独上阵训练经验 +8%",  key: "soloTrainExpBonus",   val: 0.08 },
-  bold:    { desc: "被攻击时减伤 +5%",      key: "defDamageReduce",     val: 0.05 },
-  hasty:   { desc: "遭遇充能恢复 +10%",     key: "encounterRechargeBonus", val: 0.10 },
-  naive:   { desc: "高级遭遇未捕获偏好 +10%", key: "advEncMissingBonus",  val: 0.10 },
-  mild:    { desc: "繁殖速度 +5%",          key: "breedSpeedBonus",     val: 0.05 },
-  lax:     { desc: "资源上限 +2%",          key: "resCapBonus",         val: 0.02 },
-  naughty: { desc: "逃跑必定成功",          key: "alwaysEscape",        val: 1.00 },
-  gentle:  { desc: "饱腹消耗 -5%",          key: "satietyDecayReduce",  val: 0.05 },
-  // 中性性格：20% 概率把本次失败计为 2 次（pityAccelBonus）
-  hardy:   { desc: "均衡型·保底积累 +20%",  key: "pityAccelBonus",      val: 0.20 },
-  docile:  { desc: "均衡型·保底积累 +20%",  key: "pityAccelBonus",      val: 0.20 },
-  bashful: { desc: "均衡型·保底积累 +20%",  key: "pityAccelBonus",      val: 0.20 },
-  quirky:  { desc: "均衡型·保底积累 +20%",  key: "pityAccelBonus",      val: 0.20 },
+  adamant: { desc: "训练经验 +5%", key: "trainExpBonus", val: 0.05 },
+  timid: { desc: "捕获省球（10%概率）", key: "ballSaveChance", val: 0.1 },
+  serious: { desc: "研究速度 +3%", key: "researchSpeedBonus", val: 0.03 },
+  relaxed: { desc: "饱腹恢复 +10%", key: "satietyRegenBonus", val: 0.1 },
+  impish: { desc: "远征时间 -5%", key: "expeditionTimeBonus", val: 0.05 },
+  jolly: { desc: "亲密度获取 +5%", key: "affectionBonus", val: 0.05 },
+  modest: { desc: "图鉴加成 +2%", key: "dexBonusExtra", val: 0.02 },
+  calm: { desc: "资源产量 +3%", key: "resProdBonus", val: 0.03 },
+  lonely: { desc: "单独上阵训练经验 +8%", key: "soloTrainExpBonus", val: 0.08 },
+  bold: { desc: "被攻击时减伤 +5%", key: "defDamageReduce", val: 0.05 },
+  hasty: { desc: "遭遇充能恢复 +10%", key: "encounterRechargeBonus", val: 0.1 },
+  naive: { desc: "高级遭遇未捕获偏好 +10%", key: "advEncMissingBonus", val: 0.1 },
+  mild: { desc: "繁殖速度 +5%", key: "breedSpeedBonus", val: 0.05 },
+  lax: { desc: "资源上限 +2%", key: "resCapBonus", val: 0.02 },
+  naughty: { desc: "逃跑必定成功", key: "alwaysEscape", val: 1.0 },
+  gentle: { desc: "饱腹消耗 -5%", key: "satietyDecayReduce", val: 0.05 },
+  hardy: { desc: "均衡型·保底积累 +20%", key: "pityAccelBonus", val: 0.2 },
+  docile: { desc: "均衡型·保底积累 +20%", key: "pityAccelBonus", val: 0.2 },
+  bashful: { desc: "均衡型·保底积累 +20%", key: "pityAccelBonus", val: 0.2 },
+  quirky: { desc: "均衡型·保底积累 +20%", key: "pityAccelBonus", val: 0.2 },
 };
 
 export function rollNature() {
@@ -156,7 +155,12 @@ export function getMonCurrentStats(mon, getPokeApiDataByDex) {
 
 export function monPower(mon, getPokeApiDataByDex) {
   const s = getMonCurrentStats(mon, getPokeApiDataByDex);
-  return s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
+  let p = s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
+  const pass = monPassive(mon);
+  if (pass?.key === "pvePowerBonus" && typeof pass.val === "number") {
+    p = Math.floor(p * (1 + pass.val));
+  }
+  return p;
 }
 
 export function createMonInstance(species, opts = {}) {
@@ -172,7 +176,10 @@ export function createMonInstance(species, opts = {}) {
 
   const iv = rollIv();
   const baseStats = createBaseStats(species);
-  const nature = rollNature();
+  const nature =
+    typeof opts?.nature === "string" && NATURES.some((n) => n.id === opts.nature) ? opts.nature : rollNature();
+  const ability =
+    typeof opts?.ability === "string" && getAbilityInfo(opts.ability) ? opts.ability : rollAbility();
 
   return {
     id,
@@ -186,6 +193,7 @@ export function createMonInstance(species, opts = {}) {
     affection: 0,
     stars: 0,
     nature,
+    ability,
     autoExpCarry: 0,
     affectionCarry: 0,
     baseStats,

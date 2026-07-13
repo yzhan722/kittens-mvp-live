@@ -16,7 +16,9 @@ import {
   tryBallSave,
   typeZh,
   captureSessionProgress,
+  abilityCatchRateAdd,
 } from "../systems/gameplay_fun.js";
+import { ballCatchMult } from "../systems/ball_catch.js";
 
 export function initCaptureTab({
   elCaptureArea,
@@ -59,7 +61,7 @@ export function initCaptureTab({
     const r = state.res?.[ballType];
     if (!r) return;
     r.value = Math.max(0, (r.value ?? 0) + 1);
-    addLog("胆怯性格：精灵球被弹回！");
+    addLog("捡拾：精灵球被弹回！");
   };
 
   const onCatchSuccessFun = (state) => {
@@ -351,20 +353,16 @@ export function initCaptureTab({
         state.res[ballType].value = Math.max(0, (state.res[ballType]?.value ?? 0) - 1);
         refundBallIfSaved(state, ballType);
         const techEff = computeTechEffects();
-        const add = typeof techEff.catchChanceAdd === "number" ? techEff.catchChanceAdd : 0;
+        const add = (typeof techEff.catchChanceAdd === "number" ? techEff.catchChanceAdd : 0) + abilityCatchRateAdd(state);
         const dragonRem = typeof state.skills?.dragonCatchBoostRemainingSec === "number" && Number.isFinite(state.skills.dragonCatchBoostRemainingSec) ? Math.max(0, state.skills.dragonCatchBoostRemainingSec) : 0;
         const dragonAdd = dragonRem > 0 ? 0.1 : 0;
         const mult = Math.max(0, 1 + add + dragonAdd);
         const base = baseCatchChanceByDex(p.dex);
         const fails = typeof state.rng?.catchFails === "number" ? state.rng.catchFails : 0;
         const pity = Math.min(0.02 * Math.max(0, Math.floor(fails)), 0.2);
-        let ballMult = 1;
-        if (ballType === "ultraball") ballMult = 2;
-        else if (ballType === "quickball") {
-          const caughtMap = state.dex && typeof state.dex === "object" ? state.dex.caught : null;
-          const caughtCount = caughtMap && typeof caughtMap[p.id] === "number" ? caughtMap[p.id] : 0;
-          ballMult = caughtCount === 0 ? 5 : 1;
-        }
+        const caughtMap = state.dex && typeof state.dex === "object" ? state.dex.caught : null;
+        const caughtCount = caughtMap && typeof caughtMap[p.id] === "number" ? caughtMap[p.id] : 0;
+        const ballMult = ballCatchMult(ballType, { types: getMonTypesForBias(p), caughtCount });
         const luckyMul = luckyCatchMul(state, getMonTypesForBias(p));
         let chance = base * mult * ballMult * luckyMul * natureWildCatchMul(ui.encounterNature) + pity;
         chance = clamp(chance, 0, 0.95);
@@ -393,7 +391,7 @@ export function initCaptureTab({
         ui.shinyModalOpen = false;
         ui.mythicModalOpen = false;
         const luxuryBonus = ballType === "luxuryball" ? 20 : 0;
-        awardCaughtPokemon(p, { isShiny, affectionBonus: luxuryBonus, ballType });
+        awardCaughtPokemon(p, { isShiny, affectionBonus: luxuryBonus, ballType, nature: ui.encounterNature || undefined });
         onCatchSuccessFun(state);
         if (luxuryBonus > 0) addLog(`豪华球效果：${p.name} 亲密度 +${luxuryBonus}`);
         const didAuto = tryAutoEncounter();
@@ -610,7 +608,7 @@ export function initCaptureTab({
         refundBallIfSaved(state, ballType);
 
         const techEff = computeTechEffects();
-        const add = typeof techEff.catchChanceAdd === "number" ? techEff.catchChanceAdd : 0;
+        const add = (typeof techEff.catchChanceAdd === "number" ? techEff.catchChanceAdd : 0) + abilityCatchRateAdd(state);
         const dragonRem =
           typeof state.skills?.dragonCatchBoostRemainingSec === "number" && Number.isFinite(state.skills.dragonCatchBoostRemainingSec)
             ? Math.max(0, state.skills.dragonCatchBoostRemainingSec)
@@ -621,18 +619,9 @@ export function initCaptureTab({
         const fails = typeof state.rng?.catchFails === "number" ? state.rng.catchFails : 0;
         const pity = Math.min(0.02 * Math.max(0, Math.floor(fails)), 0.2);
         
-        // 特殊精灵球效果
-        let ballMult = 1;
-        if (ballType === "ultraball") {
-          ballMult = 2; // 高级球：捕获率 x2
-        } else if (ballType === "quickball") {
-          // 先机球：首次遭遇 x5
-          const caughtMap = state.dex && typeof state.dex === "object" ? state.dex.caught : null;
-          const caughtCount = caughtMap && typeof caughtMap[p.id] === "number" ? caughtMap[p.id] : 0;
-          ballMult = caughtCount === 0 ? 5 : 1;
-        } else if (ballType === "luxuryball") {
-          ballMult = 1; // 豪华球：捕获率不变，但捕获后亲密度+20
-        }
+        const caughtMap = state.dex && typeof state.dex === "object" ? state.dex.caught : null;
+        const caughtCount = caughtMap && typeof caughtMap[p.id] === "number" ? caughtMap[p.id] : 0;
+        const ballMult = ballCatchMult(ballType, { types: getMonTypesForBias(p), caughtCount });
         
         let chance = base * mult * ballMult * luckyCatchMul(state, getMonTypesForBias(p)) * natureWildCatchMul(ui.encounterNature) + pity;
         chance = clamp(chance, 0, 0.95);
@@ -710,7 +699,7 @@ export function initCaptureTab({
         // 记录捕捉前的唯一数量，用于里程碑检测
         const uniqueBefore = Object.values(state.dex?.caught ?? {}).filter((v) => typeof v === "number" && v > 0).length;
         
-        awardCaughtPokemon(p, { isShiny, affectionBonus: luxuryBonus, ballType });
+        awardCaughtPokemon(p, { isShiny, affectionBonus: luxuryBonus, ballType, nature: ui.encounterNature || undefined });
         onCatchSuccessFun(state);
         
         if (luxuryBonus > 0) {
@@ -764,7 +753,7 @@ export function initCaptureTab({
           setTimeout(() => elCaptureActions.classList.remove("capture-success-flash"), 900);
         }
         const uniqueBeforeMb = Object.values(state.dex?.caught ?? {}).filter((v) => typeof v === "number" && v > 0).length;
-        awardCaughtPokemon(p, { isShiny, ballType: "masterball" });
+        awardCaughtPokemon(p, { isShiny, ballType: "masterball", nature: ui.encounterNature || undefined });
         onCatchSuccessFun(state);
         addLog(`大师球捕捉：${p.name} 捕捉成功！`, true);
         const uniqueAfterMb = Object.values(state.dex?.caught ?? {}).filter((v) => typeof v === "number" && v > 0).length;

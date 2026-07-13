@@ -14,9 +14,11 @@ import {
   ensureLuckyWeek,
   luckyCatchMul,
   natureWildCatchMul,
+  abilityCatchRateAdd,
   typeZh,
 } from "../systems/gameplay_fun.js";
-import { NATURE_PASSIVE } from "../mons.js";
+import { getNatureInfo } from "../mons.js";
+import { ballCatchMult } from "../systems/ball_catch.js";
 
 const MUTATOR_LABELS = {
   berryYield_12: "树果 +12%",
@@ -388,19 +390,11 @@ export function createRenderCapture({
       const encNatureId = typeof ui.encounterNature === "string" && ui.encounterNature ? ui.encounterNature : null;
       let encNatureHtml = "";
       if (enc && encNatureId) {
-        const NATURES_MAP = {
-          hardy:"勤奋",lonely:"孤僻",brave:"勇敢",adamant:"固执",naughty:"顽皮",
-          bold:"大胆",docile:"坦率",relaxed:"悠闲",impish:"淘气",lax:"随和",
-          timid:"胆小",hasty:"急躁",serious:"认真",jolly:"爽朗",naive:"天真",
-          modest:"内敛",mild:"温和",quiet:"冷静",bashful:"害羞",rash:"鲁莽",
-          calm:"温顺",gentle:"温柔",sassy:"自大",careful:"慎重",quirky:"浮躁",
-        };
-        const NATURE_PASSIVE_MAP = Object.fromEntries(
-          Object.entries(NATURE_PASSIVE).map(([id, p]) => [id, p.desc])
-        );
-        const natName = NATURES_MAP[encNatureId] || encNatureId;
-        const passive = NATURE_PASSIVE_MAP[encNatureId];
-        encNatureHtml = `<span class="badge badge--nature">性格：${escapeHtml(natName)}${passive ? ` · ${escapeHtml(passive)}` : ""}</span>`;
+        const natName = getNatureInfo(encNatureId)?.name || encNatureId;
+        const catchMul = natureWildCatchMul(encNatureId);
+        const catchHint =
+          catchMul > 1 ? "较易捕捉" : catchMul < 1 ? "较难捕捉" : "普通";
+        encNatureHtml = `<span class="badge badge--nature">性格：${escapeHtml(natName)} · ${catchHint}</span>`;
       }
 
       const encCharges0 =
@@ -458,7 +452,7 @@ export function createRenderCapture({
       `);
 
       const techEff2 = computeTechEffects();
-      const add2 = typeof techEff2.catchChanceAdd === "number" ? techEff2.catchChanceAdd : 0;
+      const add2 = (typeof techEff2.catchChanceAdd === "number" ? techEff2.catchChanceAdd : 0) + abilityCatchRateAdd(state);
       const fails2 = typeof state.rng?.catchFails === "number" ? state.rng.catchFails : 0;
       const pity2 = Math.min(0.02 * Math.max(0, Math.floor(fails2)), 0.2);
       const dragonRem2 =
@@ -467,15 +461,11 @@ export function createRenderCapture({
           : 0;
       const dragonAdd2 = dragonRem2 > 0 ? 0.1 : 0;
       const mult2 = Math.max(0, 1 + add2 + dragonAdd2);
-      let ballMult2 = 1;
       const selectedBallPreview = ui.selectedBallType || "pokeball";
-      if (selectedBallPreview === "ultraball") ballMult2 = 2;
-      else if (selectedBallPreview === "quickball" && enc) {
-        const caughtN = caughtMap && typeof caughtMap[enc.id] === "number" ? caughtMap[enc.id] : 0;
-        ballMult2 = caughtN === 0 ? 5 : 1;
-      }
+      const caughtN = enc && caughtMap && typeof caughtMap[enc.id] === "number" ? caughtMap[enc.id] : 0;
       const localTypes = globalThis.POKEMON_TYPES;
       const encTypes = enc && localTypes && typeof localTypes === "object" ? localTypes[enc.dex] : null;
+      const ballMult2 = ballCatchMult(selectedBallPreview, { types: encTypes, caughtCount: caughtN });
       const luckyMul2 = enc ? luckyCatchMul(state, encTypes) : 1;
       const natureCatchMul = enc ? natureWildCatchMul(ui.encounterNature) : 1;
       const effChance = enc
@@ -488,6 +478,8 @@ export function createRenderCapture({
       const ubVal = Math.max(0, Math.floor(state.res.ultraball?.value ?? 0));
       const qbVal = Math.max(0, Math.floor(state.res.quickball?.value ?? 0));
       const lbVal = Math.max(0, Math.floor(state.res.luxuryball?.value ?? 0));
+      const nbVal = Math.max(0, Math.floor(state.res.netball?.value ?? 0));
+      const dbVal = Math.max(0, Math.floor(state.res.duskball?.value ?? 0));
       const mbVal = Math.max(0, Math.floor(state.res.masterball?.value ?? 0));
       
       // 当前选择的精灵球类型
@@ -510,6 +502,8 @@ export function createRenderCapture({
               ${ubVal > 0 ? `<option value="ultraball" ${selectedBall === "ultraball" ? "selected" : ""}>高级球 (${ubVal}) - 捕获率x2</option>` : ""}
               ${qbVal > 0 ? `<option value="quickball" ${selectedBall === "quickball" ? "selected" : ""}>先机球 (${qbVal}) - 首次遭遇x5</option>` : ""}
               ${lbVal > 0 ? `<option value="luxuryball" ${selectedBall === "luxuryball" ? "selected" : ""}>豪华球 (${lbVal}) - 亲密度+20</option>` : ""}
+              ${nbVal > 0 ? `<option value="netball" ${selectedBall === "netball" ? "selected" : ""}>捕网球 (${nbVal}) - 虫/水/草x3</option>` : ""}
+              ${dbVal > 0 ? `<option value="duskball" ${selectedBall === "duskball" ? "selected" : ""}>黑暗球 (${dbVal}) - 夜间x3</option>` : ""}
             </select>
           </div>
         </div>

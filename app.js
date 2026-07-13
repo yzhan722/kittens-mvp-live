@@ -21,15 +21,15 @@ import { createLogUiSystem } from "./modules/app/log_ui.js";
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
 import { createTick } from "./modules/tick.js?v=0.41.0";
-import { createRenderResources } from "./modules/render/resources.js?v=0.41.0";
+import { createRenderResources } from "./modules/render/resources.js?v=0.41.1";
 import { createRenderLog } from "./modules/render/log.js?v=0.41.0";
 import { createRenderBuildings } from "./modules/render/buildings.js?v=0.41.0";
 import { createRenderTech } from "./modules/render/tech.js?v=0.41.0";
 import { createRenderCapture } from "./modules/render/capture.js?v=0.41.0";
-import { createRenderMons } from "./modules/render/mons.js?v=0.41.0";
+import { createRenderMons } from "./modules/render/mons.js?v=0.41.1";
 import { createRenderDex } from "./modules/render/dex.js?v=0.41.0";
 import { createRenderFutureShop } from "./modules/render/future.js?v=0.41.0";
-import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.41.0";
+import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.41.1";
 import { createDailySignin } from "./modules/daily_signin.js";
 import { createMonthlyCard } from "./modules/monthly_card.js";
 import { createDailyTasks } from "./modules/daily_tasks.js";
@@ -39,7 +39,7 @@ import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.41.0";
 import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.41.0";
 import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.41.0";
 import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.41.0";
-import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.41.0";
+import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.41.1";
 import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.41.0";
 import { createItemUsage } from "./modules/item_usage.js";
 import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.41.0";
@@ -2825,6 +2825,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     lbBaseUrl,
     onBossBullyMaybeReward,
     onEvolve: () => dailyTasks?.onEvent("evolve"),
+    getPokeApiDataByDex,
   });
 
   initFunctionsTab({

@@ -1,5 +1,5 @@
-// Gameplay fun helpers — nature passives, lucky type-day, catch streak
-import { NATURE_PASSIVE } from "../mons.js";
+// Gameplay fun helpers — abilities, lucky type-day, catch streak
+import { monPassive } from "../abilities.js";
 import { formatPvpSeasonStats } from "./pvp_narrative.js";
 
 const TYPE_POOL = [
@@ -22,12 +22,12 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Best passive val among party for a NATURE_PASSIVE key (0 if none). */
+/** Best passive val among owned mons for an ability effect key (0 if none). */
 export function partyBestPassive(state, key) {
   const list = Array.isArray(state?.mons?.list) ? state.mons.list : [];
   let best = 0;
   for (const m of list) {
-    const pass = NATURE_PASSIVE[m?.nature];
+    const pass = monPassive(m);
     if (pass?.key === key && typeof pass.val === "number") {
       best = Math.max(best, pass.val);
     }
@@ -65,13 +65,10 @@ export function partyPityAccel(state) {
 
 /**
  * How many catchFails to add on a failed catch.
- * Neutral natures (party or wild encounter): 20% chance to count as 2 fails.
+ * Ability innerFocus: 20% chance to count as 2 fails.
  */
-export function pityFailStep(state, randFloat, encounterNature = null) {
-  const fromParty = partyPityAccel(state);
-  const encPass = encounterNature ? NATURE_PASSIVE[encounterNature] : null;
-  const fromEnc = encPass?.key === "pityAccelBonus" && typeof encPass.val === "number" ? encPass.val : 0;
-  const accel = Math.max(fromParty, fromEnc);
+export function pityFailStep(state, randFloat, _encounterNature = null) {
+  const accel = partyPityAccel(state);
   const roll = typeof randFloat === "function" ? randFloat() : Math.random();
   if (accel > 0 && roll < accel) return 2;
   return 1;
@@ -89,12 +86,12 @@ export function natureWildCatchMul(encounterNature) {
   return 1;
 }
 
-/** Multiply expedition duration by nature passives on selected team. */
+/** Multiply expedition duration by pressure ability on selected team. */
 export function expeditionNatureTimeMul(selectedMons) {
   const list = Array.isArray(selectedMons) ? selectedMons : [];
   let mul = 1;
   for (const m of list) {
-    const pass = NATURE_PASSIVE[m?.nature];
+    const pass = monPassive(m);
     if (pass?.key === "expeditionTimeBonus" && typeof pass.val === "number") {
       mul *= Math.max(0.5, 1 - pass.val);
     }
@@ -121,37 +118,37 @@ export function partyHasAlwaysEscape(state) {
   return partyBestPassive(state, "alwaysEscape") >= 1;
 }
 
-/** Adamant / Lonely train exp multipliers for one mon. */
+/** Early bird / lone wolf train exp multipliers for one mon. */
 export function natureTrainExpMul(mon, trainingCount) {
   let mul = 1;
-  const pass = NATURE_PASSIVE[mon?.nature];
+  const pass = monPassive(mon);
   if (!pass || typeof pass.val !== "number") return 1;
   if (pass.key === "trainExpBonus") mul *= 1 + pass.val;
   if (pass.key === "soloTrainExpBonus" && trainingCount === 1) mul *= 1 + pass.val;
   return mul;
 }
 
-/** Serious: research ticks faster. */
+/** Synchronize: research ticks faster. */
 export function natureResearchDtMul(state) {
   return 1 + Math.max(0, partyBestPassive(state, "researchSpeedBonus"));
 }
 
-/** Jolly: affection gain mul for this mon. */
+/** Cute charm: affection gain mul for this mon. */
 export function natureAffectionMul(mon) {
-  const pass = NATURE_PASSIVE[mon?.nature];
+  const pass = monPassive(mon);
   if (pass?.key === "affectionBonus" && typeof pass.val === "number") return 1 + pass.val;
   return 1;
 }
 
-/** Relaxed / gentle satiety helpers. */
+/** Thick fat / gluttony satiety helpers. */
 export function natureSatietyRegenMul(mon) {
-  const pass = NATURE_PASSIVE[mon?.nature];
+  const pass = monPassive(mon);
   if (pass?.key === "satietyRegenBonus" && typeof pass.val === "number") return 1 + pass.val;
   return 1;
 }
 
 export function natureSatietyDecayMul(mon) {
-  const pass = NATURE_PASSIVE[mon?.nature];
+  const pass = monPassive(mon);
   if (pass?.key === "satietyDecayReduce" && typeof pass.val === "number") {
     return Math.max(0.5, 1 - pass.val);
   }
@@ -225,13 +222,24 @@ export function natureDexBonusMul(state) {
   return 1 + Math.max(0, partyBestPassive(state, "dexBonusExtra"));
 }
 
-/** Bold: incoming PvE damage mul (&lt;1). */
+/** Bold/sturdy: incoming PvE damage mul (&lt;1). */
 export function natureIncomingDamageMul(state) {
   const reduce = partyBestPassive(state, "defDamageReduce");
   return Math.max(0.5, 1 - Math.max(0, reduce));
 }
 
-/** Naive: advanced-encounter missing-dex preference chance (base 0.75). */
+/** Hyper cutter: outgoing PvE damage mul. */
+export function abilityOutgoingDamageMul(state) {
+  const bonus = partyBestPassive(state, "pveDamageBonus");
+  return 1 + Math.max(0, bonus);
+}
+
+/** Compound eyes: catch rate add from party. */
+export function abilityCatchRateAdd(state) {
+  return Math.max(0, partyBestPassive(state, "catchRateBonus"));
+}
+
+/** Naive/illuminate: advanced-encounter missing-dex preference chance (base 0.75). */
 export function natureAdvMissingPreferChance(state, base = 0.75) {
   const bonus = partyBestPassive(state, "advEncMissingBonus");
   return Math.min(0.95, Math.max(0, base) + Math.max(0, bonus));
@@ -733,15 +741,14 @@ export function markGatherDailyClaimed(state, today = localDateStr()) {
   return true;
 }
 
-/** Shop: free + deal + spin all done → bonus claim. */
+/** Shop: free + spin done → bonus claim（特惠小包不计入）. */
 export function shopDailyTripleProgress(meta, today = localDateStr()) {
   const m = meta && typeof meta === "object" ? meta : {};
   const free = m.dailyFreeFcDate === today;
-  const deal = m.shopDailyDealDate === today;
   const spin = m.dailySpinDate === today;
-  const n = (free ? 1 : 0) + (deal ? 1 : 0) + (spin ? 1 : 0);
+  const n = (free ? 1 : 0) + (spin ? 1 : 0);
   const claimed = m.shopTripleClaimDate === today;
-  return { n, goal: 3, free, deal, spin, claimed, canClaim: n >= 3 && !claimed };
+  return { n, goal: 2, free, deal: false, spin, claimed, canClaim: n >= 2 && !claimed };
 }
 
 export function markShopDailyTripleClaimed(meta, today = localDateStr()) {

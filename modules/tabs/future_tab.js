@@ -111,12 +111,12 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       const today = localDateStr();
       if (!state.meta || typeof state.meta !== "object") state.meta = {};
       if (!shopDailyTripleProgress(state.meta, today).canClaim) {
-        addLog("请先完成免费币、特惠与转盘");
+        addLog("请先完成免费币与转盘");
         return;
       }
       markShopDailyTripleClaimed(state.meta, today);
       addRes("futurecoin", 15);
-      addLog("每日三连达成：未来币 +15", true);
+      addLog("每日双礼达成：未来币 +15", true);
       ui.futureDirty = true;
       render();
       return;
@@ -283,8 +283,9 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       if ((state.res.futurecoin?.value ?? 0) < price) return;
 
       if (!state.permanentBoosts || typeof state.permanentBoosts !== "object") {
-        state.permanentBoosts = { exp: 0, capture: 0, production: 0, capacity: 0 };
+        state.permanentBoosts = { exp: 0, capture: 0, production: 0, capacity: 0, encPlusMax: 0 };
       }
+      if (typeof state.permanentBoosts.encPlusMax !== "number") state.permanentBoosts.encPlusMax = 0;
 
       const MAX_PERM_LEVELS = { exp: 10, capture: 10, production: 10, capacity: 10, encPlusMax: 20 };
       const MAX_PERM_LEVEL = MAX_PERM_LEVELS[kind] ?? 10;
@@ -366,18 +367,42 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       } else if (kind === "goldBottleCap") {
         addRes("goldBottleCap", amount);
         addLog(`购买：未来币 -${price} → 金色王冠 +${amount}`, true);
+      } else if (kind === "netball") {
+        addRes("netball", amount);
+        addLog(`购买：未来币 -${price} → 捕网球 +${amount}`, true);
+      } else if (kind === "duskball") {
+        addRes("duskball", amount);
+        addLog(`购买：未来币 -${price} → 黑暗球 +${amount}`, true);
+      } else if (kind === "energyDrink") {
+        addRes("energyDrink", amount);
+        addLog(`购买：未来币 -${price} → 能量饮料 +${amount}`, true);
+      } else if (kind === "searchFlare") {
+        addRes("searchFlare", amount);
+        addLog(`购买：未来币 -${price} → 搜索信号弹 +${amount}`, true);
+      } else if (kind === "advSearchCell") {
+        addRes("advSearchCell", amount);
+        addLog(`购买：未来币 -${price} → 高级搜索电池 +${amount}`, true);
+      } else if (kind === "sootheBell") {
+        addRes("sootheBell", amount);
+        addLog(`购买：未来币 -${price} → 安抚之铃 +${amount}`, true);
+      } else if (kind === "expCandyS") {
+        addRes("expCandyS", amount);
+        addLog(`购买：未来币 -${price} → 经验糖果S +${amount}`, true);
       } else if (kind === "autoResearch") {
         state.unlocks.autoResearch = true;
-        addLog("解锁：自动科研（贝师傅最爱）", true);
+        addLog("解锁：自动科研", true);
       } else if (kind === "autoBuild") {
         state.unlocks.autoBuild = true;
-        addLog("解锁：自动建造（贝师傅最爱）", true);
+        addLog("解锁：自动建造", true);
       } else if (kind === "autoBall") {
         state.unlocks.autoBall = true;
-        addLog("解锁：自动搓球（贝师傅最爱）", true);
+        addLog("解锁：自动搓球", true);
       } else if (kind === "autoCraft") {
         state.unlocks.autoCraft = true;
-        addLog("解锁：自动合成（贝师傅最爱）", true);
+        addLog("解锁：自动合成", true);
+      } else {
+        state.res.futurecoin.value = Math.max(0, (state.res.futurecoin?.value ?? 0) + price);
+        return;
       }
       ui.futureDirty = true;
       render();

@@ -1,39 +1,4 @@
-function fmtProdBrief(perSec) {
-  if (!(perSec > 0)) return null;
-  if (perSec < 1) return `${perSec.toFixed(1)}/s`;
-  return `${Math.floor(perSec)}/s`;
-}
-
-function renderProdHint(elResources, eff, state) {
-  if (!elResources) return;
-  const parts = [];
-  const cat = eff?.catnipPerSec ?? 0;
-  const catBrief = fmtProdBrief(cat);
-  if (catBrief) parts.push(`树果 ${catBrief}`);
-  if (state?.unlocks?.wood) {
-    const w = fmtProdBrief(eff?.woodPerSec ?? 0);
-    if (w) parts.push(`球果 ${w}`);
-  }
-  if (state?.unlocks?.minerals) {
-    const m = fmtProdBrief(eff?.mineralsPerSec ?? 0);
-    if (m) parts.push(`进化石 ${m}`);
-  }
-  const host = elResources.parentNode;
-  if (!host) return;
-  let hint = host.querySelector("#prodHint");
-  if (parts.length === 0) {
-    hint?.remove();
-    return;
-  }
-  const text = `产能 ${parts.join(" · ")}`;
-  if (!hint) {
-    hint = document.createElement("div");
-    hint.id = "prodHint";
-    hint.className = "resources__hint resources__dashboard muted";
-    host.insertBefore(hint, elResources);
-  }
-  if (hint.textContent !== text) hint.textContent = text;
-}
+// ponytail: 产能摘要已由各资源筹码 .resrow__meta 承担，不再往顶栏插重复 #prodHint
 
 // 将速率转为更直观的文本：速率很低时显示「约Xs/个」
 function fmtRate(perSec) {
@@ -160,7 +125,6 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
 
     // 训练家等级始终刷新（不受 signature 缓存影响）
     renderTrainerLevel(state);
-    renderProdHint(elResources, eff, state);
 
     const items = [];
 

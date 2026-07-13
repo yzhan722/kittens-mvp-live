@@ -114,6 +114,15 @@ export function computeTechEffects(state, defs, ui) {
     eff.catchChanceAdd += permCaptureLvl * 0.05;
   }
 
+  // 限时捕获率提升（未来币商店）
+  const captureBoostRem =
+    typeof state.captureBoostRemainingSec === "number" && Number.isFinite(state.captureBoostRemainingSec)
+      ? state.captureBoostRemainingSec
+      : 0;
+  if (captureBoostRem > 0) {
+    eff.catchChanceAdd += 0.2;
+  }
+
   applyMutatorsToEff(eff, state);
   return eff;
 }

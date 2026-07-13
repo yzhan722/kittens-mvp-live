@@ -114,56 +114,70 @@ body {
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 14px 16px;
-  padding: 12px 20px;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--border);
   background: rgba(11, 15, 23, 0.78);
   backdrop-filter: blur(14px);
 }
 
+/* 左簇：品牌 + 训练家横排 */
 .topbar__identity {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 0 1 220px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
 .topbar__trainer {
+  flex: 0 0 auto;
   min-width: 0;
+}
+
+/* 右簇：采集 CTA + 资源筹码 */
+.topbar__ops {
+  display: flex;
+  align-items: center;
+  gap: 10px 12px;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
 }
 
 .topbar__action {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
-  margin-left: auto;
 }
 
 .resources--top {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
   align-items: stretch;
   justify-content: flex-end;
   margin-left: 0;
   width: max-content;
-  max-width: min(100%, 520px);
+  max-width: min(100%, 460px);
   min-width: 0;
 }
 
 .resources--top .resrow {
   position: relative;
   overflow: hidden;
-  flex: 0 0 auto;
-  width: 148px;
+  flex: 0 1 128px;
+  width: 128px;
+  min-width: 108px;
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto auto;
   align-items: center;
-  gap: 2px 10px;
-  padding: 8px 12px 10px;
+  gap: 1px 8px;
+  padding: 6px 10px 8px;
   border-radius: 12px;
   border: 1px solid rgba(255, 220, 160, 0.14);
   background: rgba(255, 236, 200, 0.045);
@@ -179,6 +193,9 @@ body {
   font-size: 12px;
   font-weight: 700;
   color: rgba(255, 236, 200, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .resources--top .resrow__meta {
@@ -191,9 +208,9 @@ body {
   grid-column: 2;
   grid-row: 1 / span 2;
   font-family: "Rajdhani", "Noto Sans SC", sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   color: rgba(255, 255, 255, 0.96);
   white-space: nowrap;
 }
@@ -202,7 +219,7 @@ body {
   grid-column: 1 / -1;
   grid-row: 3;
   height: 3px;
-  margin-top: 4px;
+  margin-top: 3px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
@@ -232,6 +249,32 @@ body {
 }
 .resources--top .resrow[data-rid="minerals"] .resrow__fill {
   background: linear-gradient(90deg, rgba(56, 189, 248, 0.4), rgba(125, 211, 252, 0.95));
+}
+
+/* 中宽屏：右簇可换行，避免挤压身份 */
+@media (max-width: 1100px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+  .topbar__ops {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .resources--top {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar__identity {
+    flex-wrap: wrap;
+    gap: 6px 8px;
+  }
+  .topbar__trainer .trainerLevel {
+    max-width: 100%;
+  }
 }
 
 .topbar__trainer .trainerLevel {
@@ -2276,7 +2319,7 @@ body {
 /* ---- 768px 断点 ------------------------------------------ */
 @media (max-width: 768px) {
 
-  /* Safe area + topbar */
+  /* Safe area + topbar：身份一行，操作簇整行 */
   .topbar {
     padding: 10px 14px;
     padding-top: calc(10px + env(safe-area-inset-top, 0px));
@@ -2287,21 +2330,26 @@ body {
   }
   .topbar__identity {
     flex: 1 1 auto;
-    max-width: calc(100% - 150px);
+    min-width: 0;
+    gap: 8px;
   }
-  .topbar__action {
-    margin-left: auto;
+  .topbar__ops {
+    flex: 1 1 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
   .resources--top {
     margin-left: 0;
     width: 100%;
     max-width: none;
+    flex-wrap: wrap;
     justify-content: flex-start;
   }
   .resources--top .resrow {
     width: auto;
-    flex: 1 1 calc(33.33% - 8px);
-    min-width: 108px;
+    flex: 1 1 calc(33.33% - 6px);
+    min-width: 100px;
     max-width: 180px;
   }
   .brand__title {
@@ -3441,6 +3489,7 @@ body::before {
   letter-spacing: 0.3px;
   font-size: 14px;
   box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.14), 0 8px 22px rgba(0, 0, 0, 0.28);
+  white-space: nowrap;
 }
 
 .topbar__action #btnGather.is-ready {
@@ -3543,9 +3592,13 @@ body::before {
     gap: 10px 12px;
   }
 
+  .topbar__ops {
+    gap: 8px 10px;
+  }
+
   .resources--top .resrow {
     min-width: 0;
-    flex: 1 1 calc(33.33% - 8px);
+    flex: 1 1 calc(33.33% - 6px);
   }
 
   .log {

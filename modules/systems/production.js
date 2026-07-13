@@ -117,6 +117,13 @@ export function computeStaticItemCaps(defs) {
     luckyEgg: cap("luckyEgg", 99),
     bottleCap: cap("bottleCap", 999),
     goldBottleCap: cap("goldBottleCap", 99),
+    netball: cap("netball", 999),
+    duskball: cap("duskball", 999),
+    energyDrink: cap("energyDrink", 999),
+    searchFlare: cap("searchFlare", 999),
+    advSearchCell: cap("advSearchCell", 99),
+    sootheBell: cap("sootheBell", 99),
+    expCandyS: cap("expCandyS", 999),
   };
 }
 
@@ -242,6 +249,17 @@ export function finalizeProductionRates(eff, state, serverProdMul) {
     eff.catnipPerSec *= permProdMul;
     eff.woodPerSec *= permProdMul;
     eff.mineralsPerSec *= permProdMul;
+  }
+
+  // 限时产量加成（未来币商店）：+50%
+  const prodBoostRem =
+    typeof state.prodBoostRemainingSec === "number" && Number.isFinite(state.prodBoostRemainingSec)
+      ? state.prodBoostRemainingSec
+      : 0;
+  if (prodBoostRem > 0) {
+    eff.catnipPerSec *= 1.5;
+    eff.woodPerSec *= 1.5;
+    eff.mineralsPerSec *= 1.5;
   }
 
   const calmMul = natureResProdMul(state);

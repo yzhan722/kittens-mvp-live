@@ -114,8 +114,8 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 }
 
 {
-  const state = { mons: { list: [{ nature: "hardy" }, { nature: "adamant" }] } };
-  assert.equal(partyBestPassive(state, "pityAccelBonus"), 0.2, "hardy pity");
+  const state = { mons: { list: [{ ability: "innerFocus" }, { ability: "earlyBird" }] } };
+  assert.equal(partyBestPassive(state, "pityAccelBonus"), 0.2, "innerFocus pity");
   let got2 = false;
   for (let i = 0; i < 80; i++) {
     if (pityFailStep(state, () => 0.05) === 2) got2 = true;
@@ -125,36 +125,36 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 }
 
 {
-  const state = { mons: { list: [{ nature: "timid" }] } };
-  assert.equal(tryBallSave(state, () => 0.05), true, "timid ball save hit");
-  assert.equal(tryBallSave(state, () => 0.99), false, "timid ball save miss");
+  const state = { mons: { list: [{ ability: "pickup" }] } };
+  assert.equal(tryBallSave(state, () => 0.05), true, "pickup ball save hit");
+  assert.equal(tryBallSave(state, () => 0.99), false, "pickup ball save miss");
 }
 
 {
-  const state = { mons: { list: [{ nature: "hasty" }] } };
-  assert.ok(Math.abs(natureEncounterRechargeMul(state) - 0.9) < 1e-9, "hasty recharge");
-  assert.equal(natureEncounterRechargeMul({ mons: { list: [] } }), 1, "no hasty");
+  const state = { mons: { list: [{ ability: "hustle" }] } };
+  assert.ok(Math.abs(natureEncounterRechargeMul(state) - 0.9) < 1e-9, "hustle recharge");
+  assert.equal(natureEncounterRechargeMul({ mons: { list: [] } }), 1, "no hustle");
 }
 
 {
-  assert.equal(partyHasAlwaysEscape({ mons: { list: [{ nature: "naughty" }] } }), true, "naughty escape");
-  assert.equal(partyHasAlwaysEscape({ mons: { list: [{ nature: "jolly" }] } }), false, "no naughty");
+  assert.equal(partyHasAlwaysEscape({ mons: { list: [{ ability: "runAway" }] } }), true, "runAway escape");
+  assert.equal(partyHasAlwaysEscape({ mons: { list: [{ ability: "cuteCharm" }] } }), false, "no runAway");
 }
 
 {
-  assert.ok(Math.abs(natureTrainExpMul({ nature: "adamant" }, 2) - 1.05) < 1e-9, "adamant train");
-  assert.ok(Math.abs(natureTrainExpMul({ nature: "lonely" }, 1) - 1.08) < 1e-9, "lonely solo");
-  assert.equal(natureTrainExpMul({ nature: "lonely" }, 2), 1, "lonely not solo");
+  assert.ok(Math.abs(natureTrainExpMul({ ability: "earlyBird" }, 2) - 1.05) < 1e-9, "earlyBird train");
+  assert.ok(Math.abs(natureTrainExpMul({ ability: "loneWolf" }, 1) - 1.08) < 1e-9, "loneWolf solo");
+  assert.equal(natureTrainExpMul({ ability: "loneWolf" }, 2), 1, "loneWolf not solo");
 }
 
 {
-  const state = { mons: { list: [{ nature: "serious" }] } };
-  assert.ok(Math.abs(natureResearchDtMul(state) - 1.03) < 1e-9, "serious research");
+  const state = { mons: { list: [{ ability: "synchronize" }] } };
+  assert.ok(Math.abs(natureResearchDtMul(state) - 1.03) < 1e-9, "synchronize research");
 }
 
 {
-  const mul = expeditionNatureTimeMul([{ nature: "impish" }, { nature: "impish" }]);
-  assert.ok(mul < 1 && mul > 0.5, "impish stacks time cut");
+  const mul = expeditionNatureTimeMul([{ ability: "pressure" }, { ability: "pressure" }]);
+  assert.ok(mul < 1 && mul > 0.5, "pressure stacks time cut");
 }
 
 {
@@ -170,12 +170,14 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 }
 
 {
-  assert.equal(natureAdvMissingPreferChance({ mons: { list: [{ nature: "naive" }] } }, 0.75), 0.85, "naive prefer");
-  assert.ok(Math.abs(natureIncomingDamageMul({ mons: { list: [{ nature: "bold" }] } }) - 0.95) < 1e-9, "bold incoming");
-  assert.ok(Math.abs(natureResProdMul({ mons: { list: [{ nature: "calm" }] } }) - 1.03) < 1e-9, "calm prod");
-  assert.ok(Math.abs(natureResCapMul({ mons: { list: [{ nature: "lax" }] } }) - 1.02) < 1e-9, "lax cap");
-  assert.ok(Math.abs(natureDexBonusMul({ mons: { list: [{ nature: "modest" }] } }) - 1.02) < 1e-9, "modest dex");
-  assert.ok(Math.abs(natureBreedTimeMul({ mons: { list: [{ nature: "mild" }] } }) - 0.95) < 1e-9, "mild breed");
+  assert.equal(natureAdvMissingPreferChance({ mons: { list: [{ ability: "illuminate" }] } }, 0.75), 0.85, "illuminate prefer");
+  assert.ok(Math.abs(natureIncomingDamageMul({ mons: { list: [{ ability: "sturdy" }] } }) - 0.95) < 1e-9, "sturdy incoming");
+  assert.ok(Math.abs(natureResProdMul({ mons: { list: [{ ability: "harvest" }] } }) - 1.03) < 1e-9, "harvest prod");
+  assert.ok(Math.abs(natureResCapMul({ mons: { list: [{ ability: "stickyHold" }] } }) - 1.02) < 1e-9, "stickyHold cap");
+  assert.ok(Math.abs(natureDexBonusMul({ mons: { list: [{ ability: "keenEye" }] } }) - 1.02) < 1e-9, "keenEye dex");
+  assert.ok(Math.abs(natureBreedTimeMul({ mons: { list: [{ ability: "naturalCure" }] } }) - 0.95) < 1e-9, "naturalCure breed");
+  // legacy nature still resolves via monPassive fallback
+  assert.equal(partyBestPassive({ mons: { list: [{ nature: "timid" }] } }, "ballSaveChance"), 0.1, "legacy nature→ability");
 }
 
 {
@@ -188,8 +190,9 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 }
 
 {
-  assert.equal(pityFailStep({ mons: { list: [] } }, () => 0, "hardy"), 2, "wild hardy pity accel");
-  assert.equal(pityFailStep({ mons: { list: [] } }, () => 0.99, "hardy"), 1, "wild hardy pity miss");
+  // 遭遇性格不再提供保底加速；仅队伍特性 innerFocus 生效
+  assert.equal(pityFailStep({ mons: { list: [] } }, () => 0, "hardy"), 1, "wild nature no pity");
+  assert.equal(pityFailStep({ mons: { list: [{ ability: "innerFocus" }] } }, () => 0), 2, "party innerFocus pity");
 }
 
 {
@@ -519,11 +522,14 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 
 {
   const today = localDateStr();
-  const meta = { dailyFreeFcDate: today, shopDailyDealDate: today, dailySpinDate: today };
+  const onlyDeal = { shopDailyDealDate: today };
+  assert.equal(shopDailyTripleProgress(onlyDeal, today).canClaim, false, "deal alone not enough");
+  const meta = { dailyFreeFcDate: today, dailySpinDate: today };
   const t = shopDailyTripleProgress(meta, today);
-  assert.equal(t.canClaim, true, "triple ready");
+  assert.equal(t.goal, 2, "double goal");
+  assert.equal(t.canClaim, true, "free+spin ready without deal");
   markShopDailyTripleClaimed(meta, today);
-  assert.equal(shopDailyTripleProgress(meta, today).canClaim, false, "triple claimed");
+  assert.equal(shopDailyTripleProgress(meta, today).canClaim, false, "double claimed");
 }
 
 {

@@ -3,6 +3,12 @@ import {
   pickWeakMonIds,
   releaseMonIds,
 } from "../systems/mon_release.js";
+import {
+  BATCH_ONCE_SKILL_TYPES,
+  isSkillImplemented,
+  skillCdSec,
+  TYPE_SKILL_DESC,
+} from "../type_skills.js";
 
 export function initMonsTab({
   elMonBack,
@@ -40,6 +46,7 @@ export function initMonsTab({
   lbBaseUrl,
   onBossBullyMaybeReward,
   onEvolve,
+  getPokeApiDataByDex,
 }) {
   if (elMonRegion) {
     elMonRegion.value = ui.monRegion;
@@ -125,34 +132,13 @@ export function initMonsTab({
       const typeId = skillBtn.getAttribute("data-mon-skill");
       if (!typeId) return true;
 
-      const IMPLEMENTED_SKILLS = new Set([
-        "fighting",
-        "bug",
-        "ground",
-        "electric",
-        "fire",
-        "grass",
-        "water",
-        "normal",
-        "ghost",
-        "steel",
-        "ice",
-        "fairy",
-        "dragon",
-        "poison",
-        "flying",
-        "psychic",
-        "rock",
-        "dark",
-      ]);
-
       const monId = Number(skillBtn.getAttribute("data-mon-skill-mon"));
       if (!Number.isFinite(monId)) return true;
       const list = state.mons?.list ?? [];
       const mon = list.find((m) => m && m.id === monId);
       if (!mon) return true;
 
-      if (!IMPLEMENTED_SKILLS.has(typeId)) {
+      if (!isSkillImplemented(typeId)) {
         const skillName = TYPE_SKILLS?.[typeId] ?? "技能";
         const typeZh = TYPE_ZH?.[typeId] ?? typeId;
         addLog(`技能未实装：${skillName}（${typeZh}）`, true);
@@ -163,12 +149,15 @@ export function initMonsTab({
         state.skills = {
           trainingStacks: [],
           normalBoostStacks: [],
-          bullyHp: 100,
           hugeBerryBuffRemainingSec: 0,
           steelBallDiscountCharges: 0,
+          psychicCraftBoostCharges: 0,
           iceSatietySlowRemainingSec: 0,
           fairyAffGainRemainingSec: 0,
           dragonCatchBoostRemainingSec: 0,
+          rockBuildBoostRemainingSec: 0,
+          poisonResourceSaveRemainingSec: 0,
+          darkPveDamageBoostRemainingSec: 0,
         };
       }
 
@@ -192,6 +181,7 @@ export function initMonsTab({
         return true;
       }
 
+      // —— 全部前置条件：失败不得扣费 ——
       if (typeId === "electric") {
         const hasResearch = Boolean(state.research && typeof state.research === "object" && state.research.tid);
         if (!hasResearch) {
@@ -199,7 +189,6 @@ export function initMonsTab({
           return true;
         }
       }
-
       if (typeId === "grass") {
         const have = state.res.catnip?.value ?? 0;
         if (have < 10000) {
@@ -207,18 +196,48 @@ export function initMonsTab({
           return true;
         }
       }
-
       if (typeId === "water") {
-        const anyPlanting = Array.isArray(state.mons?.list) && state.mons.list.some((x) => x && x.skillActiveType === "grass" && (x.skillActiveRemainingSec ?? 0) > 0);
+        const anyPlanting =
+          Array.isArray(state.mons?.list) &&
+          state.mons.list.some((x) => x && x.skillActiveType === "grass" && (x.skillActiveRemainingSec ?? 0) > 0);
         if (!anyPlanting) {
           addLog("技能失败：当前没有果树在种植中。", true);
           return true;
         }
       }
+      if (typeId === "fire") {
+        const rem0 =
+          typeof state.breeding?.eggRemainingSec === "number" && Number.isFinite(state.breeding.eggRemainingSec)
+            ? state.breeding.eggRemainingSec
+            : 0;
+        if (!(Boolean(state.breeding?.on) && rem0 > 0)) {
+          addLog("技能失败：当前没有在生蛋", true);
+          return true;
+        }
+      }
+      if (typeId === "flying") {
+        const rem0 =
+          typeof state.expedition?.remainingSec === "number" && Number.isFinite(state.expedition.remainingSec)
+            ? state.expedition.remainingSec
+            : 0;
+        if (!(Boolean(state.expedition?.on) && rem0 > 0)) {
+          addLog("技能失败：当前没有探险任务", true);
+          return true;
+        }
+      }
+      if (typeId === "ghost") {
+        const cooling = (state.mons?.list ?? []).some(
+          (x) => x && x.id !== mon.id && typeof x.skillCdRemainingSec === "number" && x.skillCdRemainingSec > 0
+        );
+        if (!cooling) {
+          addLog("技能失败：没有其他冷却中的精灵", true);
+          return true;
+        }
+      }
 
+      // —— 扣费（仅成功路径）——
       mon.satiety = clamp(sat0 - 50, 0, 100);
-      const cdSec = typeId === "grass" ? 8 * 3600 : 3600;
-      mon.skillCdRemainingSec = cdSec;
+      mon.skillCdRemainingSec = skillCdSec(typeId);
 
       const skillName = TYPE_SKILLS?.[typeId] ?? "技能";
       const typeZh = TYPE_ZH?.[typeId] ?? typeId;
@@ -295,11 +314,6 @@ export function initMonsTab({
       } else if (typeId === "fire") {
         const rem0 =
           typeof state.breeding?.eggRemainingSec === "number" && Number.isFinite(state.breeding.eggRemainingSec) ? state.breeding.eggRemainingSec : 0;
-        const eggOn = Boolean(state.breeding?.on) && rem0 > 0;
-        if (!eggOn) {
-          addLog(`技能失败：当前没有在生蛋`, true);
-          return true;
-        }
         const after = Math.max(0, rem0 - 900);
         state.breeding.eggRemainingSec = after;
         addLog(`技能：${skillName}（${typeZh}）→ 生蛋剩余时间 -15分钟（剩余 ${fmtRemain(after)}）`, true);
@@ -327,13 +341,16 @@ export function initMonsTab({
         const n = state.skills.normalBoostStacks.length;
         addLog(`技能：${skillName}（${typeZh}）→ 资源产量提升（当前叠加 ${n} 层）`, true);
       } else if (typeId === "ghost") {
-        const targets = (state.mons?.list ?? []).filter((x) => x && typeof x.skillCdRemainingSec === "number" && x.skillCdRemainingSec > 0);
-        if (targets.length > 0) {
+        // 施放后自己已进 CD；折磨目标排除自己，真正帮到队友
+        const targets = (state.mons?.list ?? []).filter(
+          (x) => x && x.id !== mon.id && typeof x.skillCdRemainingSec === "number" && x.skillCdRemainingSec > 0
+        );
+        if (targets.length === 0) {
+          addLog(`技能：${skillName}（${typeZh}）→ 没有其他冷却中的精灵`, true);
+        } else {
           const t = targets[Math.floor(Math.random() * targets.length)];
           t.skillCdRemainingSec = Math.ceil((t.skillCdRemainingSec ?? 0) / 2);
           addLog(`技能：${skillName}（${typeZh}）→ ${t.name} 的冷却时间减半`, true);
-        } else {
-          addLog(`技能：${skillName}（${typeZh}）→ 没有休息中的精灵`, true);
         }
       } else if (typeId === "steel") {
         const c0 =
@@ -348,24 +365,21 @@ export function initMonsTab({
           typeof state.skills.iceSatietySlowRemainingSec === "number" && Number.isFinite(state.skills.iceSatietySlowRemainingSec)
             ? Math.max(0, state.skills.iceSatietySlowRemainingSec)
             : 0;
-        const rem1 = rem0 + 3600;
-        state.skills.iceSatietySlowRemainingSec = rem1;
+        state.skills.iceSatietySlowRemainingSec = rem0 + 3600;
         addLog(`技能：${skillName}（${typeZh}）→ 饱腹自然下降减慢（60分钟）`, true);
       } else if (typeId === "fairy") {
         const rem0 =
           typeof state.skills.fairyAffGainRemainingSec === "number" && Number.isFinite(state.skills.fairyAffGainRemainingSec)
             ? Math.max(0, state.skills.fairyAffGainRemainingSec)
             : 0;
-        const rem1 = rem0 + 3600;
-        state.skills.fairyAffGainRemainingSec = rem1;
+        state.skills.fairyAffGainRemainingSec = rem0 + 3600;
         addLog(`技能：${skillName}（${typeZh}）→ 亲密度增长加速（60分钟）`, true);
       } else if (typeId === "dragon") {
         const rem0 =
           typeof state.skills.dragonCatchBoostRemainingSec === "number" && Number.isFinite(state.skills.dragonCatchBoostRemainingSec)
             ? Math.max(0, state.skills.dragonCatchBoostRemainingSec)
             : 0;
-        const rem1 = rem0 + 600;
-        state.skills.dragonCatchBoostRemainingSec = rem1;
+        state.skills.dragonCatchBoostRemainingSec = rem0 + 600;
         addLog(`技能：${skillName}（${typeZh}）→ 捕获率提升（10分钟）`, true);
       } else if (typeId === "psychic") {
         const c0 =
@@ -378,11 +392,6 @@ export function initMonsTab({
       } else if (typeId === "flying") {
         const rem0 =
           typeof state.expedition?.remainingSec === "number" && Number.isFinite(state.expedition.remainingSec) ? state.expedition.remainingSec : 0;
-        const expOn = Boolean(state.expedition?.on) && rem0 > 0;
-        if (!expOn) {
-          addLog(`技能失败：当前没有探险任务`, true);
-          return true;
-        }
         const after = Math.max(0, rem0 - 1800);
         state.expedition.remainingSec = after;
         addLog(`技能：${skillName}（${typeZh}）→ 探险剩余时间 -30分钟`, true);
@@ -391,24 +400,21 @@ export function initMonsTab({
           typeof state.skills.rockBuildBoostRemainingSec === "number" && Number.isFinite(state.skills.rockBuildBoostRemainingSec)
             ? Math.max(0, state.skills.rockBuildBoostRemainingSec)
             : 0;
-        const rem1 = rem0 + 3600;
-        state.skills.rockBuildBoostRemainingSec = rem1;
+        state.skills.rockBuildBoostRemainingSec = rem0 + 3600;
         addLog(`技能：${skillName}（${typeZh}）→ 建筑成本降低 20%（60分钟）`, true);
       } else if (typeId === "poison") {
         const rem0 =
           typeof state.skills.poisonResourceSaveRemainingSec === "number" && Number.isFinite(state.skills.poisonResourceSaveRemainingSec)
             ? Math.max(0, state.skills.poisonResourceSaveRemainingSec)
             : 0;
-        const rem1 = rem0 + 3600;
-        state.skills.poisonResourceSaveRemainingSec = rem1;
+        state.skills.poisonResourceSaveRemainingSec = rem0 + 3600;
         addLog(`技能：${skillName}（${typeZh}）→ 资源消耗减少 20%（60分钟）`, true);
       } else if (typeId === "dark") {
         const rem0 =
           typeof state.skills.darkPveDamageBoostRemainingSec === "number" && Number.isFinite(state.skills.darkPveDamageBoostRemainingSec)
             ? Math.max(0, state.skills.darkPveDamageBoostRemainingSec)
             : 0;
-        const rem1 = rem0 + 600;
-        state.skills.darkPveDamageBoostRemainingSec = rem1;
+        state.skills.darkPveDamageBoostRemainingSec = rem0 + 600;
         addLog(`技能：${skillName}（${typeZh}）→ PVE 伤害提升 50%（10分钟）`, true);
       } else {
         addLog(`技能：${skillName}（${typeZh}）已触发`, true);
@@ -663,6 +669,7 @@ export function initMonsTab({
         const batchType = batchSkillBtn.getAttribute("data-mon-batch-skill");
         if (!batchType) return;
         const list = state.mons?.list ?? [];
+        const once = BATCH_ONCE_SKILL_TYPES.includes(batchType);
         let batchCount = 0;
         for (const mon of list) {
           if (!mon) continue;
@@ -676,10 +683,16 @@ export function initMonsTab({
           const fakeBtn = { disabled: false, getAttribute: (k) => k === "data-mon-skill" ? batchType : String(mon.id), closest: () => null };
           handleSkillButton(state, fakeBtn);
           batchCount++;
+          if (once) break;
         }
         const typeZh = TYPE_ZH?.[batchType] ?? batchType;
         if (batchCount > 0) {
-          addLog(`批量技能：${typeZh}（共触发 ${batchCount} 只）`, true);
+          addLog(
+            once
+              ? `批量技能：${typeZh}（全局增益，发动 1 只）`
+              : `批量技能：${typeZh}（共触发 ${batchCount} 只）`,
+            true
+          );
         } else {
           addLog(`批量技能：没有可用的 ${typeZh} 属性精灵`, true);
         }

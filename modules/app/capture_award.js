@@ -51,7 +51,12 @@ export function awardCaughtPokemon(state, species, opts, ctx) {
   }
 
   if (!state.mons) state.mons = { nextId: 1, list: [] };
-  const mon = typeof createMonInstance === "function" ? createMonInstance(p) : null;
+  const mon = typeof createMonInstance === "function"
+    ? createMonInstance(p, {
+        nature: opts && typeof opts === "object" && typeof opts.nature === "string" ? opts.nature : undefined,
+        ability: opts && typeof opts === "object" && typeof opts.ability === "string" ? opts.ability : undefined,
+      })
+    : null;
   if (!mon) return null;
   mon.isShiny = isShiny;
   const caughtWithBall =

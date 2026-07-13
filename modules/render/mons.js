@@ -3,6 +3,14 @@ import {
   busyMonIds,
   pickWeakMonIds,
 } from "../systems/mon_release.js";
+import { getNatureInfo } from "../mons.js";
+import { getAbilityInfo } from "../abilities.js";
+import {
+  IMPLEMENTED_SKILL_TYPES,
+  TYPE_SKILL_DESC,
+  isSkillImplemented,
+  listActiveSkillBuffs,
+} from "../type_skills.js";
 
 export function createRenderMons({
   elMonList,
@@ -204,10 +212,13 @@ export function createRenderMons({
       const sortLabel = SORT_LABELS[ui.monSort || "created"] ?? ui.monSort;
       filterChips.push(`排序：${sortLabel}`);
 
-      // 批量技能：统计各属性可用精灵数
-      const BATCH_SKILL_TYPES = ["fighting","bug","ground","electric","fire","grass","water","normal","ghost","steel","ice","fairy","dragon"];
+      // 批量技能：统计各属性可用精灵数（18 系全开）
+      const BATCH_SKILL_TYPES = IMPLEMENTED_SKILL_TYPES;
       const batchSkillCounts = {};
       const batchSkillCooldownCounts = {}; // 冷却中的数量
+      const expOn =
+        Boolean(state.expedition?.on) &&
+        (typeof state.expedition?.remainingSec === "number" ? state.expedition.remainingSec : 0) > 0;
       for (const t of BATCH_SKILL_TYPES) {
         const cnt = filtered.filter((m) => {
           const sat0 = clamp(typeof m.satiety === "number" ? m.satiety : 100, 0, 100);
@@ -289,15 +300,27 @@ export function createRenderMons({
           const label = isReady
             ? `${escapeHtml(zh)}技能 <span class="badge--count">${readyCnt}</span>`
             : `${escapeHtml(zh)}技能 <span style="opacity:0.5;font-size:11px">冷却中(${cdCnt})</span>`;
-          return `<button class="btn btn--small type type-${escapeHtml(t)}${isReady ? ' btn--ready' : ''}" data-mon-batch-skill="${escapeHtml(t)}" ${isReady ? '' : 'disabled'}>${label}</button>`;
+          return `<button class="btn btn--small type type-${escapeHtml(t)}${isReady ? ' btn--ready' : ''}" data-mon-batch-skill="${escapeHtml(t)}" title="${escapeHtml(TYPE_SKILL_DESC[t] || "")}" ${isReady ? '' : 'disabled'}>${label}</button>`;
         }).join("");
         rows.push(`
           <div class="row">
             <div class="row__left">
               <div class="row__title">批量技能</div>
-              <div class="row__desc">可触发：冷却完毕且饱腹≥50</div>
+              <div class="row__desc">可触发：冷却完毕且饱腹≥50 · 全局增益类每次只发动 1 只</div>
             </div>
             <div class="row__right quickActions">${batchBtns}</div>
+          </div>
+        `);
+      }
+
+      const buffLines = listActiveSkillBuffs(state.skills);
+      if (buffLines.length > 0) {
+        rows.push(`
+          <div class="row">
+            <div class="row__left">
+              <div class="row__title">技能增益</div>
+              <div class="row__desc">${escapeHtml(buffLines.join(" · "))}</div>
+            </div>
           </div>
         `);
       }
@@ -345,20 +368,7 @@ export function createRenderMons({
                   const rawName = TYPE_SKILLS?.[t] ?? "技能";
                   let label = escapeHtml(rawName);
                   let disabled = false;
-                  const implemented =
-                    t === "fighting" ||
-                    t === "bug" ||
-                    t === "ground" ||
-                    t === "electric" ||
-                    t === "fire" ||
-                    t === "grass" ||
-                    t === "water" ||
-                    t === "normal" ||
-                    t === "ghost" ||
-                    t === "steel" ||
-                    t === "ice" ||
-                    t === "fairy" ||
-                    t === "dragon";
+                  const implemented = isSkillImplemented(t);
                   if (!implemented) {
                     disabled = true;
                     label = `${label}（未实装）`;
@@ -378,10 +388,12 @@ export function createRenderMons({
                   }
                   if (t === "electric" && !hasResearch) disabled = true;
                   if (t === "fire" && !eggOn) disabled = true;
+                  if (t === "flying" && !expOn) disabled = true;
                   if (t === "water" && !anyPlanting) disabled = true;
                   if (t === "grass" && (state.res.catnip?.value ?? 0) < 10000) disabled = true;
                   const isReady = !disabled;
-                  return `<button class="btn btn--small type type-${tSafe}${isReady ? ' btn--ready' : ''}" data-mon-skill="${tSafe}" data-mon-skill-mon="${m.id}" ${disabled ? "disabled" : ""}>${label}</button>`;
+                  const tip = TYPE_SKILL_DESC[t] ? ` title="${escapeHtml(TYPE_SKILL_DESC[t])}"` : "";
+                  return `<button class="btn btn--small type type-${tSafe}${isReady ? ' btn--ready' : ''}" data-mon-skill="${tSafe}" data-mon-skill-mon="${m.id}"${tip} ${disabled ? "disabled" : ""}>${label}</button>`;
                 })
                 .join("")}</div>`
             : `<div class="badge badge--muted">技能加载中</div>`;
@@ -396,11 +408,13 @@ export function createRenderMons({
           const canStarUp =
             stars < 5 && Number.isFinite(need) && need > 0 && gateOk && validSel.length === need;
 
+          const natureName = getNatureInfo(m.nature)?.name || "—";
+          const ab = getAbilityInfo(m.ability);
           rows.push(`
             <div class="row">
               <div class="row__left">
                 <div class="row__title row__titleLine">${renderPokemonIcon(m.dex, m.name, Boolean(m.isShiny))}<span>${escapeHtml(m.name)}</span>${shinyBadge}<span style="margin-left:8px">${starsHtml}</span></div>
-                <div class="row__desc">Lv.${m.lvl} · 战力 ${power} · 饱腹度 ${sat}/100 · 亲密度 ${aff}/100${"caughtWith" in m && m.caughtWith && m.caughtWith !== "pokeball" ? " · " + ({"pokeball":"精灵球","ultraball":"高级球","quickball":"先机球","luxuryball":"豪华球","masterball":"大师球"}[m.caughtWith] ?? m.caughtWith) : ""}</div>
+                <div class="row__desc">Lv.${m.lvl} · 战力 ${power} · 性格 ${escapeHtml(natureName)} · 特性 ${escapeHtml(ab?.name || "—")} · 饱腹度 ${sat}/100 · 亲密度 ${aff}/100${"caughtWith" in m && m.caughtWith && m.caughtWith !== "pokeball" ? " · " + ({"pokeball":"精灵球","ultraball":"高级球","quickball":"先机球","luxuryball":"豪华球","masterball":"大师球","netball":"捕网球","duskball":"黑暗球"}[m.caughtWith] ?? m.caughtWith) : ""}</div>
               </div>
               <div class="row__mid">${skillHtml}</div>
               <div class="row__right">
@@ -573,6 +587,20 @@ export function createRenderMons({
           <div class="badge">饱腹度 ${Math.ceil(clamp(typeof selected.satiety === "number" ? selected.satiety : 100, 0, 100))}/100</div>
           <div class="badge">亲密度 ${Math.floor(clamp(typeof selected.affection === "number" ? selected.affection : 0, 0, 100))}/100</div>
           <div class="badge">战力 ${monPower(selected)}</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">性格 / 特性</div>
+          <div class="row__desc">性格只影响六维；特性影响挂机/捕捉/挑战等玩法。</div>
+        </div>
+        <div class="row__right">
+          <div class="badge badge--nature">性格：${escapeHtml(getNatureInfo(selected.nature)?.name || "—")}</div>
+          <div class="badge">${(() => {
+            const ab = getAbilityInfo(selected.ability);
+            return ab ? `特性：${escapeHtml(ab.name)} · ${escapeHtml(ab.desc)}` : "特性：—";
+          })()}</div>
         </div>
       </div>
 

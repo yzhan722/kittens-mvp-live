@@ -125,20 +125,19 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
       `);
       const triple = (() => {
         const free = state.meta.dailyFreeFcDate === today;
-        const deal = state.meta.shopDailyDealDate === today;
         const spin = state.meta.dailySpinDate === today;
-        const n = (free ? 1 : 0) + (deal ? 1 : 0) + (spin ? 1 : 0);
+        const n = (free ? 1 : 0) + (spin ? 1 : 0);
         const claimed = state.meta.shopTripleClaimDate === today;
-        return { n, claimed, canClaim: n >= 3 && !claimed };
+        return { n, claimed, canClaim: n >= 2 && !claimed };
       })();
       dailyRows.push(`
         <div class="row">
           <div class="row__left">
-            <div class="row__title">每日三连</div>
-            <div class="row__desc">免费币 + 特惠 + 转盘全做完（${triple.n}/3）→ 额外 +15 未来币</div>
+            <div class="row__title">每日双礼</div>
+            <div class="row__desc">免费币 + 转盘全做完（${triple.n}/2）→ 额外 +15 未来币</div>
           </div>
           <div class="row__right">
-            <button class="btn btn--primary btn--small" data-fc-daily-triple ${triple.canClaim ? "" : "disabled"}>${triple.claimed ? "三连已领" : "领取三连 +15"}</button>
+            <button class="btn btn--primary btn--small" data-fc-daily-triple ${triple.canClaim ? "" : "disabled"}>${triple.claimed ? "双礼已领" : "领取双礼 +15"}</button>
           </div>
         </div>
       `);
@@ -241,7 +240,7 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
       autoRows.push(`
         <div class="row">
           <div class="row__left">
-            <div class="row__title">自动建造（贝师傅最爱）</div>
+            <div class="row__title">自动建造</div>
             <div class="row__desc">一次性解锁：${autoBuildPrice} 未来币</div>
           </div>
           <div class="row__right">
@@ -256,7 +255,7 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
       autoRows.push(`
         <div class="row">
           <div class="row__left">
-            <div class="row__title">自动科研（贝师傅最爱）</div>
+            <div class="row__title">自动科研</div>
             <div class="row__desc">一次性解锁：${autoPrice} 未来币</div>
           </div>
           <div class="row__right">
@@ -271,7 +270,7 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
       autoRows.push(`
         <div class="row">
           <div class="row__left">
-            <div class="row__title">自动合成（贝师傅最爱）</div>
+            <div class="row__title">自动合成</div>
             <div class="row__desc">一次性解锁：${autoCraftPrice} 未来币</div>
           </div>
           <div class="row__right">
@@ -286,7 +285,7 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
       autoRows.push(`
         <div class="row">
           <div class="row__left">
-            <div class="row__title">自动搓球（贝师傅最爱）</div>
+            <div class="row__title">自动搓球</div>
             <div class="row__desc">一次性解锁：${autoBallPrice} 未来币</div>
           </div>
           <div class="row__right">
@@ -635,6 +634,118 @@ export function createRenderFutureShop({ elFutureShop, ui, defs, fmt, getState, 
         <div class="row__right">
           <div class="badge">当前：${fmt(state.res.goldBottleCap?.value ?? 0)}</div>
           <button class="btn btn--primary" data-fc-buy="goldBottleCap" data-fc-price="${goldBottleCapPrice}" data-fc-amount="1" ${canBuyGoldBottleCap ? "" : "disabled"}>购买1个</button>
+        </div>
+      </div>
+    `);
+
+    const netballPrice = 250;
+    const canBuyNetball = (state.res.futurecoin?.value ?? 0) >= netballPrice;
+    itemRows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">捕网球</div>
+          <div class="row__desc">价格：${netballPrice} 未来币/5个</div>
+          <div class="row__desc">效果：对虫/水/草属性捕获率 ×3</div>
+        </div>
+        <div class="row__right">
+          <div class="badge">当前：${fmt(state.res.netball?.value ?? 0)}</div>
+          <button class="btn btn--primary" data-fc-buy="netball" data-fc-price="${netballPrice}" data-fc-amount="5" ${canBuyNetball ? "" : "disabled"}>购买5个</button>
+        </div>
+      </div>
+    `);
+
+    const duskballPrice = 280;
+    const canBuyDuskball = (state.res.futurecoin?.value ?? 0) >= duskballPrice;
+    itemRows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">黑暗球</div>
+          <div class="row__desc">价格：${duskballPrice} 未来币/5个</div>
+          <div class="row__desc">效果：夜间（18:00–06:00）捕获率 ×3，其余时段 ×1.2</div>
+        </div>
+        <div class="row__right">
+          <div class="badge">当前：${fmt(state.res.duskball?.value ?? 0)}</div>
+          <button class="btn btn--primary" data-fc-buy="duskball" data-fc-price="${duskballPrice}" data-fc-amount="5" ${canBuyDuskball ? "" : "disabled"}>购买5个</button>
+        </div>
+      </div>
+    `);
+
+    const energyDrinkPrice = 45;
+    const canBuyEnergyDrink = (state.res.futurecoin?.value ?? 0) >= energyDrinkPrice;
+    itemRows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">能量饮料</div>
+          <div class="row__desc">价格：${energyDrinkPrice} 未来币/个</div>
+          <div class="row__desc">效果：使用后采集充能 +250（上限 1000）</div>
+        </div>
+        <div class="row__right">
+          <div class="badge">当前：${fmt(state.res.energyDrink?.value ?? 0)}</div>
+          <button class="btn btn--primary" data-fc-buy="energyDrink" data-fc-price="${energyDrinkPrice}" data-fc-amount="1" ${canBuyEnergyDrink ? "" : "disabled"}>购买1个</button>
+        </div>
+      </div>
+    `);
+
+    const searchFlarePrice = 55;
+    const canBuySearchFlare = (state.res.futurecoin?.value ?? 0) >= searchFlarePrice;
+    itemRows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">搜索信号弹</div>
+          <div class="row__desc">价格：${searchFlarePrice} 未来币/个</div>
+          <div class="row__desc">效果：使用后遭遇充能 +25（上限 100）</div>
+        </div>
+        <div class="row__right">
+          <div class="badge">当前：${fmt(state.res.searchFlare?.value ?? 0)}</div>
+          <button class="btn btn--primary" data-fc-buy="searchFlare" data-fc-price="${searchFlarePrice}" data-fc-amount="1" ${canBuySearchFlare ? "" : "disabled"}>购买1个</button>
+        </div>
+      </div>
+    `);
+
+    const advSearchCellPrice = 120;
+    const canBuyAdvSearchCell = (state.res.futurecoin?.value ?? 0) >= advSearchCellPrice;
+    itemRows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">高级搜索电池</div>
+          <div class="row__desc">价格：${advSearchCellPrice} 未来币/个</div>
+          <div class="row__desc">效果：使用后高级搜索次数 +2</div>
+        </div>
+        <div class="row__right">
+          <div class="badge">当前：${fmt(state.res.advSearchCell?.value ?? 0)}</div>
+          <button class="btn btn--primary" data-fc-buy="advSearchCell" data-fc-price="${advSearchCellPrice}" data-fc-amount="1" ${canBuyAdvSearchCell ? "" : "disabled"}>购买1个</button>
+        </div>
+      </div>
+    `);
+
+    const sootheBellPrice = 400;
+    const canBuySootheBell = (state.res.futurecoin?.value ?? 0) >= sootheBellPrice;
+    itemRows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">安抚之铃</div>
+          <div class="row__desc">价格：${sootheBellPrice} 未来币/个</div>
+          <div class="row__desc">效果：使用后全体精灵亲密度 +3</div>
+        </div>
+        <div class="row__right">
+          <div class="badge">当前：${fmt(state.res.sootheBell?.value ?? 0)}</div>
+          <button class="btn btn--primary" data-fc-buy="sootheBell" data-fc-price="${sootheBellPrice}" data-fc-amount="1" ${canBuySootheBell ? "" : "disabled"}>购买1个</button>
+        </div>
+      </div>
+    `);
+
+    const expCandySPrice = 80;
+    const canBuyExpCandyS = (state.res.futurecoin?.value ?? 0) >= expCandySPrice;
+    itemRows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">经验糖果S</div>
+          <div class="row__desc">价格：${expCandySPrice} 未来币/20个</div>
+          <div class="row__desc">效果：使用后指定精灵获得 200 经验</div>
+        </div>
+        <div class="row__right">
+          <div class="badge">当前：${fmt(state.res.expCandyS?.value ?? 0)}</div>
+          <button class="btn btn--primary" data-fc-buy="expCandyS" data-fc-price="${expCandySPrice}" data-fc-amount="20" ${canBuyExpCandyS ? "" : "disabled"}>购买20个</button>
         </div>
       </div>
     `);

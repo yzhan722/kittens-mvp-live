@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createItemUsage } from "../modules/item_usage.js";
+import { ballCatchMult } from "../modules/systems/ball_catch.js";
 
 function makeHarness(overrides = {}) {
   const state = {
@@ -21,12 +22,21 @@ function makeHarness(overrides = {}) {
       goldBottleCap: { value: 1 },
       expCandy: { value: 2 },
       expCandyL: { value: 1 },
+      expCandyS: { value: 2 },
       affectionTreat: { value: 2 },
       friendshipBracelet: { value: 1 },
       megaStone: { value: 1 },
+      energyDrink: { value: 1 },
+      searchFlare: { value: 1 },
+      advSearchCell: { value: 1 },
+      sootheBell: { value: 1 },
       ...overrides.res,
     },
     shinyCharmRemainingSec: 0,
+    gatherCharges: 100,
+    encounterCharges: 10,
+    encounterPlusCharges: 1,
+    permanentBoosts: { encPlusMax: 0 },
     ...overrides.state,
   };
   const logs = [];
@@ -46,10 +56,29 @@ function makeHarness(overrides = {}) {
 // --- createItemUsage export surface ---
 {
   const { itemUsage } = makeHarness();
-  const keys = ["useExpCandy", "useAffectionItem", "useBottleCap", "useLuckyEgg", "useMegaStone", "useShinyCharm"];
+  const keys = [
+    "useExpCandy",
+    "useAffectionItem",
+    "useBottleCap",
+    "useLuckyEgg",
+    "useMegaStone",
+    "useShinyCharm",
+    "useEnergyDrink",
+    "useSearchFlare",
+    "useAdvSearchCell",
+    "useSootheBell",
+  ];
   for (const k of keys) {
     assert.equal(typeof itemUsage[k], "function", `item_usage must export ${k}`);
   }
+}
+
+{
+  assert.equal(ballCatchMult("netball", { types: ["water"] }), 3, "netball water");
+  assert.equal(ballCatchMult("netball", { types: ["fire"] }), 1, "netball fire");
+  assert.equal(ballCatchMult("duskball", { hour: 20 }), 3, "dusk night");
+  assert.equal(ballCatchMult("duskball", { hour: 12 }), 1.2, "dusk day");
+  assert.equal(ballCatchMult("ultraball"), 2, "ultra");
 }
 
 // --- lucky egg ---
@@ -79,6 +108,34 @@ function makeHarness(overrides = {}) {
 {
   const { itemUsage } = makeHarness({ res: { shinyCharm: { value: 0 } } });
   assert.equal(itemUsage.useShinyCharm().success, false, "shiny charm rejects zero stock");
+}
+
+// --- utility consumables ---
+{
+  const { state, itemUsage } = makeHarness();
+  assert.equal(itemUsage.useEnergyDrink().success, true, "energy drink");
+  assert.equal(state.gatherCharges, 350, "gather +250");
+  assert.equal(state.res.energyDrink.value, 0, "energy consumed");
+}
+{
+  const { state, itemUsage } = makeHarness();
+  assert.equal(itemUsage.useSearchFlare().success, true, "search flare");
+  assert.equal(state.encounterCharges, 35, "encounter +25");
+}
+{
+  const { state, itemUsage } = makeHarness();
+  assert.equal(itemUsage.useAdvSearchCell().success, true, "adv cell");
+  assert.equal(state.encounterPlusCharges, 3, "plus +2");
+}
+{
+  const { state, itemUsage } = makeHarness();
+  assert.equal(itemUsage.useSootheBell().success, true, "soothe");
+  assert.equal(state.mons.list[0].affection, 3, "affection +3");
+}
+{
+  const { getExpGained, itemUsage } = makeHarness();
+  assert.equal(itemUsage.useExpCandy(7, "expCandyS").success, true, "exp S");
+  assert.equal(getExpGained(), 200, "exp S grants 200");
 }
 
 // --- bottle caps ---

@@ -117,6 +117,11 @@ const eff = computeTechEffects(state, defs, ui);
 assert(Math.abs(eff.woodRateMul - 1.1 * 1.01) < 1e-9, "woodRateMul");
 // catch: 0.01 + server(0.1) + perm(0.1) = 0.21
 assert(Math.abs(eff.catchChanceAdd - 0.21) < 1e-9, "catchChanceAdd got " + eff.catchChanceAdd);
+{
+  const timed = { ...state, captureBoostRemainingSec: 60 };
+  const te = computeTechEffects(timed, defs, ui);
+  assert(Math.abs(te.catchChanceAdd - 0.41) < 1e-9, "timed capture boost +0.2");
+}
 assert(computeDexEffects(state).catnipPerSecMul === 1.02, "dex catnip");
 assert(getPokeballMakeCost(1, state, ui, null, defs).wood === 3, "pokeball cost");
 assert(getResearchCost({ cost: { catnip: 200 } }, state).catnip === 90, "research cap");
@@ -188,6 +193,18 @@ const rates = computeUnlockedResourceRates(ps, { woodRateMul: 1, mineralsRateMul
 pe.woodPerSec = rates.woodPerSec;
 finalizeProductionRates(pe, ps, 1);
 assert(Math.abs(pe.catnipPerSec - (2 * 3 * 0.5 * 1.1 - 10)) < 1e-9, "finalize rates");
+{
+  const pe2 = { catnipPerSec: 20, woodPerSec: 10, mineralsPerSec: 4 };
+  const ps2 = { permanentBoosts: {}, skills: { normalBoostStacks: [] }, breeding: { on: false } };
+  finalizeProductionRates(pe2, ps2, 1);
+  const baseCat = pe2.catnipPerSec;
+  pe2.catnipPerSec = 20;
+  pe2.woodPerSec = 10;
+  pe2.mineralsPerSec = 4;
+  ps2.prodBoostRemainingSec = 120;
+  finalizeProductionRates(pe2, ps2, 1);
+  assert(Math.abs(pe2.catnipPerSec - baseCat * 1.5) < 1e-9, "timed prod boost x1.5");
+}
 
 // stars curve: catch starts ★0; early upgrade gated; costs steeper
 assert(getStarUpgradeNeed(0) === 5, "star need ★0→1");
@@ -377,6 +394,47 @@ const win = pvp.simulateBattle(
   "P2"
 );
 assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
+
+{
+  const { defaultState, serializeState, loadFromRaw } = await import("../modules/state.js");
+  const s0 = defaultState();
+  s0.permanentBoosts.encPlusMax = 7;
+  s0.captureBoostRemainingSec = 90;
+  s0.prodBoostRemainingSec = 120;
+  const loaded = loadFromRaw(serializeState(s0));
+  assert(loaded, "roundtrip load");
+  assert(loaded.permanentBoosts.encPlusMax === 7, "encPlusMax persists");
+  assert(loaded.captureBoostRemainingSec === 90, "captureBoost persists");
+  assert(loaded.prodBoostRemainingSec === 120, "prodBoost persists");
+}
+
+{
+  const {
+    TYPE_SKILLS,
+    IMPLEMENTED_SKILL_TYPES,
+    BATCH_ONCE_SKILL_TYPES,
+    isSkillImplemented,
+    skillCdSec,
+    listActiveSkillBuffs,
+  } = await import("../modules/type_skills.js");
+  assert(Object.keys(TYPE_SKILLS).length === 18, "18 type skills");
+  assert(IMPLEMENTED_SKILL_TYPES.length === 18, "all skills marked implemented");
+  assert(isSkillImplemented("poison") && isSkillImplemented("flying") && isSkillImplemented("psychic"), "ex-missing skills wired");
+  assert(skillCdSec("grass") === 8 * 3600 && skillCdSec("fire") === 3600, "skill cds");
+  assert(BATCH_ONCE_SKILL_TYPES.includes("normal") && BATCH_ONCE_SKILL_TYPES.includes("bug"), "batch-once covers global buffs");
+  const lines = listActiveSkillBuffs({
+    trainingStacks: [10],
+    normalBoostStacks: [1, 2],
+    iceSatietySlowRemainingSec: 90,
+    steelBallDiscountCharges: 3,
+    darkPveDamageBoostRemainingSec: 120,
+  });
+  assert(lines.some((x) => x.includes("训练")), "buff strip training");
+  assert(lines.some((x) => x.includes("产量")), "buff strip normal");
+  assert(lines.some((x) => x.includes("保鲜")), "buff strip ice");
+  assert(lines.some((x) => x.includes("精工")), "buff strip steel");
+  assert(lines.some((x) => x.includes("霸凌")), "buff strip dark");
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const era = spawnSync(process.execPath, [path.join(__dirname, "era-selfcheck.mjs")], { stdio: "inherit" });

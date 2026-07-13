@@ -4,6 +4,8 @@ import { clampStar } from "./stars.js";
 
 import { createMonInstance as createMonInstance0 } from "./mons.js";
 
+import { ensureMonAbility } from "./abilities.js";
+
 import { legacyIdMap, pokemon } from "./pokemon_defs.js";
 
 import { BUILDING_DEFS } from "./defs_buildings.js";
@@ -143,6 +145,13 @@ export const defaultState = () => ({
     luckyEgg: { value: 0, cap: 0 },
     bottleCap: { value: 0, cap: 0 },
     goldBottleCap: { value: 0, cap: 0 },
+    netball: { value: 0, cap: 0 },
+    duskball: { value: 0, cap: 0 },
+    energyDrink: { value: 0, cap: 0 },
+    searchFlare: { value: 0, cap: 0 },
+    advSearchCell: { value: 0, cap: 0 },
+    sootheBell: { value: 0, cap: 0 },
+    expCandyS: { value: 0, cap: 0 },
 
   },
 
@@ -338,8 +347,6 @@ export const defaultState = () => ({
 
     normalBoostStacks: [],
 
-    bullyHp: 100,
-
     hugeBerryBuffRemainingSec: 0,
 
     steelBallDiscountCharges: 0,
@@ -403,6 +410,7 @@ export const defaultState = () => ({
     capture: 0,
     production: 0,
     capacity: 0,
+    encPlusMax: 0,
   },
   totalPlayMs: 0,
   encounterPlusCharges: 1,
@@ -826,6 +834,9 @@ export function loadFromRaw(raw) {
     if (typeof data.permanentBoosts.capacity === "number") {
       s.permanentBoosts.capacity = Math.max(0, Math.min(10, Math.floor(data.permanentBoosts.capacity)));
     }
+    if (typeof data.permanentBoosts.encPlusMax === "number") {
+      s.permanentBoosts.encPlusMax = Math.max(0, Math.min(20, Math.floor(data.permanentBoosts.encPlusMax)));
+    }
   }
 
 
@@ -892,8 +903,6 @@ export function loadFromRaw(raw) {
 
     normalBoostStacks: [],
 
-    bullyHp: 100,
-
     hugeBerryBuffRemainingSec: 0,
 
     steelBallDiscountCharges: 0,
@@ -935,10 +944,6 @@ export function loadFromRaw(raw) {
       .filter((x) => x > 0)
 
       .slice(0, 200);
-
-    const hp = data.skills.bullyHp;
-
-    if (typeof hp === "number" && Number.isFinite(hp)) s.skills.bullyHp = clamp(Math.floor(hp), 0, 100);
 
     const rem = data.skills.hugeBerryBuffRemainingSec;
 
@@ -1534,6 +1539,10 @@ export function loadFromRaw(raw) {
 
           stars,
 
+          nature: typeof it.nature === "string" ? it.nature : "hardy",
+
+          ability: typeof it.ability === "string" ? it.ability : undefined,
+
           autoExpCarry,
 
           affectionCarry,
@@ -1561,6 +1570,8 @@ export function loadFromRaw(raw) {
       }
 
       s.mons.list = out;
+
+      for (const m of s.mons.list) ensureMonAbility(m);
 
       if (out.length > 0) {
 

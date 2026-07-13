@@ -8,6 +8,7 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
     if (!mon) return { success: false, message: "精灵不存在" };
 
     const expValues = {
+      expCandyS: 200,
       expCandy: 1000,
       expCandyL: 5000,
       expCandyXL: 20000,
@@ -23,6 +24,7 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
     addExpToMon(mon, expGain);
     
     const itemNames = {
+      expCandyS: "经验糖果S",
       expCandy: "经验糖果",
       expCandyL: "经验糖果L",
       expCandyXL: "经验糖果XL",
@@ -171,6 +173,73 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
     return { success: true, message: "闪耀护符已激活！" };
   }
 
+  /** 能量饮料：回复采集充能 */
+  function useEnergyDrink() {
+    const itemCount = state.res.energyDrink?.value || 0;
+    if (itemCount < 1) return { success: false, message: "道具数量不足" };
+    const cur = typeof state.gatherCharges === "number" && Number.isFinite(state.gatherCharges) ? state.gatherCharges : 0;
+    if (cur >= 1000) return { success: false, message: "采集充能已满" };
+    state.res.energyDrink.value = Math.max(0, itemCount - 1);
+    state.gatherCharges = Math.min(1000, Math.floor(cur) + 250);
+    if (state.gatherCharges >= 1000) state.gatherCdSec = 0;
+    addLog(`使用能量饮料：采集充能 → ${Math.floor(state.gatherCharges)}/1000`);
+    return { success: true, message: "采集充能已回复！" };
+  }
+
+  /** 搜索信号弹：回复遭遇充能 */
+  function useSearchFlare() {
+    const itemCount = state.res.searchFlare?.value || 0;
+    if (itemCount < 1) return { success: false, message: "道具数量不足" };
+    const cur = typeof state.encounterCharges === "number" && Number.isFinite(state.encounterCharges) ? state.encounterCharges : 0;
+    if (cur >= 100) return { success: false, message: "遭遇充能已满" };
+    state.res.searchFlare.value = Math.max(0, itemCount - 1);
+    state.encounterCharges = Math.min(100, Math.floor(cur) + 25);
+    if (state.encounterCharges >= 100) state.encounterCdSec = 0;
+    addLog(`使用搜索信号弹：遭遇充能 → ${Math.floor(state.encounterCharges)}/100`);
+    return { success: true, message: "遭遇充能已回复！" };
+  }
+
+  /** 高级搜索电池：回复高级搜索次数 */
+  function useAdvSearchCell() {
+    const itemCount = state.res.advSearchCell?.value || 0;
+    if (itemCount < 1) return { success: false, message: "道具数量不足" };
+    const encPlusMaxBonus =
+      typeof state.permanentBoosts?.encPlusMax === "number"
+        ? Math.max(0, Math.min(20, Math.floor(state.permanentBoosts.encPlusMax)))
+        : 0;
+    const maxCharges = 10 + encPlusMaxBonus;
+    const cur =
+      typeof state.encounterPlusCharges === "number" && Number.isFinite(state.encounterPlusCharges)
+        ? state.encounterPlusCharges
+        : 0;
+    if (cur >= maxCharges) return { success: false, message: "高级搜索次数已满" };
+    state.res.advSearchCell.value = Math.max(0, itemCount - 1);
+    state.encounterPlusCharges = Math.min(maxCharges, Math.floor(cur) + 2);
+    if (state.encounterPlusCharges >= maxCharges) state.encounterPlusCdSec = 0;
+    addLog(`使用高级搜索电池：高级搜索 → ${Math.floor(state.encounterPlusCharges)}/${maxCharges}`);
+    return { success: true, message: "高级搜索次数已回复！" };
+  }
+
+  /** 安抚之铃：全队亲密度 +3 */
+  function useSootheBell() {
+    const itemCount = state.res.sootheBell?.value || 0;
+    if (itemCount < 1) return { success: false, message: "道具数量不足" };
+    const list = Array.isArray(state.mons?.list) ? state.mons.list : [];
+    if (list.length === 0) return { success: false, message: "没有精灵" };
+    let raised = 0;
+    for (const mon of list) {
+      if (!mon) continue;
+      const cur = typeof mon.affection === "number" && Number.isFinite(mon.affection) ? mon.affection : 0;
+      if (cur >= 100) continue;
+      mon.affection = Math.min(100, cur + 3);
+      raised += 1;
+    }
+    if (raised === 0) return { success: false, message: "全体亲密度已满" };
+    state.res.sootheBell.value = Math.max(0, itemCount - 1);
+    addLog(`使用安抚之铃：${raised} 只精灵亲密度 +3`);
+    return { success: true, message: `${raised} 只精灵亲密度提升了！` };
+  }
+
   return {
     useExpCandy,
     useAffectionItem,
@@ -178,5 +247,9 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
     useLuckyEgg,
     useMegaStone,
     useShinyCharm,
+    useEnergyDrink,
+    useSearchFlare,
+    useAdvSearchCell,
+    useSootheBell,
   };
 }

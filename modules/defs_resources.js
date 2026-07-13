@@ -123,4 +123,32 @@ export const RESOURCE_DEFS = {
     name: "金色王冠",
     baseCap: 99,
   },
+  netball: {
+    name: "捕网球",
+    baseCap: 999,
+  },
+  duskball: {
+    name: "黑暗球",
+    baseCap: 999,
+  },
+  energyDrink: {
+    name: "能量饮料",
+    baseCap: 999,
+  },
+  searchFlare: {
+    name: "搜索信号弹",
+    baseCap: 999,
+  },
+  advSearchCell: {
+    name: "高级搜索电池",
+    baseCap: 99,
+  },
+  sootheBell: {
+    name: "安抚之铃",
+    baseCap: 99,
+  },
+  expCandyS: {
+    name: "经验糖果S",
+    baseCap: 999,
+  },
 };

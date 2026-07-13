@@ -12,7 +12,7 @@ import {
 } from "../systems/expedition.js";
 import { expeditionNatureTimeMul, natureTrainExpMul, expeditionDailyProgress, markExpeditionDailyClaimed, localDateStr } from "../systems/gameplay_fun.js";
 import { seasonRelicLines } from "../systems/collection_fun.js";
-import { NATURE_PASSIVE, getNatureInfo } from "../mons.js";
+import { getAbilityInfo, monPassive } from "../abilities.js";
 
 export function createRenderFunctions({
   elFunctionsTraining,
@@ -172,12 +172,13 @@ export function createRenderFunctions({
             const needExp = m.lvl >= 100 ? 0 : Math.max(0, Math.floor(expNeedForLevel0(m.lvl)));
             const expText = needExp > 0 ? `${exp}/${needExp}` : `${exp}/MAX`;
             const nMul = natureTrainExpMul(m, active.length);
-            const nName = getNatureInfo(m.nature)?.name || m.nature || "";
+            const pass = monPassive(m);
+            const abName = getAbilityInfo(m.ability)?.name || pass?.desc || "";
             const nHint =
               nMul > 1
-                ? ` · ${escapeHtml(nName)}经验×${nMul.toFixed(2)}`
-                : NATURE_PASSIVE[m.nature]
-                  ? ` · ${escapeHtml(nName)}`
+                ? ` · 特性「${escapeHtml(abName)}」经验×${nMul.toFixed(2)}`
+                : pass
+                  ? ` · 特性「${escapeHtml(getAbilityInfo(m.ability)?.name || "")}」`
                   : "";
             rows.push(`
               <div class="row">
@@ -1535,7 +1536,7 @@ export function initFunctionsTab({
       state.expedition.rewardCoin = applyQuickExpeditionReward(Math.floor(lvlDef.coin * rewardMul), quick);
       state.expedition.rewardPotionTotal = applyQuickExpeditionReward(lvlDef.pot, quick);
       state.expedition.dungeonType = d.type;
-      const impishN = selMonsSorted.filter((m) => NATURE_PASSIVE[m?.nature]?.key === "expeditionTimeBonus").length;
+      const impishN = selMonsSorted.filter((m) => monPassive(m)?.key === "expeditionTimeBonus").length;
       const quickLabel = quick ? "（急行）" : "";
       addLog(impishN > 0 ? `开始远征${quickLabel}（淘气性格加速 ×${impishN}）` : `开始远征${quickLabel}`, true);
       markFunctionsDirty();
