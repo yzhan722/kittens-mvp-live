@@ -1,6 +1,7 @@
 import { clamp, randFloat } from "./utils.js";
 import { runAutomation } from "./automation.js?v=0.31.4";
 import { eraEncounterRechargeMul } from "./systems/era.js";
+import { pickExpeditionEventCard } from "./systems/expedition.js";
 import {
   natureAffectionMul,
   natureBreedTimeMul,
@@ -990,6 +991,13 @@ export function createTick(ctx) {
         }
         if (coinAdd > 0) addRes("futurecoin", coinAdd);
 
+        const eventCard = pickExpeditionEventCard(randFloat);
+        let eventBonus = 0;
+        if (eventCard?.bonusFuturecoin > 0) {
+          eventBonus = Math.max(0, Math.floor(eventCard.bonusFuturecoin));
+          addRes("futurecoin", eventBonus);
+        }
+
         if (potTotal > 0) {
           const pool = ["hpPotion", "atkPotion", "defPotion", "spaPotion", "spdPotion", "spePotion"];
           for (let i = 0; i < potTotal; i += 1) {
@@ -1017,14 +1025,16 @@ export function createTick(ctx) {
           Math.max(0, Math.floor(state.meta.expeditionsCompleted || 0)) + 1;
 
         addLog("远征完成", true);
+        if (eventCard?.title) addLog(`奇遇：${eventCard.title} — ${eventCard.blurb}`, true);
         if (ui) {
           ui.expeditionRewardModalOpen = true;
           ui.expeditionRewardModalData = {
             expPerMon: expAdd,
             monCount: ids.length,
-            futurecoin: coinAdd,
+            futurecoin: coinAdd + eventBonus,
             potions: potMap,
             masterball: masterballAdd,
+            eventCard,
           };
           ui.functionsDirty = true;
           ui.futureDirty = true;

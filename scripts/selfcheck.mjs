@@ -24,7 +24,7 @@ import {
   computeUnlockedResourceRates,
   finalizeProductionRates,
 } from "../modules/systems/production.js";
-import { expeditionTypeMulFromTypes } from "../modules/systems/expedition.js";
+import { expeditionTypeMulFromTypes, pickExpeditionEventCard } from "../modules/systems/expedition.js";
 import {
   SERVER_BUFF_KEYS,
   getServerBuffLevel,
@@ -41,6 +41,7 @@ import { resetEvoFamilyCacheForTest, isSameEvoFamily } from "../modules/evo_util
 import {
   bumpPvpSeasonStats,
   formatPvpSeasonStats,
+  formatPvpSeasonHeadline,
   normalizePvpRecent,
   summarizePvpBattle,
 } from "../modules/systems/pvp_narrative.js";
@@ -332,6 +333,10 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
     { seasonId: "s3", recent: [{ winner: 2 }, { winner: 2 }] }
   );
   assert(seasonLine.includes("赛季 s3") && seasonLine.includes("2 连胜"), "pvp season narrative");
+  const headline = formatPvpSeasonHeadline({ wins: 2, losses: 1 }, "s2");
+  assert(headline.includes("赛季 s2") && headline.includes("2胜1负"), "pvp season headline");
+  const ev = pickExpeditionEventCard(() => 0);
+  assert(ev?.id && ev?.title, "expedition event card");
   const rareIds = pickWeakMonIds(
     [
       { id: 20, pid: "a", lvl: 10, dex: 1, tier: "rare", baseStats: bs, iv },

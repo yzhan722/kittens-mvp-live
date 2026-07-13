@@ -1,7 +1,7 @@
 // 社交功能渲染模块
 
-import { getExpeditionSeasonBlurb, resolveSeasonId } from "../systems/expedition.js";
-import { formatPvpSeasonStats } from "../systems/pvp_narrative.js";
+import { getExpeditionSeasonBlurb, pickExpeditionEventCard, resolveSeasonId } from "../systems/expedition.js";
+import { formatPvpSeasonStats, formatPvpSeasonHeadline } from "../systems/pvp_narrative.js";
 
 export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, getState }) {
   function socialUnavailableRow(title) {
@@ -29,8 +29,10 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
 
   function pvpSeasonBlurbHtml() {
     const sid = resolveSeasonId(ui.remoteConfig);
+    const stats = typeof getState === "function" ? getState()?.meta?.pvpStats : null;
+    const headline = formatPvpSeasonHeadline(stats, sid);
     const blurb = getExpeditionSeasonBlurb(sid);
-    return blurb ? `<div class="row__meta">${escapeHtml(blurb)}</div>` : "";
+    return [headline, blurb].filter(Boolean).map((t) => `<div class="row__meta">${escapeHtml(t)}</div>`).join("");
   }
 
   function pvpEmptyStateHtml() {

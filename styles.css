@@ -3377,6 +3377,54 @@ body::before {
   animation: capture-near-miss-pulse 1.6s ease-in-out infinite;
   border-radius: 10px;
 }
+.capture-pity {
+  display: inline-block;
+  vertical-align: middle;
+  width: 72px;
+  height: 6px;
+  margin-left: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.capture-pity__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+.capture-pity-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.capture-near-miss-badge {
+  animation: capture-near-miss-pulse 1.6s ease-in-out infinite;
+}
+.dex-progress {
+  margin-top: 6px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.dex-progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #34d399, #10b981);
+  border-radius: 999px;
+}
+.resources__dashboard {
+  font-size: 12px;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.era-panel__distortion {
+  color: #fbbf24;
+  margin-bottom: 6px;
+}
 
 /* ========== Design Sprint F — Ember Camp polish ========== */
 :where(button, a, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {

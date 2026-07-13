@@ -26,12 +26,14 @@ export function createRenderDex({
     const totalSpecies = defs.pokemon.length;
     const { unique, total } = dexCaughtCount();
     const dexEff = computeDexEffects();
+    const dexPct = totalSpecies > 0 ? Math.round((unique / totalSpecies) * 100) : 0;
 
     elDexSummary.innerHTML = `
-      <div class="row">
+      <div class="row dex-summary">
         <div class="row__left">
           <div class="row__title">完成度</div>
-          <div class="row__desc">已登记：${unique}/${totalSpecies}，总捕获：${total}</div>
+          <div class="row__desc">已登记：${unique}/${totalSpecies}（${dexPct}%） · 总捕获：${total}</div>
+          <div class="dex-progress" aria-label="图鉴完成度 ${dexPct}%"><div class="dex-progress__fill" style="width:${dexPct}%"></div></div>
         </div>
         <div class="row__right">
           <div class="badge">树果产量 x${dexEff.catnipPerSecMul.toFixed(2)}</div>

@@ -130,6 +130,10 @@ for (const endpoint of authOnlyWriteEndpoints) {
   assert(webhook.includes("verifyWebhookSignature"), "iap webhook verifies signature");
   assert(webhook.includes("provider_unconfigured"), "iap webhook honest 501");
   assert(webhook.includes("recordIapOrder"), "iap webhook records ledger");
+  const grant = await readFile(new URL("../functions/api/iap/grant.js", import.meta.url), "utf8");
+  assert(grant.includes("grantIapOrder"), "iap grant route calls grantIapOrder");
+  const iapCore = await readFile(new URL("../functions/api/_iap.js", import.meta.url), "utf8");
+  assert(iapCore.includes("IAP_SKU_GRANTS"), "iap SKU grant map exists");
   const migration = await readFile(new URL("../scripts/migrations/2026-07-13-iap-orders.sql", import.meta.url), "utf8");
   assert(migration.includes("iap_orders"), "iap_orders migration exists");
 }

@@ -2,11 +2,12 @@ import { getEraDefById } from "../defs_eras.js";
 import {
   canAdvanceEra,
   canPrestige,
+  DISTORTION_OPENER_BLURB,
   ensureEra,
   questLabel,
   syncEraQuests,
 } from "../systems/era.js";
-import { ensureLuckyDay, ensureLuckyWeek, luckyCatchMul, typeZh } from "../systems/gameplay_fun.js";
+import { ensureLuckyDay, ensureLuckyWeek, luckyCatchMul, natureWildCatchMul, typeZh } from "../systems/gameplay_fun.js";
 import { NATURE_PASSIVE } from "../mons.js";
 
 const MUTATOR_LABELS = {
@@ -111,7 +112,8 @@ export function createRenderCapture({
 
     const eraPanelHtml = `
       <div class="era-panel">
-        <div class="era-panel__title">时代 · ${escapeHtml(eraDef.name)}</div>
+        <div class="era-panel__title">时代 · ${escapeHtml(eraDef.name)}${era.mode === "distortion" ? " · 时空歪曲" : ""}</div>
+        ${era.mode === "distortion" ? `<div class="row__desc era-panel__distortion">${escapeHtml(DISTORTION_OPENER_BLURB)}</div>` : ""}
         ${eraDef.blurb ? `<div class="row__desc">${escapeHtml(eraDef.blurb)}</div>` : ""}
         ${eraMutatorHtml ? `<div class="era-panel__mutators">${eraMutatorHtml}</div>` : ""}
         <div class="era-panel__quests">${eraQuestHtml}</div>
@@ -426,16 +428,12 @@ export function createRenderCapture({
       const localTypes = globalThis.POKEMON_TYPES;
       const encTypes = enc && localTypes && typeof localTypes === "object" ? localTypes[enc.dex] : null;
       const luckyMul2 = enc ? luckyCatchMul(state, encTypes) : 1;
+      const natureCatchMul = enc ? natureWildCatchMul(ui.encounterNature) : 1;
       const effChance = enc
-        ? clamp(baseCatchChanceByDex(enc.dex) * mult2 * ballMult2 * luckyMul2 + pity2, 0, 0.95)
+        ? clamp(baseCatchChanceByDex(enc.dex) * mult2 * ballMult2 * luckyMul2 * natureCatchMul + pity2, 0, 0.95)
         : 0;
       const pityPctFill = Math.min(1, pity2 / 0.2);
-      const pityBarFilled = Math.round(pityPctFill * 10);
-      const pityBar = "█".repeat(pityBarFilled) + "░".repeat(10 - pityBarFilled);
-      const pityText =
-        fails2 > 0
-          ? `保底 [${pityBar}] 失败 ${Math.max(0, Math.floor(fails2))} 次 · +${Math.round(pity2 * 100)}%（上限 20%）`
-          : `保底 [${pityBar}] 连续失败可提升捕获率（上限 +20%）`;
+      const pityBarHtml = `<div class="capture-pity" aria-label="保底进度"><div class="capture-pity__fill" style="width:${Math.round(pityPctFill * 100)}%"></div></div>`;
       const pbVal = Math.max(0, Math.floor(state.res.pokeball.value ?? 0));
       const pbCap = Math.max(0, Math.floor(state.res.pokeball.cap ?? 0));
       const ubVal = Math.max(0, Math.floor(state.res.ultraball?.value ?? 0));
@@ -473,8 +471,8 @@ export function createRenderCapture({
           </div>
           <div class="row__right">
             ${enc ? `<div class="badge">成功率：${Math.round(effChance * 100)}%</div>` : ""}
-            ${enc && ui.lastCatchNearMiss?.pid === enc.id ? `<div class="badge badge--warning">差一点！上次约 ${ui.lastCatchNearMiss.pct}%</div>` : ""}
-            <div class="badge">${escapeHtml(pityText)}</div>
+            ${enc && ui.lastCatchNearMiss?.pid === enc.id ? `<div class="badge badge--warning capture-near-miss-badge">差一点！上次约 ${ui.lastCatchNearMiss.pct}%</div>` : ""}
+            <div class="badge capture-pity-row">${fails2 > 0 ? `失败 ${Math.max(0, Math.floor(fails2))} 次 · +${Math.round(pity2 * 100)}%` : "连续失败提升捕获率"} ${pityBarHtml}</div>
             <div class="badge">精灵球：${pbVal}/${pbCap}</div>
             ${mbVal > 0 ? `<div class="badge">大师球：${mbVal}</div>` : ""}
           </div>

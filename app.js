@@ -11,6 +11,13 @@ import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js";
 import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.40.1";
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
+import {
+  getMonCurrentStatsWith,
+  createMonInstanceWith,
+  addExpToMonWith,
+  evolveMonWith,
+} from "./modules/systems/mon_stats.js";
+import { createLogUiSystem } from "./modules/app/log_ui.js";
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
 import { createTick } from "./modules/tick.js?v=0.40.1";
@@ -897,110 +904,15 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   const LB_AVATAR_KEY = "kittens_mvp_lb_avatar_v1";
 
   // ===== SECTION:LOG_UI — 日志UI折叠/展开/位置切换 — 维护者窗口C =====
-  function setLogCollapsed(collapsed) {
-    if (!elLog) return;
-    elLog.classList.toggle("is-collapsed", Boolean(collapsed));
-    if (elLogToggle) elLogToggle.textContent = collapsed ? "展开" : "收起";
-    try {
-      localStorage.setItem(LOG_COLLAPSE_KEY, collapsed ? "1" : "0");
-    } catch {
-    }
-    if (!collapsed) {
-      ui.logDirty = true;
-      render();
-    }
-  }
-
-  function moveLogToBottom() {
-    const titleRow = document.querySelector(".sidebar__sectionTitleRow--log");
-    const divider = document.querySelector(".sidebar__divider--log");
-    if (!elLog || !titleRow) return;
-
-    let host = document.getElementById("bottomLog");
-    if (!host) {
-      host = document.createElement("section");
-      host.id = "bottomLog";
-      host.className = "bottomLog";
-      const inner = document.createElement("div");
-      inner.className = "bottomLog__inner";
-      host.appendChild(inner);
-      const footer = document.querySelector("footer.footer");
-      if (footer && footer.parentNode) {
-        footer.parentNode.insertBefore(host, footer);
-      } else {
-        document.body.appendChild(host);
-      }
-    }
-
-    const inner = host.querySelector(".bottomLog__inner") || host;
-    if (divider) inner.appendChild(divider);
-    inner.appendChild(titleRow);
-    inner.appendChild(elLog);
-  }
-
-  function moveLogToSidebar() {
-    const titleRow = document.querySelector(".sidebar__sectionTitleRow--log");
-    const divider = document.querySelector(".sidebar__divider--log");
-    const sidebar = document.querySelector("aside.sidebar");
-    if (!elLog || !titleRow || !sidebar) return;
-
-    const hint = document.getElementById("hint");
-    const anchor = hint && hint.parentNode === sidebar ? hint : null;
-
-    const host = document.getElementById("bottomLog");
-    if (host && host.parentNode) host.parentNode.removeChild(host);
-
-    // 侧栏已无资源区；日志回到 hint 之后（或侧栏顶部）
-    const insertAfter = anchor || null;
-    if (divider) {
-      if (insertAfter && insertAfter.nextSibling) sidebar.insertBefore(divider, insertAfter.nextSibling);
-      else if (insertAfter) sidebar.appendChild(divider);
-      else sidebar.insertBefore(divider, sidebar.firstChild);
-    }
-
-    const afterDivider = divider && divider.parentNode === sidebar ? divider : insertAfter;
-    if (afterDivider && afterDivider.nextSibling) sidebar.insertBefore(titleRow, afterDivider.nextSibling);
-    else if (afterDivider) sidebar.appendChild(titleRow);
-    else sidebar.insertBefore(titleRow, sidebar.firstChild);
-
-    if (titleRow.nextSibling) sidebar.insertBefore(elLog, titleRow.nextSibling);
-    else sidebar.appendChild(elLog);
-  }
-
-  function initLogCollapse() {
-    if (!elLog || !elLogToggle) return;
-    let collapsed = true;
-    try {
-      const raw = localStorage.getItem(LOG_COLLAPSE_KEY);
-      if (raw === "1") collapsed = true;
-      if (raw === "0") collapsed = false;
-    } catch {
-    }
-
-    setLogCollapsed(collapsed);
-
-    elLogToggle.addEventListener("click", () => {
-      const next = !elLog.classList.contains("is-collapsed");
-      setLogCollapsed(next);
-    });
-  }
-
-  initLogCollapse();
-
-  try {
-    const mq = typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 980px)") : null;
-    const applyLogPlacement = () => {
-      if (mq && mq.matches) moveLogToBottom();
-      else moveLogToSidebar();
-    };
-    applyLogPlacement();
-    if (mq) {
-      if (typeof mq.addEventListener === "function") mq.addEventListener("change", applyLogPlacement);
-      else if (typeof mq.addListener === "function") mq.addListener(applyLogPlacement);
-    }
-  } catch {
-    moveLogToSidebar();
-  }
+  const logUi = createLogUiSystem({
+    elLog,
+    elLogToggle,
+    ui,
+    render,
+    logCollapseKey: LOG_COLLAPSE_KEY,
+  });
+  logUi.initLogCollapse();
+  logUi.initLogPlacement();
 
   try {
     const raw = localStorage.getItem(CAPTURE_PREVIEW_KEY);
@@ -1870,6 +1782,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
               ${fc > 0 ? `<div class="badge">${escapeHtml(defs.resources?.futurecoin?.name ?? "未来币")} x${fc}</div>` : ""}
               ${mb > 0 ? `<div class="badge">${escapeHtml(defs.resources?.masterball?.name ?? "大师球")} x${mb}</div>` : ""}
               <div class="badge">药剂：${potText}</div>
+              ${expData.eventCard?.title ? `<div class="badge badge--ok">奇遇 · ${escapeHtml(expData.eventCard.title)}：${escapeHtml(expData.eventCard.blurb || "")}</div>` : ""}
             </div>
           </div>
         </div>
@@ -2080,49 +1993,24 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   });
 
   // ===== SECTION:MON_HELPERS — 精灵辅助函数 getMonCurrentStats等 — 维护者窗口B =====
+  function monStatsDeps() {
+    return { state, ui, getPokeApiDataByDex, getSpeciesByPid, serverBuffMul, addLog };
+  }
+
   function getMonCurrentStats(mon) {
-    return getMonCurrentStats0(mon, getPokeApiDataByDex);
+    return getMonCurrentStatsWith(monStatsDeps(), mon);
   }
 
   function createMonInstance(species, idOverride = null) {
-    const m = createMonInstance0(species, {
-      idOverride,
-      idFallback: state?.mons?.nextId ?? 1,
-    });
-    m.skillCdRemainingSec = 0;
-    m.skillActiveType = null;
-    m.skillActiveRemainingSec = 0;
-    return m;
+    return createMonInstanceWith(monStatsDeps(), species, idOverride);
   }
 
   function addExpToMon(mon, expAdd) {
-    const add0 = typeof expAdd === "number" && Number.isFinite(expAdd) ? expAdd : 0;
-    const boostOn = typeof state.expBoostRemainingSec === "number" && Number.isFinite(state.expBoostRemainingSec) && state.expBoostRemainingSec > 0;
-    const luckyEggOn = typeof mon?.buffs?.luckyEgg === "number" && mon.buffs?.luckyEgg > Date.now();
-    const permExpLvl = typeof state.permanentBoosts?.exp === "number" ? Math.max(0, Math.min(10, Math.floor(state.permanentBoosts.exp))) : 0;
-    const permExpMul = 1 + permExpLvl * 0.1;
-    const mul = (boostOn ? 2 : 1) * (luckyEggOn ? 1.5 : 1) * serverBuffMul("exp") * permExpMul;
-    return addExpToMon0(mon, Math.floor(add0 * mul));
+    return addExpToMonWith(monStatsDeps(), mon, expAdd);
   }
 
   function evolveMon(mon, toPid) {
-    const ok = evolveMon0(mon, toPid, getSpeciesByPid);
-    if (!ok) return false;
-
-    if (!state.dex || typeof state.dex !== "object") state.dex = { caught: {} };
-    if (!state.dex.caught || typeof state.dex.caught !== "object") state.dex.caught = {};
-    const sp = getSpeciesByPid(toPid);
-    if (sp) {
-      const caught = state.dex.caught;
-      const prev = typeof caught[sp.id] === "number" ? caught[sp.id] : 0;
-      caught[sp.id] = prev + 1;
-      if (prev === 0) {
-        addLog(`图鉴登记：${sp.name}（进化解锁）`, true);
-      }
-    }
-
-    ui.dexDirty = true;
-    return true;
+    return evolveMonWith(monStatsDeps(), mon, toPid);
   }
 
   // ===== SECTION:SAVE_CLOUD — 存档序列化/云同步 — 维护者窗口A =====

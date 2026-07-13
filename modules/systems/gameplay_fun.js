@@ -77,6 +77,18 @@ export function pityFailStep(state, randFloat, encounterNature = null) {
   return 1;
 }
 
+const NEUTRAL_NATURES = new Set(["hardy", "docile", "bashful", "quirky"]);
+const WILD_CATCH_EASY = new Set(["gentle", "calm", "careful", "timid", "modest", "relaxed", "mild", "quiet"]);
+const WILD_CATCH_HARD = new Set(["adamant", "brave", "bold", "lonely", "naughty", "rash", "hasty", "jolly", "naive"]);
+
+/** Non-neutral wild encounter nature: ±5% capture rate modifier. */
+export function natureWildCatchMul(encounterNature) {
+  if (!encounterNature || NEUTRAL_NATURES.has(encounterNature)) return 1;
+  if (WILD_CATCH_EASY.has(encounterNature)) return 1.05;
+  if (WILD_CATCH_HARD.has(encounterNature)) return 0.95;
+  return 1;
+}
+
 /** Multiply expedition duration by nature passives on selected team. */
 export function expeditionNatureTimeMul(selectedMons) {
   const list = Array.isArray(selectedMons) ? selectedMons : [];

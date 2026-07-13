@@ -1,45 +1,41 @@
 ---
-description: kittens 重构向开发 Loop — 长跑到队列空
+description: kittens 马拉松开发 Loop — 开发到底
 alwaysApply: true
 ---
 
-# kittens 开发 Loop（重构向 · 长跑）
+# kittens 开发 Loop（马拉松 · 开发到底）
 
 ## 触发
 
-用户说「执行开发 loop」「继续」「长跑到队列空」，或 `/loop` 带「kittens 开发迭代」。
+用户说「loop开发到底」「长跑到队列空」「执行开发 loop」。
 
-## 节奏（默认：马拉松）
+## 节奏
 
-- **同一会话连续完成所有可执行 `REF-xxx` / `FIX-xxx`**，直到：
-  - 待做队列无可执行项，或
-  - 遇到 blocked（见下）
-- **不要**每条任务后停下来等用户说「继续」
-- 每完成一条仍更新 `DEV_BACKLOG.md`；会话结束时统一写 `memory/*`
-- 单条仍保持 min-diff；可在同会话内连续多条，但每条独立验收
+- **同一会话连续执行 `FINAL_LOOP_BACKLOG.md` 全部可执行项**，不逐波停顿、不等「继续」
+- 任务源：`FINAL_LOOP_BACKLOG.md`（优先于 `DEV_BACKLOG.md`）
+- 每完成一条：勾选 → 立刻下一条
+- **每 4 条或会话结束前 commit+push**（用户已授权马拉松提交）
+- 单条 min-diff；验证失败则最小修复，仍失败才 blocked
 
-## 每条任务流程
+## 每条流程
 
-1. 读 `DEV_BACKLOG.md`、本规则与 `kittens-collab.mdc`
-2. 选队首 `size:S/M` 且 deps 满足的任务（`size:L` 须先拆子项再做）
-3. 只改该任务 `@window` 文件；单条任务内 app.js 尽量只动一个 SECTION
-4. 重构：**行为不变**（除非任务写明）；FIX 可按任务写明做行为/卫生变更
-5. 验证 → 勾选完成 → 立刻下一条
+1. 读 `FINAL_LOOP_BACKLOG.md`、本规则、`kittens-collab.mdc`
+2. 选队首 `size:S/M` 且 deps 满足
+3. 实现 → 跑相关 selfcheck → 勾选 → 下一条
 
 ## 禁止
 
-- 不自动 `deploy.ps1`、不自动 commit/push（除非用户明确说）
-- 不删功能代码除非任务写明
-- 不顺手改数值平衡
-- 不 bump 版本号（重构/加固轮，除非任务写明）
+- 不自动 `deploy.ps1`（除非用户明确说上线）
+- 不伪造 IAP 支付成功
+- 不顺手改数值平衡（除非任务写明）
+- 不 inflate 评分
 
-## Blocked 时停止（仅这些）
+## Blocked 仅当
 
-- `tag:decision` 任务
-- `size:L` 且用户未允许拆分/执行子项
-- 跨窗口冲突无法在本会话安全合并
-- 验证失败且一轮最小修复仍失败
+- `tag:blocked-external` / `tag:decision`
+- `size:L` 未拆子项
+- 验证两轮仍失败
 
 ## 完成汇报
 
-队列空或 blocked 时输出：完成了哪些 ID、改了哪些文件、验证了什么、遗留风险、若有 blocked 写明原因。
+队列空时：完成 ID 列表、验证证据、诚实分数、外部阻塞项、建议下一步（PR/上线）。

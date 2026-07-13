@@ -29,8 +29,8 @@ function renderProdHint(elResources, eff, state) {
   if (!hint) {
     hint = document.createElement("div");
     hint.id = "prodHint";
-    hint.className = "resources__hint muted";
-    host.appendChild(hint);
+    hint.className = "resources__hint resources__dashboard muted";
+    host.insertBefore(hint, elResources);
   }
   if (hint.textContent !== text) hint.textContent = text;
 }

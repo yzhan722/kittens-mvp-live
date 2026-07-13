@@ -47,3 +47,18 @@ export function summarizePvpBattle(result, selfLabel = "你", opts = {}) {
     .join(" · ");
   return `${headline} — ${detail}${suffix ? ` · ${suffix}` : ""}`;
 }
+
+/** Season headline for social / leaderboard empty states. */
+export const PVP_SEASON_HEADLINES = [
+  "本赛季：克制阵容更容易连胜",
+  "本赛季：满编六只再应战更稳",
+  "本赛季：惜败也会记入赛季战绩",
+];
+
+export function formatPvpSeasonHeadline(stats, seasonId = "") {
+  const line = formatPvpSeasonStats(stats);
+  const sid = typeof seasonId === "string" && seasonId.trim() ? seasonId.trim() : "";
+  const idx = (line.length + sid.length) % PVP_SEASON_HEADLINES.length;
+  const hook = PVP_SEASON_HEADLINES[idx];
+  return [hook, sid ? `赛季 ${sid}` : "", line].filter(Boolean).join(" · ");
+}

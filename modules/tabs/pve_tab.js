@@ -11,6 +11,13 @@ const PVE_CHAPTER_BLURBS = {
   "2": "城都进阶挑战：幽灵、格斗、钢系轮番上阵，终盘龙系需要克制与练度。",
 };
 
+const PVE_STAR_NARRATIVE = {
+  3: "三星征服：对手再无还手之力，可冲击下一章。",
+  2: "两星通关：胜利有余，仍可打磨克制拿满星。",
+  1: "一星险胜：下次带上推荐属性与更高练度更稳。",
+  loss: "失利也是情报：先看推荐属性、关卡建议等级与物特分路。",
+};
+
 const PVE_STAGE_HINTS = {
   "1-1": "首关教学：火/飞行/岩石系克制虫系；先训练到 Lv.3+ 更稳。",
   "1-2": "岩石馆：草/水/格斗/地面系有优势，注意大岩蛇耐久。",
@@ -365,7 +372,7 @@ export function createRenderPve({
             : r.stars >= 3
               ? `完胜（${r.stars}星，剩余生命 ${hpPct}%）`
               : `胜利（${r.stars}星，剩余生命 ${hpPct}%）`;
-        summaryHtml = `<div class="row"><div class="row__left"><div class="row__title">结果摘要</div><div class="row__desc hint hint--ok">${escapeHtml(winLine)}${typeof r.winStreak === "number" && r.winStreak > 0 ? ` · 连胜 ×${r.winStreak}` : ""}</div>${r.rewardText ? `<div class="row__desc">奖励：${escapeHtml(r.rewardText)}</div>` : ""}</div></div>`;
+        summaryHtml = `<div class="row"><div class="row__left"><div class="row__title">结果摘要</div><div class="row__desc hint hint--ok">${escapeHtml(winLine)}${typeof r.winStreak === "number" && r.winStreak > 0 ? ` · 连胜 ×${r.winStreak}` : ""}</div><div class="row__meta">${escapeHtml(PVE_STAR_NARRATIVE[r.stars] || PVE_STAR_NARRATIVE[1])}</div>${r.rewardText ? `<div class="row__desc">奖励：${escapeHtml(r.rewardText)}</div>` : ""}</div></div>`;
         if (r.endReason === "decision") {
           tipHtml = `<div class="row"><div class="row__left"><div class="row__title">提升建议</div><div class="row__desc">超时按剩余生命险胜。想稳定三星请再练级或换推荐属性。</div></div></div>`;
         } else if (r.stars < 3 && r.superEffectiveHits === 0) {
@@ -388,7 +395,7 @@ export function createRenderPve({
             : r.superEffectiveHits === 0
               ? `试试推荐属性：${escapeHtml(recText)}。`
               : "参考关卡建议等级，升星/喂糖果后再战。";
-        summaryHtml = `<div class="row"><div class="row__left"><div class="row__title">失败原因</div><div class="row__desc hint hint--danger">${escapeHtml(failReason)}</div><div class="row__desc">${fixTip}</div></div></div>`;
+        summaryHtml = `<div class="row"><div class="row__left"><div class="row__title">失败原因</div><div class="row__desc hint hint--danger">${escapeHtml(failReason)}</div><div class="row__meta">${escapeHtml(PVE_STAR_NARRATIVE.loss)}</div><div class="row__desc">${fixTip}</div></div></div>`;
       }
 
       resultModalHtml = `

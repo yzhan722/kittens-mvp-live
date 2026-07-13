@@ -9,6 +9,7 @@ import {
   natureAdvMissingPreferChance,
   partyHasAlwaysEscape,
   pityFailStep,
+  natureWildCatchMul,
   resetCatchStreak,
   noteCatchNearMiss,
   clearCatchNearMiss,
@@ -350,7 +351,7 @@ export function initCaptureTab({
           ballMult = caughtCount === 0 ? 5 : 1;
         }
         const luckyMul = luckyCatchMul(state, getMonTypesForBias(p));
-        let chance = base * mult * ballMult * luckyMul + pity;
+        let chance = base * mult * ballMult * luckyMul * natureWildCatchMul(ui.encounterNature) + pity;
         chance = clamp(chance, 0, 0.95);
         if (randFloat() > chance) {
           if (!state.rng) state.rng = { catchFails: 0 };
@@ -618,7 +619,7 @@ export function initCaptureTab({
           ballMult = 1; // 豪华球：捕获率不变，但捕获后亲密度+20
         }
         
-        let chance = base * mult * ballMult * luckyCatchMul(state, getMonTypesForBias(p)) + pity;
+        let chance = base * mult * ballMult * luckyCatchMul(state, getMonTypesForBias(p)) * natureWildCatchMul(ui.encounterNature) + pity;
         chance = clamp(chance, 0, 0.95);
 
         if (randFloat() > chance) {

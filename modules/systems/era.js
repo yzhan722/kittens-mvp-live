@@ -1,4 +1,7 @@
 import { ERA_DEFS, ERA_MUTATORS, getEraDefById, getEraDefByIndex } from "../defs_eras.js";
+
+export const DISTORTION_OPENER_BLURB =
+  "时空已扭曲：遭遇更不可预测，图鉴与永久加成是你的锚点。完成时代主线可再次扭曲，每层扭曲保留图鉴与永久科技。";
 import { dexCaughtCount } from "./effects.js";
 
 const ERA_COUNTER_DEFAULTS = {

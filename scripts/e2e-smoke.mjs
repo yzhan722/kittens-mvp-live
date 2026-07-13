@@ -27,6 +27,7 @@ const criticalFiles = [
   "modules/iap_stub.js",
   "functions/api/iap/catalog.js",
   "functions/api/iap/webhook.js",
+  "functions/api/iap/grant.js",
   "modules/app/capture_award.js",
   "modules/analytics.js",
   "modules/daily_tasks.js",
@@ -51,6 +52,8 @@ const childChecks = [
   "daily_tasks-selfcheck.mjs",
   "era-selfcheck.mjs",
   "migrations-selfcheck.mjs",
+  "save-stress-selfcheck.mjs",
+  "apply-d1-migrations.mjs",
   "playwright-smoke.mjs",
 ];
 for (const script of childChecks) {

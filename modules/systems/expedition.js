@@ -11,6 +11,21 @@ export const EXPEDITION_SEASON_BLURBS = {
   s3: "赛季奖励：高阶副本额外未来币",
 };
 
+/** Random flavor event on expedition complete — small bonus already in tick rewards. */
+export const EXPEDITION_EVENT_CARDS = [
+  { id: "scout_trail", title: "侦察小径", blurb: "队伍抄近路归来，士气高涨。", bonusFuturecoin: 2 },
+  { id: "berry_cache", title: "树果储藏", blurb: "在废墟中发现补给，分给了全队。", bonusFuturecoin: 1 },
+  { id: "rival_echo", title: "劲敌残影", blurb: "远处传来对战呐喊，你们加快了脚步。", bonusFuturecoin: 3 },
+  { id: "ancient_mark", title: "古代刻痕", blurb: "岩壁上刻着未知图腾，研究员记下坐标。", bonusFuturecoin: 2 },
+  { id: "lucky_find", title: "意外拾遗", blurb: "草丛里滚出一枚完好精灵球。", bonusFuturecoin: 1 },
+];
+
+export function pickExpeditionEventCard(randFloat = Math.random) {
+  const roll = typeof randFloat === "function" ? randFloat() : Math.random();
+  const idx = Math.floor(roll * EXPEDITION_EVENT_CARDS.length);
+  return EXPEDITION_EVENT_CARDS[Math.max(0, Math.min(EXPEDITION_EVENT_CARDS.length - 1, idx))];
+}
+
 export function resolveExpeditionSeasonLabel(remoteConfig) {
   const label = remoteConfig?.expeditionSeasonLabel;
   return typeof label === "string" && label.trim() ? label.trim() : REMOTE_CONFIG_DEFAULTS.expeditionSeasonLabel;

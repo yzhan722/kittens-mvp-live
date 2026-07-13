@@ -18,6 +18,7 @@ import {
   natureResCapMul,
   natureResProdMul,
   natureTrainExpMul,
+  natureWildCatchMul,
   noteCatchNearMiss,
   partyBestPassive,
   partyHasAlwaysEscape,
@@ -194,6 +195,12 @@ import {
   assert.equal(ui.lastCatchNearMiss?.pct, 42, "near miss pct");
   noteCatchNearMiss(ui, "pika", 0.2);
   assert.equal(ui.lastCatchNearMiss, null, "near miss clear low");
+}
+
+{
+  assert.equal(natureWildCatchMul("gentle"), 1.05, "gentle +5% catch");
+  assert.equal(natureWildCatchMul("bold"), 0.95, "bold -5% catch");
+  assert.equal(natureWildCatchMul("hardy"), 1, "neutral hardy");
 }
 
 console.log("gameplay-fun-selfcheck: ok");
