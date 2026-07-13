@@ -180,6 +180,7 @@ function makeHarness(overrides = {}) {
 }
 
 // --- lucky-egg multiplier wiring (source contract; lives in mon_stats) ---
+const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const monStatsSource = await readFile(new URL("../modules/systems/mon_stats.js", import.meta.url), "utf8");
 const monsSource = await readFile(new URL("../modules/tabs/mons_tab.js", import.meta.url), "utf8");
 assert.match(monStatsSource, /mon\.buffs\?\.luckyEgg.*Date\.now\(\)/, "lucky egg multiplier must check expiry");
