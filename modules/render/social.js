@@ -1,6 +1,6 @@
 // 社交功能渲染模块
 
-import { resolveSeasonId } from "../systems/expedition.js";
+import { getExpeditionSeasonBlurb, resolveSeasonId } from "../systems/expedition.js";
 
 export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime }) {
   function socialUnavailableRow(title) {
@@ -20,12 +20,19 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     return ` <span class="muted">· 赛季 ${escapeHtml(sid)}</span>`;
   }
 
+  function pvpSeasonBlurbHtml() {
+    const sid = resolveSeasonId(ui.remoteConfig);
+    const blurb = getExpeditionSeasonBlurb(sid);
+    return blurb ? `<div class="row__meta">${escapeHtml(blurb)}</div>` : "";
+  }
+
   function pvpEmptyStateHtml() {
     return `
       <div class="row">
         <div class="row__left">
           <div class="row__title">暂无对战邀请${pvpSeasonSuffix()}</div>
           <div class="row__desc">
+            ${pvpSeasonBlurbHtml()}
             如何开始 PvP：
             <ol style="margin:0.5rem 0 0 1.2rem;padding:0;">
               <li>在下方「我的队伍」选择最多 6 只精灵</li>
@@ -97,7 +104,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
       el.innerHTML = "";
       return;
     }
-    let html = `<div class="row"><div class="row__left"><div class="row__title">最近战果</div></div></div>`;
+    let html = `<div class="row"><div class="row__left"><div class="row__title">最近战果${pvpSeasonSuffix()}</div>${pvpSeasonBlurbHtml()}</div></div>`;
     for (const item of recent) {
       const tone =
         item.winner === 2 ? "badge--success" : item.winner === 1 ? "badge--warning" : "badge--muted";

@@ -222,7 +222,7 @@ export function createRenderMons({
           <div class="row is-locked">
             <div class="row__left">
               <div class="row__title">盒子较满（${total} 只）</div>
-              <div class="row__desc">低战力精灵可放生换取神奇糖果；超过 ${BOX_SOFT_LIMIT} 只时可批量放生最弱的一批。</div>
+              <div class="row__desc">低战力精灵可放生换取神奇糖果；智能放生会保留闪光、高星、忙碌精灵，以及同种/同进化系最后一只。</div>
             </div>
           </div>
         `);

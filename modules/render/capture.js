@@ -381,8 +381,10 @@ export function createRenderCapture({
             ? `高级遭遇 ${advCharges}/${advMaxCharges}（+1 ${fmtRemain(advCd)}）`
             : `高级遭遇 ${advCharges}/${advMaxCharges}`;
 
+      const nearMissActive = Boolean(enc && ui.lastCatchNearMiss?.pid === enc.id);
+
       rows.push(`
-        <div class="row">
+        <div class="row${nearMissActive ? " capture-near-miss" : ""}">
           <div class="row__left">
             <div class="row__title">遭遇</div>
             <div class="row__desc">${enc ? `你遇到了：${escapeHtml(enc.name)}（${tierText}）` : "点击遭遇开始搜寻宝可梦。"}</div>

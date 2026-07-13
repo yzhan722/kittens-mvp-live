@@ -1,3 +1,4 @@
+import { getEvoFamilyId } from "../evo_utils.js";
 import { monPower } from "../mons.js";
 
 export const BOX_SOFT_LIMIT = 120;
@@ -34,6 +35,13 @@ export function pickWeakMonIds(list, opts = {}) {
         return counts;
       }, new Map())
     : null;
+  const familyCounts = opts.smartProtect
+    ? list.reduce((counts, m) => {
+        const fam = getEvoFamilyId(m?.pid);
+        if (fam) counts.set(fam, (counts.get(fam) || 0) + 1);
+        return counts;
+      }, new Map())
+    : null;
   const ranked = list
     .filter(
       (m) =>
@@ -42,20 +50,25 @@ export function pickWeakMonIds(list, opts = {}) {
         (!opts.smartProtect ||
           (!m.isShiny &&
             Math.max(0, Math.floor(m.stars || 0)) === 0 &&
-            (!m.pid || (speciesCounts.get(m.pid) || 0) > 1)))
+            (!m.pid || (speciesCounts.get(m.pid) || 0) > 1) &&
+            (!m.pid || (familyCounts.get(getEvoFamilyId(m.pid)) || 0) > 1)))
     )
     .slice()
     .sort((a, b) => monPower(a) - monPower(b) || (a.lvl || 1) - (b.lvl || 1));
   const dropN = Math.min(batch, list.length - softLimit);
   if (!opts.smartProtect) return ranked.slice(0, dropN).map((m) => m.id);
 
-  const remaining = new Map(speciesCounts);
+  const remainingSpecies = new Map(speciesCounts);
+  const remainingFamily = new Map(familyCounts);
   const ids = [];
   for (const mon of ranked) {
     if (ids.length >= dropN) break;
-    if (mon.pid && (remaining.get(mon.pid) || 0) <= 1) continue;
+    const fam = getEvoFamilyId(mon.pid);
+    if (mon.pid && (remainingSpecies.get(mon.pid) || 0) <= 1) continue;
+    if (fam && (remainingFamily.get(fam) || 0) <= 1) continue;
     ids.push(mon.id);
-    if (mon.pid) remaining.set(mon.pid, (remaining.get(mon.pid) || 0) - 1);
+    if (mon.pid) remainingSpecies.set(mon.pid, (remainingSpecies.get(mon.pid) || 0) - 1);
+    if (fam) remainingFamily.set(fam, (remainingFamily.get(fam) || 0) - 1);
   }
   return ids;
 }

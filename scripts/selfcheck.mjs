@@ -36,6 +36,7 @@ import { BUILDING_DEFS } from "../modules/defs_buildings.js";
 import { computeDerived as computeDerivedCore } from "../modules/systems/compute_derived.js";
 import { awardCaughtPokemon as awardCaughtCore } from "../modules/app/capture_award.js";
 import { pickWeakMonIds, releaseCandyRefund } from "../modules/systems/mon_release.js";
+import { resetEvoFamilyCacheForTest } from "../modules/evo_utils.js";
 import { summarizePvpBattle } from "../modules/systems/pvp_narrative.js";
 import { techReqHint } from "../modules/tech_req_hint.js";
 import { getTypeMul, TYPE_MUL } from "../modules/type_chart.js";
@@ -294,6 +295,20 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
   assert(
     smartIds.length === 1 && smartIds[0] === 3,
     "smart release protects shiny, starred, and sole species"
+  );
+  globalThis.POKEMON_EVO = { p001: ["p002"], p002: ["p003"] };
+  resetEvoFamilyCacheForTest();
+  const familyIds = pickWeakMonIds(
+    [
+      { id: 10, pid: "p001", lvl: 1, dex: 1, baseStats: bs, iv },
+      { id: 11, pid: "p003", lvl: 5, dex: 3, baseStats: bs, iv },
+      { id: 12, pid: "p003", lvl: 1, dex: 3, baseStats: bs, iv },
+    ],
+    { softLimit: 1, batch: 2, smartProtect: true }
+  );
+  assert(
+    familyIds.length === 1 && familyIds[0] === 12,
+    "smart release protects last mon per evolution family"
   );
   const pvpLine = summarizePvpBattle({
     winner: 2,

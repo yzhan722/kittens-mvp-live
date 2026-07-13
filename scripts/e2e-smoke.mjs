@@ -50,6 +50,7 @@ const childChecks = [
   "analytics-selfcheck.mjs",
   "daily_tasks-selfcheck.mjs",
   "era-selfcheck.mjs",
+  "migrations-selfcheck.mjs",
   "playwright-smoke.mjs",
 ];
 for (const script of childChecks) {
