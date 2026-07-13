@@ -179,11 +179,11 @@ function makeHarness(overrides = {}) {
   assert.equal(itemUsage.useBottleCap(7, "goldBottleCap").success, false, "gold crown rejects zero stock");
 }
 
-// --- app.js lucky-egg multiplier wiring (source contract) ---
-const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
+// --- lucky-egg multiplier wiring (source contract; lives in mon_stats) ---
+const monStatsSource = await readFile(new URL("../modules/systems/mon_stats.js", import.meta.url), "utf8");
 const monsSource = await readFile(new URL("../modules/tabs/mons_tab.js", import.meta.url), "utf8");
-assert.match(appSource, /mon\.buffs\?\.luckyEgg.*Date\.now\(\)/, "lucky egg multiplier must check expiry");
-assert.match(appSource, /luckyEggOn \? 1\.5 : 1/, "lucky egg multiplier must be 1.5x");
+assert.match(monStatsSource, /mon\.buffs\?\.luckyEgg.*Date\.now\(\)/, "lucky egg multiplier must check expiry");
+assert.match(monStatsSource, /luckyEggOn \? 1\.5 : 1/, "lucky egg multiplier must be 1.5x");
 
 // --- potion statBonus caps (mons_tab source contract) ---
 assert.match(monsSource, /cur\s*>=\s*50/, "potions must reject stats already at +50");
