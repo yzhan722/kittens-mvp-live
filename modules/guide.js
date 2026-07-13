@@ -1,34 +1,48 @@
-// 新手引导系统
-// 通过3步气泡引导新玩家了解核心操作
+// 新手引导：前 30 分钟核心路径（采集→球→捕捉→看世界→云账号）
 
 const GUIDE_KEY = "kittens_mvp_guide_done_v1";
+const HANDOFF_CATCH_KEY = "kittens_mvp_handoff_catch_v1";
+const HANDOFF_WORLD_KEY = "kittens_mvp_handoff_world_v1";
 
 const GUIDE_STEPS = [
   {
     id: "gather",
-    title: "第1步：先采集资源",
-    desc: "点击右侧「采集」按钮，获取树果。树果是制作一切的基础！",
+    title: "第1步：先采集树果",
+    desc: "点顶栏【采集】换树果。树果是研究与建造的燃料。",
     targetId: "btnGather",
     position: "right",
   },
   {
     id: "research",
-    title: "第2步：解锁精灵球",
-    desc: "点击「研究」Tab，研究「精灵球基础」（约几十树果、数秒完成）。无需先造球果营地。",
+    title: "第2步：研究精灵球基础",
+    desc: "打开「研究」，点「精灵球基础」（便宜又快）。完成后送 5 个球。",
     targetSelector: ".tab[data-tab='science']",
     position: "bottom",
   },
   {
     id: "capture",
-    title: "第3步：制作并使用精灵球",
-    desc: "解锁后「捕捉」Tab可制作精灵球；完成「精灵球基础」会赠送 5 个球，可马上抓第一只。",
+    title: "第3步：去捕捉第一只",
+    desc: "打开「捕捉」，有球就能抓。先抓一只，队伍与图鉴会亮起来。",
     targetSelector: ".tab[data-tab='capture']",
+    position: "bottom",
+  },
+  {
+    id: "world",
+    title: "第4步：看一眼排行榜",
+    desc: "「更多」→「排行榜」：有 NPC 训练家垫榜，感受世界在动。",
+    targetSelector: ".tab[data-tab='leaderboard'], .tab--more",
+    position: "bottom",
+  },
+  {
+    id: "cloud",
+    title: "第5步：可选云账号",
+    desc: "「设置」注册云账号：换设备不丢档，还能加好友约战。现在不做也能继续玩。",
+    targetSelector: ".tab[data-tab='options'], .tab--more",
     position: "bottom",
   },
 ];
 
-export function initGuideSystem({ getState }) {
-  // 已完成引导则不展示
+export function initGuideSystem({ getState, activateTab, addLog } = {}) {
   try {
     if (localStorage.getItem(GUIDE_KEY) === "1") return;
   } catch {
@@ -41,7 +55,9 @@ export function initGuideSystem({ getState }) {
   let highlightedEl = null;
 
   function markDone() {
-    try { localStorage.setItem(GUIDE_KEY, "1"); } catch {}
+    try {
+      localStorage.setItem(GUIDE_KEY, "1");
+    } catch {}
   }
 
   function removeHighlight() {
@@ -52,14 +68,30 @@ export function initGuideSystem({ getState }) {
   }
 
   function removeBubble() {
-    if (bubbleEl) { bubbleEl.remove(); bubbleEl = null; }
-    if (overlayEl) { overlayEl.remove(); overlayEl = null; }
+    if (bubbleEl) {
+      bubbleEl.remove();
+      bubbleEl = null;
+    }
+    if (overlayEl) {
+      overlayEl.remove();
+      overlayEl = null;
+    }
     removeHighlight();
   }
 
   function getTarget(step) {
     if (step.targetId) return document.getElementById(step.targetId);
-    if (step.targetSelector) return document.querySelector(step.targetSelector);
+    if (step.targetSelector) {
+      const parts = String(step.targetSelector)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const sel of parts) {
+        const el = document.querySelector(sel);
+        if (el && el.offsetParent !== null) return el;
+      }
+      return document.querySelector(parts[0] || step.targetSelector);
+    }
     return null;
   }
 
@@ -73,37 +105,41 @@ export function initGuideSystem({ getState }) {
     const step = GUIDE_STEPS[idx];
     const target = getTarget(step);
 
-    // 高亮目标元素
     if (target) {
       target.classList.add("guideHighlight");
       highlightedEl = target;
     }
 
-    // 创建半透明遮罩（仅阻止遮罩区域点击，目标元素可正常点击）
     overlayEl = document.createElement("div");
     overlayEl.className = "guideOverlay";
     document.body.appendChild(overlayEl);
 
-    // 创建气泡
     bubbleEl = document.createElement("div");
     bubbleEl.className = "guideBubble";
     bubbleEl.innerHTML = `
       <div class="guideBubble__title">${step.title}</div>
       <div class="guideBubble__desc">${step.desc}</div>
       <div class="guideBubble__footer">
-        <button class="guideBubble__btn" id="guideBtnSkip">跳过引导</button>
-        <button class="guideBubble__btn guideBubble__btn--primary" id="guideBtnNext">${idx < GUIDE_STEPS.length - 1 ? "下一步" : "完成"}</button>
+        <button class="guideBubble__btn" id="guideBtnSkip" type="button">跳过引导</button>
+        <button class="guideBubble__btn guideBubble__btn--primary" id="guideBtnNext" type="button">${
+          idx < GUIDE_STEPS.length - 1 ? "下一步" : "完成"
+        }</button>
       </div>
     `;
     document.body.appendChild(bubbleEl);
 
-    // 定位气泡（延迟一帧确保DOM已渲染）
     requestAnimationFrame(() => {
       if (!bubbleEl) return;
       positionBubble(bubbleEl, target, step.position);
     });
 
     bubbleEl.querySelector("#guideBtnNext").addEventListener("click", () => {
+      if (typeof activateTab === "function") {
+        if (step.id === "research") activateTab("science");
+        else if (step.id === "capture") activateTab("capture");
+        else if (step.id === "world") activateTab("leaderboard");
+        else if (step.id === "cloud") activateTab("options");
+      }
       currentStep += 1;
       showStep(currentStep);
     });
@@ -120,7 +156,8 @@ export function initGuideSystem({ getState }) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    let top, left;
+    let top;
+    let left;
 
     if (target) {
       const r = target.getBoundingClientRect();
@@ -142,14 +179,49 @@ export function initGuideSystem({ getState }) {
       left = vw / 2 - bw / 2;
     }
 
-    // 边界修正
     left = Math.max(margin, Math.min(left, vw - bw - margin));
-    top  = Math.max(margin, Math.min(top,  vh - bh - margin));
+    top = Math.max(margin, Math.min(top, vh - bh - margin));
 
-    bubble.style.top  = `${Math.round(top)}px`;
+    bubble.style.top = `${Math.round(top)}px`;
     bubble.style.left = `${Math.round(left)}px`;
   }
 
-  // 延迟500ms后启动，等待UI渲染完成
   setTimeout(() => showStep(0), 500);
+}
+
+/** One-shot soft handoffs for the first 30 minutes. */
+export function maybeNewbieHandoff({ state, activateTab, addLog, pushTickerEvent, hint } = {}) {
+  if (!state || typeof state !== "object") return;
+
+  try {
+    // After starter balls: nudge capture once
+    if (state.meta?.starterBallsGranted && localStorage.getItem(HANDOFF_CATCH_KEY) !== "1") {
+      const balls = Math.floor(state.res?.pokeball?.value || 0);
+      if (balls >= 1 && (state.catchCount || 0) === 0) {
+        localStorage.setItem(HANDOFF_CATCH_KEY, "1");
+        if (typeof addLog === "function") addLog("新手提示：球已到手 → 打开「捕捉」抓第一只。", true);
+        if (typeof hint === "function") hint("去「捕捉」抓第一只精灵！", 4000);
+        if (typeof pushTickerEvent === "function") pushTickerEvent("guide", "新手：球已到手，去捕捉");
+        if (typeof activateTab === "function") {
+          setTimeout(() => {
+            try {
+              activateTab("capture");
+            } catch {}
+          }, 600);
+        }
+      }
+    }
+
+    // After first catch: peek world once
+    if ((state.catchCount || 0) >= 1 && localStorage.getItem(HANDOFF_WORLD_KEY) !== "1") {
+      localStorage.setItem(HANDOFF_WORLD_KEY, "1");
+      if (typeof addLog === "function") {
+        addLog("新手提示：第一只到手！去「排行榜」看 NPC，或「设置」注册云账号加好友。", true);
+      }
+      if (typeof hint === "function") hint("去排行榜看看世界，或设置里开云账号", 5000);
+      if (typeof pushTickerEvent === "function") pushTickerEvent("guide", "新手：第一只到手，去看排行榜");
+    }
+  } catch {
+    // ignore storage / UI failures
+  }
 }

@@ -18,7 +18,7 @@ import {
   evolveMonWith,
 } from "./modules/systems/mon_stats.js";
 import { createLogUiSystem } from "./modules/app/log_ui.js";
-import { initGuideSystem } from "./modules/guide.js";
+import { initGuideSystem, maybeNewbieHandoff } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
 import { createTick } from "./modules/tick.js?v=0.41.0";
 import { createRenderResources } from "./modules/render/resources.js?v=0.41.1";
@@ -2445,13 +2445,25 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
 
   // ===== SECTION:COMPUTE_DERIVED — computeDerived主函数 — 维护者窗口A =====
   function computeDerived() {
-    return computeDerivedCore(state, {
+    const eff = computeDerivedCore(state, {
       defs,
       computeTechEffects,
       serverBuffMul,
       clamp,
       addLog,
     });
+    try {
+      maybeNewbieHandoff({
+        state,
+        activateTab,
+        addLog,
+        pushTickerEvent,
+        hint,
+      });
+    } catch {
+      // ignore
+    }
+    return eff;
   }
 
   renderFunctionsImpl = createRenderFunctions({
@@ -3040,8 +3052,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       addLog("检测到存档读取失败：已暂停自动存档以防覆盖。请使用云存档恢复。", true);
     }
 
-    // 新手引导系统
-    initGuideSystem({ getState: () => state });
+    // 新手引导系统（前 30 分钟：采集→球→捕捉→榜→云）
+    initGuideSystem({ getState: () => state, activateTab, addLog });
 
     // Tab 红点系统
     const elTabsEl = document.querySelector(".tabs");

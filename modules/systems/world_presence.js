@@ -125,9 +125,10 @@ export function looksBrokenName(name) {
   // classic mojibake markers from UTF-8 read as latin1
   if (/[ÃÂåæçðñòóô]/.test(n) && /[¤¥¦§¨©ª«]/.test(n)) return true;
   if (/^[\x00-\x1f\x7f-\x9f]+$/.test(n)) return true;
-  // bare uid / hash dumps
-  if (/^[0-9a-f]{16,}$/i.test(n)) return true;
-  if (/^(uid|user|guest)[_-]?\w{8,}$/i.test(n)) return true;
+  // bare uid / hash dumps / auto-generated score stubs
+  if (/^[0-9a-f]{12,}$/i.test(n)) return true;
+  if (/^(uid|user|guest|tmp|qa|all|fb)[_-]?[0-9a-f]{6,}$/i.test(n)) return true;
+  if (/^[a-z]{1,4}[0-9a-f]{8,}$/i.test(n)) return true;
   return false;
 }
 

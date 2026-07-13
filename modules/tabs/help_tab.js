@@ -76,15 +76,26 @@ export function createRenderHelp({ elHelp, ui, escapeHtml, getState, getCaptureA
       // keep default
     }
 
+    rows.push(block("前30分钟路线", `
+      <div style="line-height:1.9">
+        <b>1. 采集</b>：顶栏【采集】换树果${br}
+        <b>2. 研究</b>：研究页点${h('精灵球基础')}（完成后送球×5）${br}
+        <b>3. 捕捉</b>：打开「捕捉」抓第一只${br}
+        <b>4. 看世界</b>：「更多」→「排行榜」看 NPC 训练家${br}
+        <b>5. 可选云账号</b>：「设置」注册 → 换机不丢档，还能加好友约战
+      </div>
+      ${tip('球到手后游戏会轻推你去捕捉；第一只到手后再提醒看榜/开云。')}
+    `, true));
+
     rows.push(block("今日下一目标", `
       <div style="line-height:1.9">
         <b>${escapeHtml(nextGoal)}</b>${br}
         ${checklistHtml || ""}
         ${gap}<button type="button" class="btn btn--primary btn--small" data-help-goals-claim ${canBundle ? "" : "disabled"}>${bundleClaimed ? "日目标已领" : "三目标全清 +12"}</button>
-        ${gap}也可按下方「快速开始」从营地采集起步。
+        ${gap}也可按上方「前30分钟路线」或下方「快速开始」起步。
       </div>
       ${tip('清单随存档进度刷新：捕捉/训练/挑战日目标 + 时代或关卡提示。')}
-    `, true));
+    `, false));
 
     rows.push(block("快速开始", `
       <div style="line-height:1.9">
