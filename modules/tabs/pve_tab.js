@@ -9,6 +9,7 @@ import { ensureEra } from "../systems/era.js";
 const PVE_CHAPTER_BLURBS = {
   "1": "关都八大道馆试炼：从森林虫系到地面系，循序渐进熟悉属性克制。",
   "2": "城都进阶挑战：幽灵、格斗、钢系轮番上阵，终盘龙系需要克制与练度。",
+  "3": "丰缘试炼：草火水起步，中段格斗/水系加压，终盘幽灵需特防与克制。",
 };
 
 const PVE_STAR_NARRATIVE = {
@@ -103,11 +104,18 @@ export function createRenderPve({
     const rows = [];
 
     // 每日次数
+    const practiceOn = Boolean(ui.pvePracticeMode);
     rows.push(`
       <div class="row">
         <div class="row__left">
           <div class="row__title">PvE 关卡挑战</div>
-          <div class="row__desc">今日剩余次数：${Math.max(0, PVE_DAILY_MAX - state.pve.dailyAttempts)} / ${PVE_DAILY_MAX}</div>
+          <div class="row__desc">今日剩余次数：${Math.max(0, PVE_DAILY_MAX - state.pve.dailyAttempts)} / ${PVE_DAILY_MAX}${practiceOn ? " · 练习模式（不扣次数、无奖励）" : ""}</div>
+        </div>
+        <div class="row__right">
+          <label class="check">
+            <input type="checkbox" data-pve-practice ${practiceOn ? "checked" : ""} />
+            <span>练习模式</span>
+          </label>
         </div>
       </div>
     `);
@@ -283,14 +291,23 @@ export function createRenderPve({
       `);
 
       // 开战按钮
-      const canFight = selectedMons.length > 0 && state.pve.dailyAttempts < PVE_DAILY_MAX;
+      const dailyLeft = state.pve.dailyAttempts < PVE_DAILY_MAX;
+      const canFight = selectedMons.length > 0 && (practiceOn || dailyLeft);
+      const fightLabel = !selectedMons.length
+        ? "请选择队员"
+        : practiceOn
+          ? "练习开战（无奖励）"
+          : dailyLeft
+            ? "开战！"
+            : "今日次数已用完 · 可开练习";
       rows.push(`
         <div class="row">
           <div class="row__left">
             <div class="row__title">开始挑战</div>
+            <div class="row__desc">${practiceOn ? "练习不扣每日次数，胜利无奖励，用来测阵容。" : "正式挑战消耗 1 次每日额度。"}</div>
           </div>
           <div class="row__right">
-            <button class="btn btn--primary" data-pve-fight="${st.id}" ${canFight ? "" : "disabled"}>${canFight ? "开战！" : (state.pve.dailyAttempts >= PVE_DAILY_MAX ? "今日次数已用完" : "请选择队员")}</button>
+            <button class="btn btn--primary" data-pve-fight="${st.id}" ${canFight ? "" : "disabled"}>${fightLabel}</button>
           </div>
         </div>
       `);
@@ -436,8 +453,9 @@ export function createRenderPve({
     const selectedMons = selectedIds.map((id) => list.find((m) => m && m.id === id)).filter(Boolean);
     if (selectedMons.length === 0) return;
 
-    // 只有在战斗开始时扣次数，失败不额外扣除（在结果处理前预扣，win/lose均消耗1次）
-    state.pve.dailyAttempts++;
+    const practice = Boolean(ui.pvePracticeMode);
+    // 正式挑战才扣次数；练习不扣、无奖励
+    if (!practice) state.pve.dailyAttempts++;
 
     // 准备玩家队伍数据
     const team = selectedMons.map((m) => {
@@ -469,9 +487,16 @@ export function createRenderPve({
     result.stageType = st.type;
     result.stageName = st.name;
     result.recTypes = recommendedTypes(st.type);
-    if (typeof onPveAttempt === "function") onPveAttempt();
+    result.practice = practice;
+    if (typeof onPveAttempt === "function" && !practice) onPveAttempt();
 
-    if (result.win) {
+    if (practice) {
+      result.rewardText = "练习模式：无奖励";
+      result.winStreak = 0;
+      if (typeof addLog === "function") {
+        addLog(result.win ? `PvE 练习通关：${st.name}（${result.stars}星）` : `PvE 练习失败：${st.name}`);
+      }
+    } else if (result.win) {
       if (typeof onPveWin === "function") onPveWin();
       const cleared = Boolean(state.pve.progress[st.id]);
       const bestStars = typeof state.pve.progress[`${st.id}_stars`] === "number" ? state.pve.progress[`${st.id}_stars`] : 0;
@@ -533,6 +558,16 @@ export function createRenderPve({
   }
 
   function bindEvents(el, state) {
+    // 练习模式
+    const practiceChk = el.querySelector("[data-pve-practice]");
+    if (practiceChk) {
+      practiceChk.addEventListener("change", () => {
+        ui.pvePracticeMode = Boolean(practiceChk.checked);
+        ui.pveDirty = true;
+        if (typeof render === "function") render();
+      });
+    }
+
     // 章节选择
     const chapterSel = el.querySelector("[data-pve-chapter]");
     if (chapterSel) {

@@ -1009,7 +1009,13 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     elDexOnlyMissing,
     elDexPrev,
     elDexNext,
+    elDexList,
     markDexDirty,
+    setActiveTab: (name) => {
+      try {
+        document.querySelector(`.tab[data-tab="${name}"]`)?.click();
+      } catch {}
+    },
   });
 
   function markMonListDirty(resetPage = false) {
@@ -1105,6 +1111,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     ui,
     render,
     markMonsDirty,
+    addLog,
   });
 
   function dexCaughtUnique() {
@@ -3015,6 +3022,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         eraId: state.era?.id || "",
         pveCleared: Object.keys(state.pve?.progress || {}).filter((k) => !k.includes("_")).length,
         expeditionsCompleted: state.meta?.expeditionsCompleted ?? 0,
+        trainingExpGained: state.meta?.trainingExpGained ?? 0,
       };
 
       tick(dt, { offline: true });

@@ -37,6 +37,7 @@ import { BUILDING_DEFS } from "../modules/defs_buildings.js";
 import { computeDerived as computeDerivedCore } from "../modules/systems/compute_derived.js";
 import { awardCaughtPokemon as awardCaughtCore } from "../modules/app/capture_award.js";
 import { pickWeakMonIds, releaseCandyRefund } from "../modules/systems/mon_release.js";
+import { listNpcTrainers, buildNpcTeam } from "../modules/systems/npc_pvp.js";
 import { resetEvoFamilyCacheForTest, isSameEvoFamily } from "../modules/evo_utils.js";
 import {
   bumpPvpSeasonStats,
@@ -337,6 +338,8 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
   assert(headline.includes("赛季 s2") && headline.includes("2胜1负"), "pvp season headline");
   const ev = pickExpeditionEventCard(() => 0);
   assert(ev?.id && ev?.title, "expedition event card");
+  assert(listNpcTrainers().length >= 3, "npc trainers");
+  assert(buildNpcTeam("npc_youngster").length >= 2, "npc team build");
   const rareIds = pickWeakMonIds(
     [
       { id: 20, pid: "a", lvl: 10, dex: 1, tier: "rare", baseStats: bs, iv },

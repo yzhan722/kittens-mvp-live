@@ -203,4 +203,14 @@ import {
   assert.equal(natureWildCatchMul("hardy"), 1, "neutral hardy");
 }
 
+{
+  const summary = formatWelcomeBackSummary(
+    { meta: { trainingExpGained: 120, expeditionsCompleted: 3 }, luckyDay: { type: "fire", date: "x" } },
+    { trainingExpGained: 40, expeditionsCompleted: 2 },
+    7200
+  );
+  assert.ok(summary.includes("训练经验 +80"), "welcome back training exp");
+  assert.ok(summary.includes("远征完成 +1"), "welcome back expedition");
+}
+
 console.log("gameplay-fun-selfcheck: ok");

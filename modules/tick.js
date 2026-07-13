@@ -925,6 +925,11 @@ export function createTick(ctx) {
           if (add > 0) {
             addExpToMon(m, add);
             expAdded = true;
+            if (isTraining) {
+              if (!state.meta || typeof state.meta !== "object") state.meta = {};
+              state.meta.trainingExpGained =
+                Math.max(0, Math.floor(state.meta.trainingExpGained || 0)) + add;
+            }
           }
         }
       }

@@ -120,6 +120,11 @@ try {
   }));
   const noviceWin = simulateBattle(noviceTeam, stage11.enemies, stage11.type, tut);
   assert(noviceWin.win, "novice SE team can clear 1-1 with tutorial mods");
+
+  assert(PVE_CHAPTERS.length >= 3, "chapter 3 exists");
+  const ch3 = PVE_CHAPTERS.find((c) => c.id === "3");
+  assert(ch3 && ch3.unlockDex === 55 && ch3.stages.length >= 5, "chapter 3 has 5+ stages @ dex 55");
+  assert(ch3.stages[0].id === "3-1" && ch3.stages[0].unlockReq === null, "3-1 first stage open");
 } finally {
   Math.random = realRandom;
 }

@@ -204,6 +204,69 @@ export const PVE_CHAPTERS = [
       },
     ],
   },
+  {
+    id: "3",
+    name: "丰缘试炼",
+    unlockDex: 55,
+    stages: [
+      {
+        id: "3-1", name: "橙华森林",
+        type: "grass",
+        enemies: [
+          { dex: 252, name: "木守宫", lvl: 28, stars: 0 },
+          { dex: 273, name: "橡实果", lvl: 26, stars: 0 },
+        ],
+        rewards: { futurecoin: 220, exp: 2500 },
+        repeatRewards: { futurecoin: 90, exp: 1100 },
+        unlockReq: null,
+      },
+      {
+        id: "3-2", name: "武斗道馆",
+        type: "fighting",
+        enemies: [
+          { dex: 296, name: "幕下力士", lvl: 30, stars: 0 },
+          { dex: 297, name: "握手怪", lvl: 34, stars: 1 },
+        ],
+        rewards: { futurecoin: 260, exp: 3200, evolutionEnergy: 1 },
+        repeatRewards: { futurecoin: 100, exp: 1300 },
+        unlockReq: "3-1",
+      },
+      {
+        id: "3-3", name: "釜炎道馆",
+        type: "fire",
+        enemies: [
+          { dex: 322, name: "呆火驼", lvl: 32, stars: 0 },
+          { dex: 323, name: "喷火驼", lvl: 36, stars: 1 },
+        ],
+        rewards: { futurecoin: 300, exp: 4000, evolutionStone: 1 },
+        repeatRewards: { futurecoin: 110, exp: 1500 },
+        unlockReq: "3-2",
+      },
+      {
+        id: "3-4", name: "琉璃道馆",
+        type: "water",
+        enemies: [
+          { dex: 258, name: "水跃鱼", lvl: 34, stars: 0 },
+          { dex: 260, name: "巨沼怪", lvl: 40, stars: 2 },
+        ],
+        rewards: { futurecoin: 340, exp: 5000, evolutionStone: 1 },
+        repeatRewards: { futurecoin: 120, exp: 1800 },
+        unlockReq: "3-3",
+      },
+      {
+        id: "3-5", name: "彩幽道馆·幽灵",
+        type: "ghost",
+        enemies: [
+          { dex: 353, name: "怨影娃娃", lvl: 36, stars: 1 },
+          { dex: 354, name: "诅咒娃娃", lvl: 42, stars: 2 },
+          { dex: 302, name: "勾魂眼", lvl: 44, stars: 2 },
+        ],
+        rewards: { futurecoin: 420, exp: 7000, evolutionStone: 2, linkRope: 1 },
+        repeatRewards: { futurecoin: 150, exp: 2500 },
+        unlockReq: "3-4",
+      },
+    ],
+  },
 ];
 
 // 根据 stage id 快速查找

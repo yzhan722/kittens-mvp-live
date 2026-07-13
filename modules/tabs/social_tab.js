@@ -1,6 +1,7 @@
 // 社交标签页
 import { escapeHtml } from "../utils.js";
 import { summarizePvpBattle, bumpPvpSeasonStats, normalizePvpRecent } from "../systems/pvp_narrative.js";
+import { listNpcTrainers, buildNpcTeam, getNpcTrainer } from "../systems/npc_pvp.js";
 
 export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friendsSystem, state, createPvpBattle, getMonCurrentStats, getPokeApiDataByDex }) {
   
@@ -85,12 +86,22 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
 
     panelSocial.innerHTML = `
       <div class="social-container">
+        <div class="social-section">
+          <h3>训练家对战（离线）</h3>
+          <div class="row">
+            <div class="row__left">
+              <div class="row__title">无需登录</div>
+              <div class="row__desc">用「我的队伍」挑战 NPC，战绩写入本机赛季统计。云好友对战仍需登录。</div>
+            </div>
+          </div>
+          <div id="npcTrainers"></div>
+        </div>
         ${
           needCloud
             ? `<div class="row social-cta">
           <div class="row__left">
-            <div class="row__title">先登录云存档</div>
-            <div class="row__desc">好友、消息与跨设备进度需要云账号。点下方前往设置注册/登录。</div>
+            <div class="row__title">云好友 / 真实 PvP</div>
+            <div class="row__desc">好友、消息与跨设备进度需要云账号。下方离线对战可先玩。</div>
           </div>
           <div class="row__right">
             <button type="button" class="btn btn--primary btn--small" data-social-goto-options>前往设置</button>
@@ -154,6 +165,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     loadFriendsList();
 
     // 渲染初始内容
+    renderNpcTrainers();
     renderPvpRecent();
     renderPvpInvites();
     renderSocial.renderFriendFeed();
@@ -161,6 +173,45 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
 
     // 设置事件监听
     setupSocialEvents();
+  }
+
+  function renderNpcTrainers() {
+    const el = document.getElementById("npcTrainers");
+    if (!el) return;
+    const trainers = listNpcTrainers();
+    el.innerHTML = trainers
+      .map((t) => {
+        const full = getNpcTrainer(t.id);
+        return `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">${escapeHtml(t.name)}</div>
+            <div class="row__desc">${escapeHtml(full?.blurb || "")} · ${t.size} 只</div>
+          </div>
+          <div class="row__right">
+            <button type="button" class="btn btn--primary btn--small" data-npc-fight="${escapeHtml(t.id)}">挑战</button>
+          </div>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function recordLocalPvpResult(result, label) {
+    if (!ui.pvpRecent) ui.pvpRecent = [];
+    if (!state.meta || typeof state.meta !== "object") state.meta = {};
+    const recentWithCurrent = [{ winner: result.winner }, ...ui.pvpRecent];
+    bumpPvpSeasonStats(state.meta, result.winner);
+    const line = summarizePvpBattle(result, "你", {
+      seasonId: ui.remoteConfig?.seasonId,
+      recent: recentWithCurrent,
+      stats: state.meta?.pvpStats,
+    });
+    const prefix = label ? `${label} · ` : "";
+    addLog(`PvP：${prefix}${line}`, result.winner === 2);
+    ui.pvpRecent.unshift({ line: `${prefix}${line}`, winner: result.winner, at: Date.now() });
+    ui.pvpRecent = ui.pvpRecent.slice(0, 5);
+    state.meta.pvpRecent = ui.pvpRecent.slice();
+    renderPvpRecent();
   }
 
   async function loadFriendsList() {
@@ -196,6 +247,27 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
   function setupSocialEvents() {
     const panelSocial = document.getElementById("panel-social");
     if (!panelSocial) return;
+
+    panelSocial.addEventListener("click", async (e) => {
+      const npcBtn = e.target.closest("[data-npc-fight]");
+      if (!npcBtn) return;
+      const trainerId = npcBtn.getAttribute("data-npc-fight");
+      if (!trainerId) return;
+      if (!selectedTeam.length) {
+        addLog("请先在「我的队伍」选择精灵，再挑战训练家");
+        return;
+      }
+      const npcTeam = buildNpcTeam(trainerId);
+      const trainer = getNpcTrainer(trainerId);
+      if (!npcTeam.length || !trainer) return;
+      npcBtn.disabled = true;
+      const pvpBattle = createPvpBattle();
+      // simulateBattle: team1=对手, team2=你 → winner 2 = 你赢（与好友应战一致）
+      const result = pvpBattle.simulateBattle(npcTeam, selectedTeam, trainer.name, "你");
+      recordLocalPvpResult(result, trainer.name);
+      showBattleResult(result);
+      npcBtn.disabled = false;
+    });
 
     // 选择队伍按钮
     const btnSelectTeam = document.getElementById("btnSelectTeam");

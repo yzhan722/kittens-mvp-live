@@ -116,6 +116,7 @@ export function createRenderDex({
           </div>
           <div class="row__right">
             <div class="badge ${seen ? "badge--ok" : "badge--muted"}">${seen ? `数量：${n}` : "-"}</div>
+            ${!seen ? `<button type="button" class="btn btn--small" data-dex-goto-capture="${escapeHtml(p.id)}">去捕捉</button>` : ""}
           </div>
         </div>
       `);

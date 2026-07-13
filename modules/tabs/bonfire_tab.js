@@ -22,7 +22,28 @@ export function createRenderBonfireActions({ elBonfireActions, elBtnGather, ui, 
       elBtnGather.disabled = charges <= 0;
     }
     if (!elBonfireActions) return;
-    elBonfireActions.innerHTML = "";
+    if (state && typeof state === "object") {
+      const charges0 =
+        typeof state.gatherCharges === "number" && Number.isFinite(state.gatherCharges) ? state.gatherCharges : 1000;
+      const charges = Math.max(0, Math.min(1000, Math.floor(charges0)));
+      const cd0 = typeof state.gatherCdSec === "number" && Number.isFinite(state.gatherCdSec) ? state.gatherCdSec : 0;
+      const cd = Math.max(0, Math.ceil(cd0));
+      const clicks =
+        typeof state.gatherClicks === "number" && Number.isFinite(state.gatherClicks)
+          ? Math.max(0, Math.floor(state.gatherClicks))
+          : 0;
+      const cdText = charges >= 1000 ? "已满" : cd > 0 ? `回充 +1 ${fmtRemain(cd)}` : "可采集";
+      elBonfireActions.innerHTML = `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">营地采集</div>
+            <div class="row__desc">顶栏【采集】消耗次数换树果。当前 ${charges}/1000 · ${cdText}${clicks > 0 ? ` · 累计 ${clicks} 次` : ""}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      elBonfireActions.innerHTML = "";
+    }
     if (ui) ui.bonfireDirty = false;
   };
 }

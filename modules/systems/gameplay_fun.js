@@ -306,6 +306,10 @@ export function formatWelcomeBackSummary(state, before = {}, dtSec = 0) {
   const expNow = Math.max(0, Math.floor(state.meta?.expeditionsCompleted || 0));
   const expBefore = Math.max(0, Math.floor(before.expeditionsCompleted || 0));
   if (expNow > expBefore) parts.push(`远征完成 +${expNow - expBefore}`);
+  const trainNow = Math.max(0, Math.floor(state.meta?.trainingExpGained || 0));
+  const trainBefore = Math.max(0, Math.floor(before.trainingExpGained || 0));
+  const trainDelta = trainNow - trainBefore;
+  if (trainDelta > 0) parts.push(`训练经验 +${trainDelta}`);
   const pvpLine = formatPvpSeasonStats(state.meta?.pvpStats);
   if (pvpLine) parts.push(pvpLine);
   return parts.join(" · ");

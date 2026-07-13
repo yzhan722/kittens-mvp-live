@@ -63,8 +63,9 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
       elPvpInvites.innerHTML = `
         <div class="row">
           <div class="row__left">
-            <div class="row__title">PVP 对战${pvpSeasonSuffix()}</div>
-            <div class="row__desc">请先登录查看对战邀请</div>
+            <div class="row__title">好友对战邀请${pvpSeasonSuffix()}</div>
+            <div class="row__desc">登录后可收发好友挑战。上方「训练家对战」无需登录。</div>
+            ${pvpSeasonStatsHtml()}
           </div>
         </div>
       `;

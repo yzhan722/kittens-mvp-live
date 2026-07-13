@@ -1,4 +1,8 @@
-export function createRenderItems({ defs, getState, itemUsage, ui, render, markMonsDirty }) {
+export function createRenderItems({ defs, getState, itemUsage, ui, render, markMonsDirty, addLog }) {
+  const failMsg = (msg) => {
+    if (typeof addLog === "function") addLog(String(msg || "使用失败"));
+    else if (typeof console !== "undefined") console.warn(msg);
+  };
   return function renderItems() {
     const elItems = document.getElementById("items");
     if (!elItems) return;
@@ -84,7 +88,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
 
           if (rid === "shinyCharm") {
             const result = itemUsage.useShinyCharm();
-            if (!result.success) alert(result.message);
+            if (!result.success) failMsg(result.message);
             render();
             return;
           }
@@ -165,7 +169,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
             markMonsDirty();
             render();
           } else {
-            alert(result.message);
+            failMsg(result.message);
           }
           return;
         }
@@ -293,7 +297,7 @@ export function createRenderItems({ defs, getState, itemUsage, ui, render, markM
     };
     const globalExpRem = state.expBoostRemainingSec ?? 0;
     const shinyCharmRem = state.shinyCharmRemainingSec ?? 0;
-    let html = `<div class="row"><div class="row__left"><div class="row__title">道具状态</div><div class="row__desc">全局双倍经验：${globalExpRem > 0 ? fmtRemain(globalExpRem) : "未激活"}${shinyCharmRem > 0 ? ` · 闪耀护符：${fmtRemain(shinyCharmRem)}` : ""}</div></div></div>`;
+    let html = `<div class="row"><div class="row__left"><div class="row__title">道具状态</div><div class="row__desc">全局双倍经验：${globalExpRem > 0 ? fmtRemain(globalExpRem) : "未激活"}${shinyCharmRem > 0 ? ` · 闪耀护符：${fmtRemain(shinyCharmRem)}` : ""} · 捕捉类在捕捉页用，培养类点「使用」选精灵</div></div></div>`;
     for (const [catName, rids] of Object.entries(categories)) {
       html += renderCategory(catName, rids);
     }

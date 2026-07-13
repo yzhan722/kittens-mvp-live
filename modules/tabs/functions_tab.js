@@ -81,6 +81,28 @@ export function createRenderFunctions({
     const rows = [];
 
     const hideTraining = Boolean(ui.functionsHideTraining);
+    const statusExpOn = Boolean(state.expedition?.on);
+    const statusExpRem =
+      statusExpOn && typeof state.expedition?.remainingSec === "number" && Number.isFinite(state.expedition.remainingSec)
+        ? Math.max(0, state.expedition.remainingSec)
+        : 0;
+    const trainN = active.length;
+    const trainExpTotal = Math.max(0, Math.floor(state.meta?.trainingExpGained || 0));
+    const statusBits = [];
+    if (trainN > 0) statusBits.push(`训练中 ${trainN} 只`);
+    if (statusExpOn) statusBits.push(`远征剩余 ${fmtDuration(statusExpRem)}`);
+    else if (Math.max(0, Math.floor(state.meta?.expeditionsCompleted || 0)) > 0) {
+      statusBits.push(`远征已完成 ${Math.floor(state.meta.expeditionsCompleted)} 次`);
+    }
+    if (trainExpTotal > 0) statusBits.push(`累计训练经验 ${trainExpTotal}`);
+    rows.push(`
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">功能摘要</div>
+          <div class="row__desc">${statusBits.length ? escapeHtml(statusBits.join(" · ")) : "派遣训练或远征后，回来这里看进度与收获。"}</div>
+        </div>
+      </div>
+    `);
 
     rows.push(`
       <div class="row">
