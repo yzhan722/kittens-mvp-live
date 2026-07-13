@@ -1,58 +1,82 @@
 import { requireUser } from "../_auth.js";
 import { dbFirst, dbRun, getDb, handleOptions, json, nowMs } from "../_db.js";
-import { clampUid } from "../_uid.js";
 
-const TASK_DEFS = [
-  { id: "gather", type: "gather", label: "采集 50 次", icon: "采", target: 50, reward: { catnip: 100 } },
-  { id: "catch", type: "catch", label: "捕捉 5 只", icon: "捕", target: 5, reward: { pokeball: 3 } },
-  { id: "login", type: "login", label: "今日登录", icon: "登", target: 1, reward: { futurecoin: 1 } },
-];
+// ponytail: task generation + progress stay client-local; server stores claim + streak only (upgrade = full progress sync)
 
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+export function clampDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "").trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return `${m[1]}-${m[2]}-${m[3]}`;
 }
 
-function resolveUid(req, user) {
-  if (user?.uid) return user.uid;
-  const q = clampUid(new URL(req.url).searchParams.get("uid") || "");
-  return q;
+export function yesterdayOf(dateStr) {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
 }
 
-async function loadProgress(db, uid, date) {
-  const row = await dbFirst(
+export function parseProgress(json) {
+  try {
+    return JSON.parse(json) || {};
+  } catch {
+    return {};
+  }
+}
+
+export function validateTasksPayload(tasks) {
+  if (!Array.isArray(tasks) || tasks.length === 0) return false;
+  let hasCompleted = false;
+  for (const t of tasks) {
+    if (!t || typeof t.type !== "string") return false;
+    const target = Number(t.target);
+    const current = Number(t.current);
+    if (!Number.isFinite(target) || target <= 0) return false;
+    if (!Number.isFinite(current) || current < 0 || current > target) return false;
+    if (t.completed) {
+      if (current < target) return false;
+      hasCompleted = true;
+    }
+  }
+  return hasCompleted;
+}
+
+export async function loadRow(db, uid, date) {
+  return dbFirst(
     db,
     "SELECT progress_json, claimed FROM daily_tasks_progress WHERE uid = ? AND date = ?",
     [uid, date]
   );
-  let progress = {};
-  if (row?.progress_json) {
-    try {
-      progress = JSON.parse(row.progress_json) || {};
-    } catch {
-    }
-  }
-  // Auto-complete login task when endpoint is hit
-  if (!progress.login) progress.login = 1;
-  return { progress, claimed: Boolean(row?.claimed) };
 }
 
-function buildState(progress, claimed) {
-  const tasks = TASK_DEFS.map((t) => {
-    const current = Math.min(t.target, Math.max(0, Number(progress[t.id]) || 0));
-    return {
-      id: t.id,
-      type: t.type,
-      label: t.label,
-      icon: t.icon,
-      current,
-      target: t.target,
-      completed: current >= t.target,
-      reward: t.reward,
-    };
-  });
-  const isAllCompleted = tasks.every((t) => t.completed);
-  const canClaim = isAllCompleted && !claimed;
-  return { tasks, claimed, canClaim, isAllCompleted };
+export async function streakSnapshot(db, uid, date) {
+  const todayRow = await loadRow(db, uid, date);
+  const yesterday = yesterdayOf(date);
+  const yRow = yesterday ? await loadRow(db, uid, yesterday) : null;
+
+  let consecutiveDays = 0;
+  let lastClaimDate = "";
+
+  if (todayRow?.claimed) {
+    const p = parseProgress(todayRow.progress_json);
+    consecutiveDays = Math.max(1, Number(p.streakDays) || 1);
+    lastClaimDate = date;
+  } else if (yRow?.claimed) {
+    const p = parseProgress(yRow.progress_json);
+    consecutiveDays = Math.max(0, Number(p.streakDays) || 0);
+    lastClaimDate = yesterday;
+  }
+
+  return { consecutiveDays, lastClaimDate, claimedToday: Boolean(todayRow?.claimed) };
+}
+
+function tasksFromProgress(row) {
+  const p = parseProgress(row?.progress_json);
+  return Array.isArray(p.tasks) ? p.tasks : [];
 }
 
 export async function onRequest(context) {
@@ -63,17 +87,23 @@ export async function onRequest(context) {
 
   const db = getDb(context.env);
   const user = await requireUser(db, req);
-  const uid = resolveUid(req, user);
-  if (!uid) return json({ error: "uid required" }, { status: 401, req });
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
 
-  const date = todayKey();
-  const { progress, claimed } = await loadProgress(db, uid, date);
-  await dbRun(
-    db,
-    `INSERT INTO daily_tasks_progress(uid, date, progress_json, claimed, updated_at) VALUES(?, ?, ?, ?, ?)
-     ON CONFLICT(uid, date) DO UPDATE SET progress_json = excluded.progress_json, updated_at = excluded.updated_at`,
-    [uid, date, JSON.stringify(progress), claimed ? 1 : 0, nowMs()]
+  const url = new URL(req.url);
+  const date = clampDate(url.searchParams.get("date")) || new Date().toISOString().slice(0, 10);
+  const row = await loadRow(db, user.uid, date);
+  const streak = await streakSnapshot(db, user.uid, date);
+
+  return json(
+    {
+      date,
+      claimed: Boolean(row?.claimed),
+      streak: {
+        consecutiveDays: streak.consecutiveDays,
+        lastClaimDate: streak.lastClaimDate,
+      },
+      tasks: tasksFromProgress(row),
+    },
+    { req }
   );
-
-  return json(buildState(progress, claimed), { req });
 }

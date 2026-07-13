@@ -1,6 +1,7 @@
+import { requireUser } from "../../../_auth.js";
 import { BOSS_KEY, parseRewards } from "../../../_boss.js";
 import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../../_db.js";
-import { clampName, clampUid } from "../../../_uid.js";
+import { clampName } from "../../../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;
@@ -8,12 +9,13 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
-  const body = await readJson(req);
-  const uid = clampUid(body?.uid);
-  if (!uid) return json({ error: "uid required" }, { status: 400, req });
-  clampName(body?.name);
-
   const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+
+  const body = await readJson(req);
+  const uid = user.uid;
+  clampName(body?.name);
   const now = nowMs();
   const row = await dbFirst(
     db,

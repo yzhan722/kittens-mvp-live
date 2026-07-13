@@ -1,3 +1,40 @@
+function fmtProdBrief(perSec) {
+  if (!(perSec > 0)) return null;
+  if (perSec < 1) return `${perSec.toFixed(1)}/s`;
+  return `${Math.floor(perSec)}/s`;
+}
+
+function renderProdHint(elResources, eff, state) {
+  if (!elResources) return;
+  const parts = [];
+  const cat = eff?.catnipPerSec ?? 0;
+  const catBrief = fmtProdBrief(cat);
+  if (catBrief) parts.push(`树果 ${catBrief}`);
+  if (state?.unlocks?.wood) {
+    const w = fmtProdBrief(eff?.woodPerSec ?? 0);
+    if (w) parts.push(`球果 ${w}`);
+  }
+  if (state?.unlocks?.minerals) {
+    const m = fmtProdBrief(eff?.mineralsPerSec ?? 0);
+    if (m) parts.push(`进化石 ${m}`);
+  }
+  const host = elResources.parentNode;
+  if (!host) return;
+  let hint = host.querySelector("#prodHint");
+  if (parts.length === 0) {
+    hint?.remove();
+    return;
+  }
+  const text = `产能 ${parts.join(" · ")}`;
+  if (!hint) {
+    hint = document.createElement("div");
+    hint.id = "prodHint";
+    hint.className = "resources__hint resources__dashboard muted";
+    host.insertBefore(hint, elResources);
+  }
+  if (hint.textContent !== text) hint.textContent = text;
+}
+
 // 将速率转为更直观的文本：速率很低时显示「约Xs/个」
 function fmtRate(perSec) {
   if (perSec <= 0) return "0/秒";
@@ -40,8 +77,10 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
     for (const it of items) {
       const row = document.createElement("div");
       row.className = "resrow";
+      row.dataset.rid = it.id;
 
       const left = document.createElement("div");
+      left.className = "resrow__left";
       const nameEl = document.createElement("div");
       nameEl.className = "resrow__k";
       nameEl.textContent = it.name;
@@ -57,24 +96,36 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
       const valueText = it.noCap ? fmtInt(it.value) : `${fmtInt(it.value)} / ${fmtInt(it.cap)}`;
       valueEl.textContent = valueText;
 
-      row.append(left, valueEl);
+      const track = document.createElement("div");
+      track.className = "resrow__track";
+      const fill = document.createElement("div");
+      fill.className = "resrow__fill";
+      const capN = typeof it.cap === "number" && it.cap > 0 ? it.cap : 0;
+      const pct = !it.noCap && capN > 0 ? Math.max(0, Math.min(100, Math.round((it.value / capN) * 100))) : 0;
+      fill.style.width = `${pct}%`;
+      track.append(fill);
+
+      row.append(left, valueEl, track);
       frag.append(row);
       rowMap.set(it.id, {
         row,
         nameEl,
         metaEl,
         valueEl,
+        fill,
         lastName: it.name,
         lastMeta: it.meta,
         lastValue: valueText,
+        lastPct: pct,
       });
     }
     elResources.append(frag);
   };
 
-  // 渲染训练家等级进度条（默认折叠；插在资源列表前，跟资源同属 topbar）
+  // 渲染训练家等级（默认折叠；挂在 #trainerHost，与品牌同属身份区）
   function renderTrainerLevel(state) {
-    if (!elResources) return;
+    const host = document.getElementById("trainerHost") || elResources?.parentNode;
+    if (!host) return;
     const caught = state.dex?.caught ?? {};
     let unique = 0;
     for (const v of Object.values(caught)) {
@@ -87,8 +138,9 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
       el = document.createElement("details");
       el.id = containerId;
       el.className = "trainerLevel";
-      const host = elResources.parentNode;
-      if (host) host.insertBefore(el, elResources);
+      host.appendChild(el);
+    } else if (el.parentNode !== host) {
+      host.appendChild(el);
     }
     const pct = info.next ? Math.min(100, Math.round((unique / info.nextReq) * 100)) : 100;
     const nextTip = info.next ? `→ 解锁「${info.next}」(${unique}/${info.nextReq})` : "全部地图已解锁";
@@ -108,6 +160,7 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
 
     // 训练家等级始终刷新（不受 signature 缓存影响）
     renderTrainerLevel(state);
+    renderProdHint(elResources, eff, state);
 
     const items = [];
 
@@ -171,6 +224,12 @@ export function createRenderResources({ elResources, defs, fmt, getState }) {
       if (entry.lastValue !== valueText) {
         entry.valueEl.textContent = valueText;
         entry.lastValue = valueText;
+      }
+      const capN = typeof it.cap === "number" && it.cap > 0 ? it.cap : 0;
+      const pct = !it.noCap && capN > 0 ? Math.max(0, Math.min(100, Math.round((it.value / capN) * 100))) : 0;
+      if (entry.fill && entry.lastPct !== pct) {
+        entry.fill.style.width = `${pct}%`;
+        entry.lastPct = pct;
       }
     }
   };

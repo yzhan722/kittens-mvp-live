@@ -1,6 +1,14 @@
 // 排行榜 Tab 事件（DOM only）
 // 维护者窗口：D
 
+import {
+  canClaimLbRivalReward,
+  localDateStr,
+  markLbRivalRewardClaimed,
+  seasonBarVsGhosts,
+  seasonLocalScore,
+} from "../systems/gameplay_fun.js";
+
 export function initLeaderboardTab({
   elLeaderboard,
   ui,
@@ -10,6 +18,11 @@ export function initLeaderboardTab({
   markLeaderboardDirty,
   render,
   submitScoreAndRefresh,
+  getState,
+  addRes,
+  addLog,
+  dexCaughtUnique,
+  activateTab,
 }) {
   if (!elLeaderboard) return;
 
@@ -71,6 +84,30 @@ export function initLeaderboardTab({
     const act = lbBtn.getAttribute("data-lb-act");
     if (act === "submit") {
       submitScoreAndRefresh();
+      return;
+    }
+    if (act === "claimRival") {
+      const state = typeof getState === "function" ? getState() : null;
+      if (!state) return;
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      const dexNow = typeof dexCaughtUnique === "function" ? dexCaughtUnique() : 0;
+      const pveWins = Math.max(0, Math.floor(state.meta.pveWins || 0));
+      const bar = seasonBarVsGhosts(seasonLocalScore(dexNow, pveWins));
+      const today = localDateStr();
+      if (!canClaimLbRivalReward(state.meta, bar.beaten, today)) {
+        if (typeof addLog === "function") addLog("需超过至少 1 名幽灵对手，且今日未领");
+        return;
+      }
+      markLbRivalRewardClaimed(state.meta, today);
+      if (typeof addRes === "function") addRes("futurecoin", 8);
+      if (typeof addLog === "function") addLog("幽灵对决赏：未来币 +8", true);
+      markLeaderboardDirty();
+      render();
+      return;
+    }
+    if (act === "chase") {
+      const tab = lbBtn.getAttribute("data-lb-chase") || "capture";
+      if (typeof activateTab === "function") activateTab(tab);
       return;
     }
     if (act === "pickAvatar") {

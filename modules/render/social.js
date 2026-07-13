@@ -1,6 +1,135 @@
 // 社交功能渲染模块
 
-export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime }) {
+import { getExpeditionSeasonBlurb, pickExpeditionEventCard, resolveSeasonId } from "../systems/expedition.js";
+import { formatPvpSeasonStats, formatPvpSeasonHeadline } from "../systems/pvp_narrative.js";
+
+export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, getState }) {
+  function socialUnavailableRow(title) {
+    return `
+      <div class="row is-locked">
+        <div class="row__left">
+          <div class="row__title">${escapeHtml(title)}</div>
+          <div class="row__desc">社交服务暂时不可用（可继续离线游玩）</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function pvpSeasonSuffix() {
+    if (!ui.remoteConfig) return "";
+    const sid = resolveSeasonId(ui.remoteConfig);
+    return ` <span class="muted">· 赛季 ${escapeHtml(sid)}</span>`;
+  }
+
+  function pvpSeasonStatsHtml() {
+    const stats = typeof getState === "function" ? getState()?.meta?.pvpStats : null;
+    const line = formatPvpSeasonStats(stats);
+    return line ? `<div class="row__meta">${escapeHtml(line)}</div>` : "";
+  }
+
+  function pvpSeasonBlurbHtml() {
+    const sid = resolveSeasonId(ui.remoteConfig);
+    const stats = typeof getState === "function" ? getState()?.meta?.pvpStats : null;
+    const headline = formatPvpSeasonHeadline(stats, sid);
+    const blurb = getExpeditionSeasonBlurb(sid);
+    return [headline, blurb].filter(Boolean).map((t) => `<div class="row__meta">${escapeHtml(t)}</div>`).join("");
+  }
+
+  function pvpEmptyStateHtml() {
+    return `
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">暂无对战邀请${pvpSeasonSuffix()}</div>
+          <div class="row__desc">
+            ${pvpSeasonBlurbHtml()}
+            ${pvpSeasonStatsHtml()}
+            如何开始 PvP：
+            <ol style="margin:0.5rem 0 0 1.2rem;padding:0;">
+              <li>在下方「我的队伍」选择最多 6 只精灵</li>
+              <li>好友资料页点击「对战邀请」向好友发起挑战</li>
+              <li>收到邀请后点「应战」，系统自动模拟战斗并记录结果</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function renderPvpInvites() {
+    const elPvpInvites = document.getElementById("pvpInvites");
+    if (!elPvpInvites) return;
+
+    if (!ui.lbUid) {
+      elPvpInvites.innerHTML = `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">好友对战邀请${pvpSeasonSuffix()}</div>
+            <div class="row__desc">登录后可收发好友挑战。上方「训练家对战」无需登录。</div>
+            ${pvpSeasonStatsHtml()}
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const invites = await socialSystem.getPvpInvites();
+    if (invites === null && ui.lbUid) {
+      elPvpInvites.innerHTML = socialUnavailableRow("社交服务暂时不可用");
+      return;
+    }
+
+    if (!invites || invites.length === 0) {
+      elPvpInvites.innerHTML = pvpEmptyStateHtml();
+      return;
+    }
+
+    let html = "";
+    for (const invite of invites) {
+      const expiresIn = Math.floor((invite.expires_at - Date.now()) / 1000 / 60);
+      html += `
+        <div class="row pvp-invite-card">
+          <div class="row__left">
+            <div class="row__title">${escapeHtml(invite.from_name || invite.from_uid)} 向你发起挑战${pvpSeasonSuffix()}</div>
+            <div class="row__desc">
+              队伍：${(Array.isArray(invite.team_data) ? invite.team_data : []).map(m => escapeHtml(m?.name || "?")).join(", ") || "未知"}
+              <br>剩余时间：${expiresIn} 分钟
+            </div>
+          </div>
+          <div class="row__right">
+            <button class="btn btn--primary btn--small" data-pvp-action="accept" data-invite-id="${invite.id}">
+              应战
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    elPvpInvites.innerHTML = html;
+  }
+
+  function renderPvpRecent() {
+    const el = document.getElementById("pvpRecent");
+    if (!el) return;
+    const recent = Array.isArray(ui.pvpRecent) ? ui.pvpRecent : [];
+    if (!recent.length) {
+      el.innerHTML = "";
+      return;
+    }
+    let html = `<div class="row"><div class="row__left"><div class="row__title">最近战果${pvpSeasonSuffix()}</div>${pvpSeasonBlurbHtml()}${pvpSeasonStatsHtml()}</div></div>`;
+    for (const item of recent) {
+      const tone =
+        item.winner === 2 ? "badge--success" : item.winner === 1 ? "badge--warning" : "badge--muted";
+      html += `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__desc"><span class="badge ${tone}">${item.winner === 2 ? "胜" : item.winner === 1 ? "负" : "平"}</span> ${escapeHtml(item.line || "")}</div>
+            <div class="row__meta">${formatTime(item.at || Date.now())}</div>
+          </div>
+        </div>
+      `;
+    }
+    el.innerHTML = html;
+  }
   
   // 渲染好友动态（成就分享）
   async function renderFriendFeed() {
@@ -12,7 +141,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
         <div class="row">
           <div class="row__left">
             <div class="row__title">好友动态</div>
-            <div class="row__desc">请先登录查看好友动态</div>
+            <div class="row__desc">请先在「设置」登录云账号后查看好友动态</div>
           </div>
         </div>
       `;
@@ -20,6 +149,11 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     }
 
     const achievements = await socialSystem.getAchievements();
+    if (achievements === null && ui.lbUid) {
+      elFeed.innerHTML = socialUnavailableRow("好友动态加载失败");
+      return;
+    }
+
     if (!achievements || achievements.length === 0) {
       elFeed.innerHTML = `
         <div class="row">
@@ -87,7 +221,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
         <div class="row">
           <div class="row__left">
             <div class="row__title">好友消息</div>
-            <div class="row__desc">请先登录查看消息</div>
+            <div class="row__desc">请先在「设置」登录云账号后查看消息</div>
           </div>
         </div>
       `;
@@ -95,6 +229,11 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     }
 
     const messages = await socialSystem.getMessages();
+    if (messages === null && ui.lbUid) {
+      elMessages.innerHTML = socialUnavailableRow("好友消息加载失败");
+      return;
+    }
+
     if (!messages || messages.length === 0) {
       elMessages.innerHTML = `
         <div class="row">
@@ -201,6 +340,8 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime })
     renderFriendFeed,
     renderMessages,
     renderFriendProfile,
+    renderPvpInvites,
+    renderPvpRecent,
   };
 }
 

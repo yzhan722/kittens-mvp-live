@@ -1,5 +1,17 @@
-export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog, render, dailySignin, monthlyCard }) {
+import { canClaimDailySpin, localDateStr, markDailySpinClaimed, markShopDailyTripleClaimed, rollDailySpin, shopDailyTripleProgress } from "../systems/gameplay_fun.js";
+
+export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog, render, monthlyCard, dailyTasks }) {
   if (!elFutureShop) return;
+
+  const applyPsychicCraftBoost = (state, sec) => {
+    const charges0 =
+      typeof state.skills?.psychicCraftBoostCharges === "number" && Number.isFinite(state.skills.psychicCraftBoostCharges)
+        ? Math.max(0, Math.floor(state.skills.psychicCraftBoostCharges))
+        : 0;
+    if (charges0 <= 0) return sec;
+    state.skills.psychicCraftBoostCharges = charges0 - 1;
+    return Math.max(1, Math.ceil(sec * 0.8));
+  };
 
   const FUTURE_SHOP_FOLD_KEY = "kittens_mvp_future_shop_fold_v1";
   if (!ui.futureShopFold || typeof ui.futureShopFold !== "object") {
@@ -9,30 +21,104 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
     } catch (e) {
       saved = null;
     }
+    const foldDefault = (k, folded) =>
+      Boolean(saved && typeof saved === "object" && Object.prototype.hasOwnProperty.call(saved, k) ? saved[k] : folded);
     ui.futureShopFold = {
-      daily: Boolean(saved && typeof saved === "object" ? saved.daily : false),
-      package: Boolean(saved && typeof saved === "object" ? saved.package : false),
-      item: Boolean(saved && typeof saved === "object" ? saved.item : false),
-      boost: Boolean(saved && typeof saved === "object" ? saved.boost : false),
-      permanent: Boolean(saved && typeof saved === "object" ? saved.permanent : false),
-      exchange: Boolean(saved && typeof saved === "object" ? saved.exchange : false),
-      auto: Boolean(saved && typeof saved === "object" ? saved.auto : false),
-      craft: Boolean(saved && typeof saved === "object" ? saved.craft : false),
+      daily: foldDefault("daily", false),
+      exchange: foldDefault("exchange", false),
+      boost: foldDefault("boost", true),
+      permanent: foldDefault("permanent", true),
+      item: foldDefault("item", true),
+      package: foldDefault("package", true),
+      auto: foldDefault("auto", true),
+      craft: foldDefault("craft", true),
     };
   }
 
   elFutureShop.addEventListener("click", (ev) => {
-    // 每日签到
-    const signinBtn = ev.target?.closest?.("button[data-daily-signin]");
-    if (signinBtn && elFutureShop.contains(signinBtn)) {
-      if (signinBtn.disabled) return;
-      if (dailySignin) {
-        const result = dailySignin.signin();
-        if (result.success) {
-          ui.futureDirty = true;
-          render();
-        }
+    const dailyFreeBtn = ev.target?.closest?.("button[data-fc-daily-free]");
+    if (dailyFreeBtn && elFutureShop.contains(dailyFreeBtn)) {
+      if (dailyFreeBtn.disabled) return;
+      const state = getState();
+      const today = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (state.meta.dailyFreeFcDate === today) {
+        addLog("今日免费未来币已领取");
+        return;
       }
+      state.meta.dailyFreeFcDate = today;
+      addRes("futurecoin", 5);
+      addLog("领取每日免费未来币 +5", true);
+      ui.futureDirty = true;
+      render();
+      return;
+    }
+
+    const dailyDealBtn = ev.target?.closest?.("button[data-fc-daily-deal]");
+    if (dailyDealBtn && elFutureShop.contains(dailyDealBtn)) {
+      if (dailyDealBtn.disabled) return;
+      const state = getState();
+      const today = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (state.meta.shopDailyDealDate === today) {
+        addLog("今日特惠小包已购买");
+        return;
+      }
+      const have = Math.max(0, Math.floor(state.res?.futurecoin?.value ?? 0));
+      if (have < 3) {
+        addLog("未来币不足");
+        return;
+      }
+      state.res.futurecoin.value = have - 3;
+      state.meta.shopDailyDealDate = today;
+      addRes("futurecoin", 10);
+      addLog("今日特惠：花费 3 未来币，获得 +10", true);
+      ui.futureDirty = true;
+      render();
+      return;
+    }
+
+    const spinBtn = ev.target?.closest?.("button[data-fc-daily-spin]");
+    if (spinBtn && elFutureShop.contains(spinBtn)) {
+      if (spinBtn.disabled) return;
+      const state = getState();
+      const today = localDateStr();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (!canClaimDailySpin(state.meta, today)) {
+        addLog("今日幸运转盘已转过");
+        return;
+      }
+      const hit = rollDailySpin();
+      markDailySpinClaimed(state.meta, today);
+      if (hit.futurecoin > 0) addRes("futurecoin", hit.futurecoin);
+      if (hit.bigBerry > 0) addRes("bigBerry", hit.bigBerry);
+      addLog(`幸运转盘：${hit.label}`, true);
+      ui.futureDirty = true;
+      render();
+      return;
+    }
+
+    const tripleBtn = ev.target?.closest?.("button[data-fc-daily-triple]");
+    if (tripleBtn && elFutureShop.contains(tripleBtn)) {
+      if (tripleBtn.disabled) return;
+      const state = getState();
+      const today = localDateStr();
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      if (!shopDailyTripleProgress(state.meta, today).canClaim) {
+        addLog("请先完成免费币、特惠与转盘");
+        return;
+      }
+      markShopDailyTripleClaimed(state.meta, today);
+      addRes("futurecoin", 15);
+      addLog("每日三连达成：未来币 +15", true);
+      ui.futureDirty = true;
+      render();
       return;
     }
 
@@ -89,7 +175,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       const k = foldBtn.getAttribute("data-fc-fold");
       if (!k) return;
       if (!ui.futureShopFold || typeof ui.futureShopFold !== "object") {
-        ui.futureShopFold = { daily: false, package: false, item: false, boost: false, permanent: false, exchange: false, auto: false, craft: false };
+        ui.futureShopFold = { daily: false, exchange: false, boost: true, permanent: true, item: true, package: true, auto: true, craft: true };
       }
       if (!Object.prototype.hasOwnProperty.call(ui.futureShopFold, k)) return;
       ui.futureShopFold[k] = !ui.futureShopFold[k];
@@ -393,6 +479,18 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       const craftType = craftBtn.getAttribute("data-craft");
       const state = getState();
 
+      if (craftType === "bigBerry") {
+        const cost = 50;
+        if ((state.res.catnip?.value ?? 0) < cost) return;
+        state.res.catnip.value = Math.max(0, state.res.catnip.value - cost);
+        addRes("bigBerry", 1);
+        dailyTasks?.onEvent("craft", { item: "bigBerry" });
+        addLog(`制作：树果 -${cost} → 大树果 +1`, true);
+        ui.futureDirty = true;
+        render();
+        return;
+      }
+
       if (!state.crafting || typeof state.crafting !== "object" || state.crafting.type) {
         state.crafting = {
           evolutionEnergy: null,
@@ -436,7 +534,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
             ? Math.max(0, Math.floor(state.evolutionStoneMade))
             : 0;
         const stoneCost = Math.min(10000, 500 + made0 * 10);
-        const stoneTime = 1800; // 30分钟
+        const stoneTime = applyPsychicCraftBoost(state, 1800); // 30分钟
         if ((state.res.minerals?.value ?? 0) < stoneCost) {
           addLog("合成失败：进化石碎片不足。", true);
           return;
@@ -454,7 +552,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
 
       if (craftType === "linkRope") {
         const ropeCostStone = 3;
-        const ropeTime = 3600; // 60分钟
+        const ropeTime = applyPsychicCraftBoost(state, 3600); // 60分钟
         if ((state.res.evolutionStone?.value ?? 0) < ropeCostStone) {
           addLog("合成失败：进化石不足。", true);
           return;
@@ -473,7 +571,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
       if (craftType === "hugeBerry") {
         const hugeCostCatnip = 5000;
         const hugeCostBig = 30;
-        const hugeTime = 7200; // 2小时
+        const hugeTime = applyPsychicCraftBoost(state, 7200); // 2小时
         if ((state.res.catnip?.value ?? 0) < hugeCostCatnip) {
           addLog("合成失败：树果不足。", true);
           return;
@@ -496,7 +594,7 @@ export function initFutureTab({ elFutureShop, ui, defs, getState, addRes, addLog
 
       if (craftType === "megaStone") {
         const megaCostStone = 10;
-        const megaTime = 7200; // 2小时
+        const megaTime = applyPsychicCraftBoost(state, 7200); // 2小时
         if ((state.res.evolutionStone?.value ?? 0) < megaCostStone) {
           addLog("合成失败：进化石不足。", true);
           return;

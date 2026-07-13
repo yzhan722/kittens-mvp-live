@@ -80,7 +80,7 @@ export function createDailySignin({ state, addRes, addLog }) {
     }
 
     if (typeof addLog === "function") {
-      addLog(`每日签到成功（连续${state.dailySignin.consecutiveDays}天）：${rewardTexts.join("、")}`, true);
+      addLog(`连续登录奖励（第${state.dailySignin.consecutiveDays}天）：${rewardTexts.join("、")}`, true);
     }
 
     return {

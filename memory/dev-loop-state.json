@@ -1,14 +1,17 @@
 {
-  "mode": "gate-optimize",
+  "mode": "marathon-finish",
   "currentTask": null,
   "completedThisSession": [
-    "GATE-001", "GATE-002", "GATE-003", "GATE-004", "GATE-005", "GATE-006"
+    "LOOP-001", "LOOP-002", "LOOP-003", "LOOP-004", "LOOP-005", "LOOP-006",
+    "LOOP-007", "LOOP-008", "LOOP-009", "LOOP-010", "LOOP-011", "LOOP-012",
+    "LOOP-013", "LOOP-014", "LOOP-015"
   ],
-  "blockedOn": [],
-  "lastIterationAt": "2026-07-11T11:20:00.000Z",
-  "iterationCount": 6,
+  "blockedOn": ["BLOCK-001", "BLOCK-002", "BLOCK-003"],
+  "lastIterationAt": "2026-07-13T03:30:00.000Z",
+  "iterationCount": 15,
   "backlogHead": null,
   "queueEmpty": true,
-  "lastCommit": "3a16524",
-  "version": "0.39.2"
+  "lastCommit": null,
+  "version": "0.40.1",
+  "notes": "Marathon loop: code queue empty. External: prod D1, merchant IAP, PR merge."
 }

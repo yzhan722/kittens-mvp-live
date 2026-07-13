@@ -1,0 +1,12 @@
+{
+  "name": "kittens-mvp-live",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "selfcheck": "node scripts/selfcheck.mjs",
+    "playwright-smoke": "node scripts/playwright-smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}

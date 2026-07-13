@@ -12,6 +12,7 @@ export function createTabController({
   renderLeaderboard,
   renderHelp,
   renderPve,
+  renderOptions,
 }) {
   let moreMenu = null;
   let moreBtn = null;
@@ -154,6 +155,7 @@ export function createTabController({
     if (name === "leaderboard" && typeof renderLeaderboard === "function") renderLeaderboard();
     if (name === "help" && typeof renderHelp === "function") renderHelp();
     if (name === "pve" && typeof renderPve === "function") renderPve();
+    if (name === "options" && typeof renderOptions === "function") renderOptions();
 
     refreshTabChrome();
   }

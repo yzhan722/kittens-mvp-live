@@ -1,6 +1,8 @@
+import { requireUser } from "../../_auth.js";
 import { buffLevel, clampBuffKey, decayedRemaining, ensureBuffRows, SERVER_BUFF_BUY_MAX_MINUTES } from "../../_buffs.js";
 import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../_db.js";
-import { clampName, clampUid, intOr } from "../../_uid.js";
+import { checkRateLimit } from "../../_rate_limit.js";
+import { clampName, intOr } from "../../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;
@@ -8,18 +10,26 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
+  const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+
+  const rl = await checkRateLimit(db, `buffs/buy:${user.uid}`, { limit: 30, windowSec: 60 });
+  if (!rl.ok) {
+    return json({ error: "rate limit exceeded", retryAfterSec: rl.retryAfterSec }, { status: 429, req });
+  }
+
   const body = await readJson(req);
   const key = clampBuffKey(body?.key);
-  const uid = clampUid(body?.uid);
+  const uid = user.uid;
   const name = clampName(body?.name);
   const addSec = Math.max(0, intOr(body?.addSec, 0));
-  if (!key || !uid) return json({ error: "bad request" }, { status: 400, req });
+  if (!key) return json({ error: "bad request" }, { status: 400, req });
   if (addSec < 60) return json({ error: "addSec too small" }, { status: 400, req });
   if (addSec > SERVER_BUFF_BUY_MAX_MINUTES * 60) {
     return json({ error: "over max minutes" }, { status: 422, req });
   }
 
-  const db = getDb(context.env);
   const now = nowMs();
   await ensureBuffRows(db, now, dbFirst, dbRun);
 

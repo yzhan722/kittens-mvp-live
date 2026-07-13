@@ -1,4 +1,5 @@
-import { dbAll, dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
+import { requireUser } from "../_auth.js";
+import { dbAll, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
 import { clampStr, clampUid, intOr } from "../_uid.js";
 
 export async function onRequest(context) {
@@ -7,9 +8,9 @@ export async function onRequest(context) {
   if (opt) return opt;
 
   const db = getDb(context.env);
-  const url = new URL(req.url);
-  const uid = clampUid(url.searchParams.get("uid") || "");
-  if (!uid) return json({ error: "uid required" }, { status: 400, req });
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+  const uid = user.uid;
 
   if (req.method === "GET") {
     const rows = await dbAll(
@@ -43,7 +44,8 @@ export async function onRequest(context) {
     const body = await readJson(req);
     const toUid = clampUid(body?.toUid);
     const message = clampStr(body?.message, 500);
-    if (!toUid || !message) return json({ error: "bad request" }, { req });
+    if (!toUid) return json({ error: "bad request" }, { status: 400, req });
+    if (!message) return json({ error: "empty message" }, { status: 400, req });
     await dbRun(
       db,
       "INSERT INTO friend_messages(from_uid, to_uid, message, read, created_at) VALUES(?, ?, ?, 0, ?)",

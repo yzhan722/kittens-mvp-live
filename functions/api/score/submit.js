@@ -1,5 +1,7 @@
+import { requireUser } from "../_auth.js";
 import { dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
-import { clampName, clampStr, clampUid, intOr } from "../_uid.js";
+import { checkRateLimit } from "../_rate_limit.js";
+import { clampName, clampStr, intOr } from "../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;
@@ -7,11 +9,19 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
+  const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+
+  const rl = await checkRateLimit(db, `score/submit:${user.uid}`, { limit: 20, windowSec: 60 });
+  if (!rl.ok) {
+    return json({ error: "rate limit exceeded", retryAfterSec: rl.retryAfterSec }, { status: 429, req });
+  }
+
   const body = await readJson(req);
   if (!body || typeof body !== "object") return json({ error: "bad json" }, { status: 400, req });
 
-  const uid = clampUid(body.uid);
-  if (!uid) return json({ error: "uid required" }, { status: 400, req });
+  const uid = user.uid;
 
   const name = clampName(body.name);
   const dexCount = Math.max(0, intOr(body.dexCount, 0));
@@ -33,7 +43,6 @@ export async function onRequest(context) {
     stats: { dexCount, shinyCount, totalCaught: catchCount },
   });
 
-  const db = getDb(context.env);
   const updatedAt = nowMs();
   await dbRun(
     db,

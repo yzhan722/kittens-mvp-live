@@ -1,3 +1,4 @@
+import { requireUser } from "../../../_auth.js";
 import {
   applyBossRegen,
   BOSS_KEY,
@@ -7,7 +8,8 @@ import {
   parseRewards,
 } from "../../../_boss.js";
 import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../../../_db.js";
-import { clampName, clampUid } from "../../../_uid.js";
+import { checkRateLimit } from "../../../_rate_limit.js";
+import { clampName } from "../../../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;
@@ -15,12 +17,17 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
-  const body = await readJson(req);
-  const uid = clampUid(body?.uid);
-  if (!uid) return json({ error: "uid required" }, { status: 400, req });
-  clampName(body?.name);
-
   const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+
+  const rl = await checkRateLimit(db, `boss/attack:${user.uid}`, { limit: 60, windowSec: 60 });
+  if (!rl.ok) {
+    return json({ error: "rate limit exceeded", retryAfterSec: rl.retryAfterSec }, { status: 429, req });
+  }
+
+  const body = await readJson(req);
+  clampName(body?.name);
   const now = nowMs();
   let row = await dbFirst(
     db,

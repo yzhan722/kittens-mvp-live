@@ -1,47 +1,26 @@
 // 每日任务系统
-export function createDailyTasks({ state, addRes, addLog }) {
+export function createDailyTasks({ state, addRes, addLog, dailySignin, apiFetch, hasAuth }) {
   const TASKS_KEY = "kittens_mvp_daily_tasks_v1";
 
-  // 任务类型定义
+  // 任务类型定义（仅保留已接线进度事件）
   const TASK_TYPES = {
-    // 资源收集
-    gatherCatnip: { id: "gatherCatnip", label: "采集猫薄荷", target: 100, reward: { catnip: 50 }, icon: "catnip" },
-    gatherWood: { id: "gatherWood", label: "收集木材", target: 20, reward: { wood: 20 }, icon: "wood" },
-    gatherMinerals: { id: "gatherMinerals", label: "挖掘矿物", target: 10, reward: { minerals: 15 }, icon: "gem" },
-    
-    // 精灵相关
+    gatherCatnip: { id: "gatherCatnip", label: "采集树果", target: 100, reward: { catnip: 50 }, icon: "catnip" },
     catchPokemon: { id: "catchPokemon", label: "捕捉精灵", target: 3, reward: { pokeball: 5 }, icon: "catch" },
     evolvePokemon: { id: "evolvePokemon", label: "进化精灵", target: 1, reward: { evolutionStone: 2 }, icon: "evo" },
-    starPokemon: { id: "starPokemon", label: "精灵升星", target: 1, reward: { rareCandy: 1 }, icon: "star" },
-    
-    // 建造相关
-    buildField: { id: "buildField", label: "建造农田", target: 1, reward: { catnip: 100 }, icon: "field" },
-    buildHut: { id: "buildHut", label: "建造小屋", target: 1, reward: { wood: 50 }, icon: "hut" },
-    
-    // 战斗相关
     pveWin: { id: "pveWin", label: "PvE 获胜", target: 2, reward: { futurecoin: 10 }, icon: "sword" },
     pveAttempts: { id: "pveAttempts", label: "PvE 挑战", target: 5, reward: { futurecoin: 5 }, icon: "target" },
-    
-    // 制作相关
     craftPokeball: { id: "craftPokeball", label: "制作精灵球", target: 3, reward: { pokeball: 3 }, icon: "ball" },
-    craftBerry: { id: "craftBerry", label: "制作大berries", target: 5, reward: { bigBerry: 5 }, icon: "berry" },
-    
-    // 科研相关
-    research: { id: "research", label: "完成研究", target: 1, reward: { futurecoin: 15 }, icon: "lab" },
-    
-    // 通用
+    craftBerry: { id: "craftBerry", label: "制作大树果", target: 5, reward: { bigBerry: 5 }, icon: "berry" },
     clickGather: { id: "clickGather", label: "手动采集", target: 20, reward: { catnip: 30 }, icon: "hand" },
     login: { id: "login", label: "每日登录", target: 1, reward: { futurecoin: 5 }, icon: "cal" },
   };
 
-  // 每日任务池（随机抽取）
   const DAILY_POOL = [
-    "gatherCatnip", "gatherWood", "gatherMinerals",
-    "catchPokemon", "evolvePokemon", "starPokemon",
-    "buildField", "buildHut",
+    "gatherCatnip",
+    "catchPokemon", "evolvePokemon",
     "pveWin", "pveAttempts",
     "craftPokeball", "craftBerry",
-    "research", "clickGather", "login"
+    "clickGather", "login"
   ];
 
   function getTodayStr() {
@@ -116,8 +95,36 @@ export function createDailyTasks({ state, addRes, addLog }) {
     return state.dailyTasks.tasks.length > 0 && state.dailyTasks.tasks.every((t) => t.completed);
   }
 
+  function taskPayload() {
+    return state.dailyTasks.tasks.map((t) => ({
+      type: t.type,
+      current: t.current,
+      target: t.target,
+      completed: t.completed,
+    }));
+  }
+
+  // ponytail: logged-in claim is server-gated once/day; task progress stays local until claim POST
+  async function syncFromServer() {
+    if (typeof apiFetch !== "function" || (typeof hasAuth === "function" && !hasAuth())) {
+      return { ok: false, skipped: true };
+    }
+    ensureTasksState();
+    generateDailyTasks();
+    const today = getTodayStr();
+    try {
+      const data = await apiFetch(`/api/daily_tasks?date=${encodeURIComponent(today)}`);
+      if (data?.date === today && data.claimed) {
+        state.dailyTasks.claimed = true;
+      }
+      return { ok: true, data };
+    } catch {
+      return { ok: false };
+    }
+  }
+
   // 领取奖励
-  function claimRewards() {
+  async function claimRewards() {
     ensureTasksState();
     generateDailyTasks();
 
@@ -128,6 +135,22 @@ export function createDailyTasks({ state, addRes, addLog }) {
     const completedTasks = state.dailyTasks.tasks.filter((t) => t.completed);
     if (completedTasks.length === 0) {
       return { ok: false, error: "NO_COMPLETED_TASKS" };
+    }
+
+    if (typeof apiFetch === "function" && (!hasAuth || hasAuth())) {
+      try {
+        await apiFetch("/api/daily_tasks/claim", {
+          method: "POST",
+          body: { date: getTodayStr(), tasks: taskPayload() },
+        });
+      } catch (e) {
+        const code = e?.data?.error || e?.message || "";
+        if (code === "ALREADY_CLAIMED") {
+          state.dailyTasks.claimed = true;
+          return { ok: false, error: "ALREADY_CLAIMED" };
+        }
+        return { ok: false, error: "SYNC_FAILED", message: String(code || "claim failed") };
+      }
     }
 
     // 发放奖励
@@ -169,6 +192,11 @@ export function createDailyTasks({ state, addRes, addLog }) {
     state.dailyTasks.claimed = true;
     addLog(`每日任务奖励: 未来币 +${totalFuturecoin}`);
 
+    // 连续登录奖励并入领取，去掉商店里重复的「每日签到」入口
+    if (dailySignin && typeof dailySignin.canSignin === "function" && dailySignin.canSignin()) {
+      dailySignin.signin();
+    }
+
     return { ok: true, futurecoin: totalFuturecoin };
   }
 
@@ -195,6 +223,7 @@ export function createDailyTasks({ state, addRes, addLog }) {
       claimed: state.dailyTasks.claimed,
       canClaim: canClaim(),
       isAllCompleted: isAllCompleted(),
+      signin: dailySignin && typeof dailySignin.getSigninInfo === "function" ? dailySignin.getSigninInfo() : null,
     };
   }
 
@@ -203,21 +232,12 @@ export function createDailyTasks({ state, addRes, addLog }) {
     switch (eventType) {
       case "gather":
         if (data.resource === "catnip") updateTaskProgress("gatherCatnip", data.amount || 1);
-        if (data.resource === "wood") updateTaskProgress("gatherWood", data.amount || 1);
-        if (data.resource === "minerals") updateTaskProgress("gatherMinerals", data.amount || 1);
         break;
       case "catch":
         updateTaskProgress("catchPokemon");
         break;
       case "evolve":
         updateTaskProgress("evolvePokemon");
-        break;
-      case "star":
-        updateTaskProgress("starPokemon");
-        break;
-      case "build":
-        if (data.building === "field") updateTaskProgress("buildField");
-        if (data.building === "hut") updateTaskProgress("buildHut");
         break;
       case "pveWin":
         updateTaskProgress("pveWin");
@@ -226,11 +246,8 @@ export function createDailyTasks({ state, addRes, addLog }) {
         updateTaskProgress("pveAttempts");
         break;
       case "craft":
-        if (data.item === "pokeball") updateTaskProgress("craftPokeball");
-        if (data.item === "bigBerry") updateTaskProgress("craftBerry");
-        break;
-      case "research":
-        updateTaskProgress("research");
+        if (data.item === "pokeball") updateTaskProgress("craftPokeball", data.amount || 1);
+        if (data.item === "bigBerry") updateTaskProgress("craftBerry", data.amount || 1);
         break;
       case "clickGather":
         updateTaskProgress("clickGather");
@@ -248,6 +265,7 @@ export function createDailyTasks({ state, addRes, addLog }) {
     canClaim,
     isAllCompleted,
     claimRewards,
+    syncFromServer,
     getTasksState,
     onEvent,
     TASK_TYPES,

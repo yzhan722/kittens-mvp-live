@@ -1,9 +1,22 @@
 // 社交标签页
 import { escapeHtml } from "../utils.js";
+import { summarizePvpBattle, bumpPvpSeasonStats, normalizePvpRecent } from "../systems/pvp_narrative.js";
+import {
+  listNpcTrainers,
+  buildNpcTeam,
+  getNpcTrainer,
+  ensureNpcRecord,
+  recordNpcFight,
+  npcRecordLine,
+  noteNpcWeeklyWin,
+  npcWeeklyProgress,
+  claimNpcWeeklyFc,
+} from "../systems/npc_pvp.js";
 
 export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friendsSystem, state, createPvpBattle, getMonCurrentStats, getPokeApiDataByDex }) {
   
   let selectedTeam = []; // 当前选中的队伍（已归一化为 PVP 战报字段）
+  ui.pvpRecent = normalizePvpRecent(state?.meta?.pvpRecent);
 
   function monTypes(mon) {
     const api = typeof getPokeApiDataByDex === "function" ? getPokeApiDataByDex(mon.dex) : null;
@@ -35,56 +48,11 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
   
   // 渲染 PVP 邀请列表
   async function renderPvpInvites() {
-    const elPvpInvites = document.getElementById("pvpInvites");
-    if (!elPvpInvites) return;
+    return renderSocial.renderPvpInvites();
+  }
 
-    if (!ui.lbUid) {
-      elPvpInvites.innerHTML = `
-        <div class="row">
-          <div class="row__left">
-            <div class="row__title">PVP 对战</div>
-            <div class="row__desc">请先登录查看对战邀请</div>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    const invites = await socialSystem.getPvpInvites();
-    if (!invites || invites.length === 0) {
-      elPvpInvites.innerHTML = `
-        <div class="row">
-          <div class="row__left">
-            <div class="row__title">暂无对战邀请</div>
-            <div class="row__desc">好友可以向你发起对战邀请</div>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    let html = "";
-    for (const invite of invites) {
-      const expiresIn = Math.floor((invite.expires_at - Date.now()) / 1000 / 60);
-      html += `
-        <div class="row pvp-invite-card">
-          <div class="row__left">
-            <div class="row__title">${escapeHtml(invite.from_name || invite.from_uid)} 向你发起挑战</div>
-            <div class="row__desc">
-              队伍：${(Array.isArray(invite.team_data) ? invite.team_data : []).map(m => escapeHtml(m?.name || "?")).join(", ") || "未知"}
-              <br>剩余时间：${expiresIn} 分钟
-            </div>
-          </div>
-          <div class="row__right">
-            <button class="btn btn--primary btn--small" data-pvp-action="accept" data-invite-id="${invite.id}">
-              应战
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    elPvpInvites.innerHTML = html;
+  async function renderPvpRecent() {
+    return renderSocial.renderPvpRecent();
   }
 
   // 渲染我的队伍
@@ -128,12 +96,22 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
 
     panelSocial.innerHTML = `
       <div class="social-container">
+        <div class="social-section">
+          <h3>训练家对战（离线）</h3>
+          <div class="row">
+            <div class="row__left">
+              <div class="row__title">无需登录</div>
+              <div class="row__desc">用「我的队伍」挑战 NPC，战绩写入本机赛季统计。云好友对战仍需登录。</div>
+            </div>
+          </div>
+          <div id="npcTrainers"></div>
+        </div>
         ${
           needCloud
             ? `<div class="row social-cta">
           <div class="row__left">
-            <div class="row__title">先登录云存档</div>
-            <div class="row__desc">好友、消息与跨设备进度需要云账号。点下方前往设置注册/登录。</div>
+            <div class="row__title">云好友 / 真实 PvP</div>
+            <div class="row__desc">好友、消息与跨设备进度需要云账号。下方离线对战可先玩。</div>
           </div>
           <div class="row__right">
             <button type="button" class="btn btn--primary btn--small" data-social-goto-options>前往设置</button>
@@ -151,6 +129,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
         </div>
         <div class="social-section">
           <h3>PVP 对战</h3>
+          <div id="pvpRecent"></div>
           <div id="pvpInvites"></div>
           <div class="pvp-team-selector" style="margin-top: 1rem;">
             <h4>我的队伍</h4>
@@ -196,12 +175,79 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     loadFriendsList();
 
     // 渲染初始内容
+    renderNpcTrainers();
+    renderPvpRecent();
     renderPvpInvites();
     renderSocial.renderFriendFeed();
     renderSocial.renderMessages();
 
     // 设置事件监听
     setupSocialEvents();
+  }
+
+  function renderNpcTrainers() {
+    const el = document.getElementById("npcTrainers");
+    if (!el) return;
+    const trainers = listNpcTrainers();
+    const record = ensureNpcRecord(state);
+    const weekly = npcWeeklyProgress(state);
+    const ladderRows = trainers
+      .map((t) => {
+        const line = npcRecordLine(record, t.id);
+        const weekMark = weekly.beatenIds.includes(t.id) ? " ✓本周" : "";
+        return `<div class="row__desc">${escapeHtml(t.name)}：${escapeHtml(line)}${weekMark}</div>`;
+      })
+      .join("");
+    const weeklyLine = weekly.claimed
+      ? "本周挑战奖励已领取"
+      : weekly.canClaim
+        ? "已击败全部 3 位训练家 — 可领取 +20 未来币"
+        : `本周挑战：击败全部训练家（${weekly.beatenIds.length}/${weekly.total}）→ +20 未来币`;
+    el.innerHTML =
+      trainers
+        .map((t) => {
+          const full = getNpcTrainer(t.id);
+          const wl = npcRecordLine(record, t.id);
+          return `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">${escapeHtml(t.name)}</div>
+            <div class="row__desc">${escapeHtml(full?.blurb || "")} · ${t.size} 只 · ${escapeHtml(wl)}</div>
+          </div>
+          <div class="row__right">
+            <button type="button" class="btn btn--primary btn--small" data-npc-fight="${escapeHtml(t.id)}">挑战</button>
+          </div>
+        </div>`;
+        })
+        .join("") +
+      `<div class="row"><div class="row__left"><div class="row__title">NPC 战绩榜</div>${ladderRows}</div></div>` +
+      `<div class="row">
+        <div class="row__left">
+          <div class="row__title">本周挑战</div>
+          <div class="row__desc">${escapeHtml(weeklyLine)}</div>
+        </div>
+        <div class="row__right">
+          <button type="button" class="btn btn--primary btn--small" data-npc-weekly-claim ${weekly.canClaim ? "" : "disabled"}>领取 +20</button>
+        </div>
+      </div>`;
+  }
+
+  function recordLocalPvpResult(result, label) {
+    if (!ui.pvpRecent) ui.pvpRecent = [];
+    if (!state.meta || typeof state.meta !== "object") state.meta = {};
+    const recentWithCurrent = [{ winner: result.winner }, ...ui.pvpRecent];
+    bumpPvpSeasonStats(state.meta, result.winner);
+    const line = summarizePvpBattle(result, "你", {
+      seasonId: ui.remoteConfig?.seasonId,
+      recent: recentWithCurrent,
+      stats: state.meta?.pvpStats,
+    });
+    const prefix = label ? `${label} · ` : "";
+    addLog(`PvP：${prefix}${line}`, result.winner === 2);
+    ui.pvpRecent.unshift({ line: `${prefix}${line}`, winner: result.winner, at: Date.now() });
+    ui.pvpRecent = ui.pvpRecent.slice(0, 5);
+    state.meta.pvpRecent = ui.pvpRecent.slice();
+    renderPvpRecent();
   }
 
   async function loadFriendsList() {
@@ -237,6 +283,48 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
   function setupSocialEvents() {
     const panelSocial = document.getElementById("panel-social");
     if (!panelSocial) return;
+
+    panelSocial.addEventListener("click", async (e) => {
+      const claimBtn = e.target.closest("[data-npc-weekly-claim]");
+      if (claimBtn && panelSocial.contains(claimBtn)) {
+        if (claimBtn.disabled) return;
+        const res = claimNpcWeeklyFc(state, 20);
+        if (res.ok) {
+          if (!state.res || typeof state.res !== "object") state.res = {};
+          if (!state.res.futurecoin || typeof state.res.futurecoin !== "object") {
+            state.res.futurecoin = { value: 0, cap: 0 };
+          }
+          state.res.futurecoin.value = Math.max(0, Math.floor(state.res.futurecoin.value || 0)) + res.fc;
+          addLog(`本周 NPC 挑战奖励：未来币 +${res.fc}`, true);
+          renderNpcTrainers();
+        } else {
+          addLog("本周挑战奖励不可领取");
+        }
+        return;
+      }
+
+      const npcBtn = e.target.closest("[data-npc-fight]");
+      if (!npcBtn) return;
+      const trainerId = npcBtn.getAttribute("data-npc-fight");
+      if (!trainerId) return;
+      if (!selectedTeam.length) {
+        addLog("请先在「我的队伍」选择精灵，再挑战训练家");
+        return;
+      }
+      const npcTeam = buildNpcTeam(trainerId);
+      const trainer = getNpcTrainer(trainerId);
+      if (!npcTeam.length || !trainer) return;
+      npcBtn.disabled = true;
+      const pvpBattle = createPvpBattle();
+      // simulateBattle: team1=对手, team2=你 → winner 2 = 你赢（与好友应战一致）
+      const result = pvpBattle.simulateBattle(npcTeam, selectedTeam, trainer.name, "你");
+      recordLocalPvpResult(result, trainer.name);
+      recordNpcFight(state, trainerId, result.winner === 2);
+      if (result.winner === 2) noteNpcWeeklyWin(state, trainerId);
+      renderNpcTrainers();
+      showBattleResult(result);
+      npcBtn.disabled = false;
+    });
 
     // 选择队伍按钮
     const btnSelectTeam = document.getElementById("btnSelectTeam");
@@ -289,10 +377,25 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
         result.battleLog
       );
 
+      if (!ui.pvpRecent) ui.pvpRecent = [];
+      const recentWithCurrent = [{ winner: result.winner }, ...ui.pvpRecent];
+      bumpPvpSeasonStats(state.meta, result.winner);
+      const line = summarizePvpBattle(result, "你", {
+        seasonId: ui.remoteConfig?.seasonId,
+        recent: recentWithCurrent,
+        stats: state.meta?.pvpStats,
+      });
+      addLog(`PvP：${line}`, result.winner === 2);
+      ui.pvpRecent.unshift({ line, winner: result.winner, at: Date.now() });
+      ui.pvpRecent = ui.pvpRecent.slice(0, 5);
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      state.meta.pvpRecent = ui.pvpRecent.slice();
+
       // 显示战斗结果
       showBattleResult(result);
 
       // 刷新邀请列表
+      renderPvpRecent();
       renderPvpInvites();
     });
 

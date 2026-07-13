@@ -21,7 +21,7 @@
 
     <meta http-equiv="Expires" content="0" />
 
-    <title>宝可梦放置冒险 v0.40.0</title>
+    <title>宝可梦放置冒险 v0.41.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,7 +29,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Rajdhani:wght@600;700&display=swap" />
 
-    <link rel="stylesheet" href="./styles.css?v=0.40.0" />
+    <link rel="stylesheet" href="./styles.css?v=0.41.0" />
 
   </head>
 
@@ -40,38 +40,37 @@
     <div id="ticker" class="ticker" aria-live="polite"></div>
 
     <header class="topbar">
-      <div class="brand">
-        <div class="brand__title">宝可梦放置冒险</div>
-        <div class="brand__subtitle" id="topbarStatus">v0.40.0 · 挂机冒险</div>
+      <div class="topbar__identity">
+        <div class="brand">
+          <div class="brand__title">宝可梦放置冒险</div>
+          <div class="brand__subtitle" id="topbarStatus">v0.41.0 · 挂机冒险</div>
+        </div>
+        <div id="trainerHost" class="topbar__trainer" aria-label="训练家等级"></div>
       </div>
-      <div class="topbar__res" aria-label="资源">
-        <button id="btnGather" class="btn btn--primary btn--small">采集</button>
-        <div id="resources" class="resources resources--top"></div>
+      <div class="topbar__action">
+        <button id="btnGather" class="btn btn--primary btn--small" type="button">采集</button>
       </div>
+      <div id="resources" class="resources resources--top" aria-label="核心资源"></div>
     </header>
 
 
 
     <main class="shell">
 
-      <aside id="serverBuffBar" class="serverBuffBar is-collapsed" aria-label="服务器Buff">
-        <button type="button" class="serverBuffBar__toggle" id="serverBuffToggle" aria-expanded="false">全服 Buff</button>
-        <div class="serverBuffBar__body" id="serverBuffBody"></div>
-      </aside>
-      <aside class="bulletin">
-        <details class="bulletin__fold">
+      <aside class="sidebar sidebar--log">
+        <details class="bulletin bulletin--inline">
           <summary class="bulletin__summary">最新公告</summary>
           <div class="bulletin__body" id="bulletinBody">
             <div class="bulletin__line">【玩法】研究「精灵球基础」约 30 树果即可解锁捕捉，完成赠送精灵球×5；新档自带树果田×1。</div>
-          <div class="bulletin__line">【玩法】前期研究更快、采集更肥，减少空等；采集 → 研究 → 抓第一只。</div>
-            <div class="bulletin__line">【玩法】主栏精简为篝火 / 研究 / 捕捉 / 精灵 / 任务，其余入口在「更多」；捕捉页默认只显示下一区域。</div>
+            <div class="bulletin__line">【玩法】前期研究更快、采集更肥，减少空等；采集 → 研究 → 抓第一只。</div>
+            <div class="bulletin__line">【玩法】主栏包含篝火 / 研究 / 捕捉 / 精灵 / 商店与合成，其余入口在「更多」；捕捉页默认只显示下一区域。</div>
             <div class="bulletin__line">【玩法】升星需等级+亲密度门槛，并消耗更多同进化系材料；满星偏后期。</div>
             <div class="bulletin__line">【玩法】树果等核心资源与采集按钮已移到顶栏，侧栏专注日志。</div>
             <div class="bulletin__line">【玩法】PVP 选队已对齐精灵真实属性；可在社交页选择队伍后应战/邀请。</div>
             <div class="bulletin__line">【玩法】无障碍：可跳到主内容；Tab 与面板已关联；建造按钮带建筑名。</div>
             <details class="bulletin__eng">
               <summary class="bulletin__engSummary">工程更新（开发笔记）</summary>
-              <div class="bulletin__line">【v0.40.0】前期留存：研究保底时间分级、树果田更快、起步田+采集加量。</div>
+              <div class="bulletin__line">【v0.41.0】玩家乐趣环：试炼塔、闪光馆、赛季印记、商店日循环。</div>
               <div class="bulletin__line">【v0.39.10】A11y：skip-link、tab/panel 关联、建造 aria-label、云登录 sr-only label。</div>
               <div class="bulletin__line">【v0.39.9】建筑等级条直出 + 分类锚点；移除损坏的 DOM inject。</div>
               <div class="bulletin__line">【v0.39.8】Design Sprint F：DESIGN.md + CTA/Tab/筹码/焦点环/空日志。</div>
@@ -83,12 +82,13 @@
             </details>
           </div>
         </details>
-      </aside>
 
+        <div id="serverBuffBar" class="serverBuffBar serverBuffBar--inline is-collapsed" aria-label="服务器Buff">
+          <button type="button" class="serverBuffBar__toggle" id="serverBuffToggle" aria-expanded="false">全服 Buff</button>
+          <div class="serverBuffBar__body" id="serverBuffBody"></div>
+        </div>
 
-
-      <aside class="sidebar sidebar--log">
-        <div class="hint" id="hint"></div>
+        <div class="hint" id="hint" hidden></div>
 
         <div class="sidebar__sectionTitleRow sidebar__sectionTitleRow--log">
           <div class="sidebar__sectionTitle">日志</div>
@@ -114,7 +114,7 @@
 
           <button class="tab" id="tab-functions" data-tab="functions" role="tab" aria-selected="false" aria-controls="panel-functions">功能</button>
 
-          <button class="tab" id="tab-future" data-tab="future" role="tab" aria-selected="false" aria-controls="panel-future">任务</button>
+          <button class="tab" id="tab-future" data-tab="future" role="tab" aria-selected="false" aria-controls="panel-future">商店与合成</button>
 
           <button class="tab" id="tab-dex" data-tab="dex" role="tab" aria-selected="false" aria-controls="panel-dex">图鉴</button>
 
@@ -304,8 +304,8 @@
 
             <div class="row futureShopIntro">
               <div class="row__left">
-                <div class="row__title">任务与商店</div>
-                <div class="row__desc">完成每日任务领奖；下方用未来币购买增益与自动化（远征等产出未来币）。</div>
+                <div class="row__title">商店与合成</div>
+                <div class="row__desc">上方领取每日任务与月卡福利；首屏可兑换未来币，下方可展开增益、道具与合成。</div>
               </div>
               <div class="row__right">
                 <div class="badge" id="futureCoinBadge">未来币 —</div>
@@ -344,6 +344,14 @@
                 <input id="dexOnlyMissing" type="checkbox" />
 
               <span>只显示未捕捉</span>
+
+              </label>
+
+              <label class="check">
+
+                <input id="dexOnlyShiny" type="checkbox" />
+
+              <span>闪光收藏</span>
 
               </label>
 
@@ -401,6 +409,11 @@
 
             <div class="sidebar__divider"></div>
 
+            <div class="panel__title">今日目标</div>
+            <div class="list" id="dailyGoalsList"></div>
+
+            <div class="sidebar__divider"></div>
+
             <div class="panel__title">云存档</div>
 
 
@@ -431,11 +444,71 @@
 
 
 
-            <div class="saveQrWrap">
+            <div class="cloudSlots" id="cloudSlotPanel" hidden>
+
+              <div class="panel__title" style="margin-top:10px">云端存档槽</div>
+
+              <div id="cloudSlotList" class="list"></div>
+
+            </div>
+
+
+
+            <details id="cloudPasswordRecovery" class="cloudRecoverHint">
+
+              <summary>忘记密码？</summary>
+
+              <p class="muted">本游戏暂不支持自助找回密码。请联系管理员重置账号，或先用「导出存档」保存本地备份后再重新注册。</p>
+
+            </details>
+
+
+
+            <div class="modalOverlay" id="cloudConflictOverlay" hidden>
+
+              <div class="modal" role="dialog" aria-labelledby="cloudConflictTitle" aria-modal="true">
+
+                <div class="modal__header">
+
+                  <div class="modal__title" id="cloudConflictTitle">存档冲突</div>
+
+                </div>
+
+                <div class="modal__desc" id="cloudConflictDesc"></div>
+
+                <div class="modal__body">
+
+                  <div class="actions">
+
+                    <button class="btn btn--small" type="button" id="btnConflictKeepLocal">保留本地</button>
+
+                    <button class="btn btn--small" type="button" id="btnConflictKeepServer">保留云端</button>
+
+                    <button class="btn btn--small" type="button" id="btnConflictCancel">取消</button>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+
+            <div class="sidebar__divider"></div>
+
+            <div class="panel__title">支持开发者</div>
+
+            <p class="muted" style="margin:0 0 8px;font-size:12px;line-height:1.5">扫码赞助感谢支持。应用内购（月卡 / 未来币包）接入中，暂未开放购买。</p>
+
+            <div id="iapComingSoon" class="list" hidden></div>
+
+            <div class="saveQrWrap" id="donateSection">
 
               <div class="saveQr">
 
-                <img class="saveQr__img" src="./assets/donate_qr.jpg" alt="赞助二维码" loading="lazy" width="100" height="100" onerror="this.parentNode.parentNode.style.display='none';" />
+                <img class="saveQr__img" id="donateQrImg" src="./assets/donate_qr.jpg" alt="赞助二维码" loading="lazy" width="100" height="100" onerror="this.closest('#donateSection').style.display='none';" />
 
               </div>
 
@@ -949,19 +1022,46 @@
 
 
 
-    <script src="./data/pokemon_zh.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_zh.js?v=0.41.0" defer></script>
 
-    <script src="./data/pokemon_tier.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_tier.js?v=0.41.0" defer></script>
 
-    <script src="./data/pokemon_catch_rate.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_catch_rate.js?v=0.41.0" defer></script>
 
-    <script src="./data/pokemon_evo.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_evo.js?v=0.41.0" defer></script>
 
-    <script src="./data/pokemon_evo_req.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_evo_req.js?v=0.41.0" defer></script>
 
-    <script src="./data/pokemon_types.js?v=0.40.0" defer></script>
+    <script src="./data/pokemon_types.js?v=0.41.0" defer></script>
 
-    <script type="module" src="./main.js?v=0.40.0"></script>
+    <script type="module">
+      import { donateQrPath, getCatalog } from "./modules/iap_stub.js?v=0.41.0";
+
+      const qr = document.getElementById("donateQrImg");
+      if (qr) qr.src = donateQrPath();
+
+      const host = document.getElementById("iapComingSoon");
+      if (host) {
+        const render = (items) => {
+          host.innerHTML = items
+            .map(
+              (i) =>
+                `<div class="row"><div class="row__left"><div class="row__title">${i.title}</div><div class="row__desc muted">¥${i.priceCny}${i.futurecoin ? ` · ${i.futurecoin} 未来币` : ""} · 即将上线</div></div></div>`
+            )
+            .join("");
+          host.hidden = false;
+        };
+        render(getCatalog());
+        fetch("/api/iap/catalog")
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            if (data?.items?.length) render(data.items);
+          })
+          .catch(() => {});
+      }
+    </script>
+
+    <script type="module" src="./main.js?v=0.41.0"></script>
 
     <script>
 
@@ -971,7 +1071,7 @@
 
         window.addEventListener('load', function() {
 
-          navigator.serviceWorker.register('./sw.js?v=0.40.0', { updateViaCache: 'none' });
+          navigator.serviceWorker.register('./sw.js?v=0.41.0', { updateViaCache: 'none' });
 
         });
 

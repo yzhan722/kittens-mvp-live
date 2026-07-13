@@ -3,7 +3,8 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
   
   // 使用经验糖果
   function useExpCandy(monId, itemType) {
-    const mon = state.mons.list.find(m => m.id === monId);
+    const id = Number(monId);
+    const mon = state.mons.list.find(m => m.id === id);
     if (!mon) return { success: false, message: "精灵不存在" };
 
     const expValues = {
@@ -33,7 +34,8 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
 
   // 使用亲密度道具
   function useAffectionItem(monId, itemType) {
-    const mon = state.mons.list.find(m => m.id === monId);
+    const id = Number(monId);
+    const mon = state.mons.list.find(m => m.id === id);
     if (!mon) return { success: false, message: "精灵不存在" };
 
     const affectionValues = {
@@ -73,7 +75,8 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
 
   // 使用王冠（提升个体值）
   function useBottleCap(monId, itemType, statType) {
-    const mon = state.mons.list.find(m => m.id === monId);
+    const id = Number(monId);
+    const mon = state.mons.list.find(m => m.id === id);
     if (!mon) return { success: false, message: "精灵不存在" };
 
     const itemCount = state.res[itemType]?.value || 0;
@@ -117,7 +120,8 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
 
   // 使用幸运蛋（经验加成）
   function useLuckyEgg(monId) {
-    const mon = state.mons.list.find(m => m.id === monId);
+    const id = Number(monId);
+    const mon = state.mons.list.find(m => m.id === id);
     if (!mon) return { success: false, message: "精灵不存在" };
 
     const itemCount = state.res.luckyEgg?.value || 0;
@@ -135,10 +139,44 @@ export function createItemUsage({ state, addRes, addLog, addExpToMon, render }) 
     return { success: true, message: `${mon.name} 获得了经验加成效果！` };
   }
 
+  function useMegaStone(monId) {
+    const id = Number(monId);
+    const mon = state.mons.list.find(m => m && m.id === id);
+    if (!mon) return { success: false, message: "精灵不存在" };
+
+    const itemCount = state.res.megaStone?.value || 0;
+    if (itemCount < 1) return { success: false, message: "道具数量不足" };
+
+    state.res.megaStone.value = Math.max(0, itemCount - 1);
+    const rem0 =
+      typeof mon.megaAuraRemainingSec === "number" && Number.isFinite(mon.megaAuraRemainingSec)
+        ? Math.max(0, mon.megaAuraRemainingSec)
+        : 0;
+    mon.megaAuraRemainingSec = rem0 + 3600;
+
+    addLog("超级觉醒：PvE 能力提升 1小时");
+    return { success: true, message: `${mon.name} 超级觉醒！` };
+  }
+
+  function useShinyCharm() {
+    const itemCount = state.res.shinyCharm?.value || 0;
+    if (itemCount < 1) return { success: false, message: "道具数量不足" };
+    state.res.shinyCharm.value = Math.max(0, itemCount - 1);
+    const remaining =
+      typeof state.shinyCharmRemainingSec === "number" && Number.isFinite(state.shinyCharmRemainingSec)
+        ? Math.max(0, state.shinyCharmRemainingSec)
+        : 0;
+    state.shinyCharmRemainingSec = remaining + 86400;
+    addLog("使用闪耀护符：闪光率 x2（24小时）");
+    return { success: true, message: "闪耀护符已激活！" };
+  }
+
   return {
     useExpCandy,
     useAffectionItem,
     useBottleCap,
     useLuckyEgg,
+    useMegaStone,
+    useShinyCharm,
   };
 }

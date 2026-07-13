@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 // Minimal self-check for pure modules (no test framework)
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import {
   computeTechEffects,
   computeDexEffects,
   getPokeballMakeCost,
   getResearchCost,
+  getBuildingCost,
   computeResearchTimeSec,
 } from "../modules/systems/effects.js";
 import {
@@ -19,7 +24,7 @@ import {
   computeUnlockedResourceRates,
   finalizeProductionRates,
 } from "../modules/systems/production.js";
-import { expeditionTypeMulFromTypes } from "../modules/systems/expedition.js";
+import { expeditionTypeMulFromTypes, pickExpeditionEventCard } from "../modules/systems/expedition.js";
 import {
   SERVER_BUFF_KEYS,
   getServerBuffLevel,
@@ -28,6 +33,20 @@ import {
   serverBuffResearchTimeMul,
 } from "../modules/systems/server_buffs.js";
 import { EXP_LEVELS, getExpLevelDef } from "../modules/expedition_defs.js";
+import { BUILDING_DEFS } from "../modules/defs_buildings.js";
+import { computeDerived as computeDerivedCore } from "../modules/systems/compute_derived.js";
+import { awardCaughtPokemon as awardCaughtCore } from "../modules/app/capture_award.js";
+import { pickWeakMonIds, releaseCandyRefund } from "../modules/systems/mon_release.js";
+import { listNpcTrainers, buildNpcTeam, recordNpcFight, npcRecordLine } from "../modules/systems/npc_pvp.js";
+import { resetEvoFamilyCacheForTest, isSameEvoFamily } from "../modules/evo_utils.js";
+import {
+  bumpPvpSeasonStats,
+  formatPvpSeasonStats,
+  formatPvpSeasonHeadline,
+  normalizePvpRecent,
+  summarizePvpBattle,
+} from "../modules/systems/pvp_narrative.js";
+import { techReqHint } from "../modules/tech_req_hint.js";
 import { getTypeMul, TYPE_MUL } from "../modules/type_chart.js";
 import {
   getStarUpgradeNeed,
@@ -46,8 +65,10 @@ function assert(cond, msg) {
 }
 
 // expedition_defs
-assert(EXP_LEVELS.length === 5, "EXP_LEVELS length");
+assert(EXP_LEVELS.length === 7, "EXP_LEVELS length");
 assert(getExpLevelDef("master").req === 30000, "master req");
+assert(getExpLevelDef("super").coin === 300, "super expedition coin");
+assert(getExpLevelDef("master").coin === 800, "master expedition coin");
 assert(getExpLevelDef("nope").key === "basic", "fallback basic");
 
 // type / expedition
@@ -56,6 +77,12 @@ assert(expeditionTypeMulFromTypes(["water"], "fire") === 1.5, "exp mul SE");
 assert(expeditionTypeMulFromTypes(["fire"], "water") === 0.5, "exp mul weak");
 assert(expeditionTypeMulFromTypes(["electric"], "ground") === 0.5, "exp mul immune path");
 assert(expeditionTypeMulFromTypes(["normal"], "normal") === 1, "exp mul neutral");
+{
+  const clamp0 = (n, a, b) => Math.max(a, Math.min(b, n));
+  const rewardMul = (muls) => clamp0(muls.reduce((s, x) => s + x, 0) / muls.length, 0.75, 1.5);
+  assert(rewardMul([expeditionTypeMulFromTypes(["fire"], "water")]) === 0.75, "exp reward mul clamps weak");
+  assert(rewardMul([expeditionTypeMulFromTypes(["water"], "fire")]) === 1.5, "exp reward mul keeps SE");
+}
 
 // server_buffs
 assert(SERVER_BUFF_KEYS.includes("capture"), "sbuff keys");
@@ -93,6 +120,25 @@ assert(Math.abs(eff.catchChanceAdd - 0.21) < 1e-9, "catchChanceAdd got " + eff.c
 assert(computeDexEffects(state).catnipPerSecMul === 1.02, "dex catnip");
 assert(getPokeballMakeCost(1, state, ui, null, defs).wood === 3, "pokeball cost");
 assert(getResearchCost({ cost: { catnip: 200 } }, state).catnip === 90, "research cap");
+{
+  const capState = {
+    buildings: {
+      trainingGround: { owned: 1 },
+      breedingHouse: { owned: 1 },
+      expeditionPost: { owned: 0 },
+    },
+    res: {
+      catnip: { value: 100, cap: 100 },
+      wood: { value: 100, cap: 100 },
+      minerals: { value: 30, cap: 30 },
+    },
+    unlocks: { minerals: true, wood: true },
+    tech: {},
+  };
+  const expCost = getBuildingCost("expeditionPost", capState, { buildings: BUILDING_DEFS, tech: {} }, ui);
+  assert((expCost.minerals ?? 0) <= 27, "expeditionPost minerals affordable at cap 30");
+  assert((expCost.catnip ?? 0) <= 90 && (expCost.wood ?? 0) <= 90, "expeditionPost res within 90% cap");
+}
 
 // production
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -166,6 +212,160 @@ assert(Math.abs(getStarBonusMul(5) - 2.4) < 1e-9, "★5 mul");
   assert(forced === 10, "forced timeSec");
 }
 
+{
+  const hint = techReqHint({ buildings: { field: { owned: 1 } } }, "irrigation", {
+    req: (s) => (s.buildings?.field?.owned ?? 0) >= 2,
+  });
+  assert(hint.includes("树果田") && hint.includes("Lv.2"), "tech req hint irrigation");
+  const capState = {
+    buildings: { hut: { owned: 1 } },
+    tech: {},
+    res: {
+      catnip: { value: 0, cap: 100 },
+      wood: { value: 0, cap: 40 },
+      minerals: { value: 0, cap: 30 },
+      pokeball: { value: 0, cap: 10 },
+      rareCandy: { value: 0, cap: 5 },
+      futurecoin: { value: 0, cap: 1 },
+      evolutionEnergy: { value: 0, cap: 1 },
+      evolutionStone: { value: 0, cap: 1 },
+      linkRope: { value: 0, cap: 1 },
+      bigBerry: { value: 0, cap: 1 },
+      hugeBerry: { value: 0, cap: 1 },
+      megaStone: { value: 0, cap: 1 },
+      masterball: { value: 0, cap: 1 },
+      hpPotion: { value: 0, cap: 1 },
+      atkPotion: { value: 0, cap: 1 },
+      defPotion: { value: 0, cap: 1 },
+      spaPotion: { value: 0, cap: 1 },
+      spdPotion: { value: 0, cap: 1 },
+      spePotion: { value: 0, cap: 1 },
+    },
+    unlocks: {},
+    catchCount: 0,
+    meta: {},
+    permanentBoosts: {},
+    skills: {},
+  };
+  const eff = computeDerivedCore(capState, {
+    defs: { buildings: BUILDING_DEFS, resources: pdefs.resources, tech: {} },
+    computeTechEffects: () => ({}),
+    serverBuffMul: () => 1,
+    clamp,
+    addLog: null,
+  });
+  assert(capState.unlocks.wood === true, "computeDerived unlocks wood");
+  assert(typeof eff.woodPerSec === "number", "computeDerived wood rate");
+}
+
+{
+  const capSt = {
+    dex: { caught: {} },
+    catchCount: 0,
+    shinyCount: 0,
+    mons: { nextId: 1, list: [] },
+  };
+  const sp = { id: "bulbasaur", name: "妙蛙种子", dex: 1, tier: "common" };
+  awardCaughtCore(capSt, sp, { isShiny: true, ballType: "greatball" }, {
+    createMonInstance: (p) => ({ id: 1, pid: p.id, name: p.name }),
+    ui: {},
+    bumpEraCounter: () => {},
+    syncEraProgress: () => {},
+  });
+  assert(capSt.catchCount === 1, "capture award catchCount");
+  assert(capSt.dex.caught.bulbasaur === 1, "capture award dex");
+  assert(capSt.shinyCount === 1, "capture award shiny");
+  assert(capSt.mons.list[0]?.caughtWith === "greatball", "capture award ball");
+}
+
+{
+  assert(releaseCandyRefund(250) === 2, "release candy refund");
+  const bs = { hp: 50, atk: 50, def: 50, spa: 50, spd: 50, spe: 50 };
+  const iv = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+  const ids = pickWeakMonIds(
+    [
+      { id: 1, lvl: 5, dex: 1, baseStats: bs, iv },
+      { id: 2, lvl: 10, dex: 2, baseStats: bs, iv },
+      { id: 3, lvl: 1, dex: 3, baseStats: bs, iv },
+    ],
+    { softLimit: 1, batch: 2, protectIds: new Set([2]) }
+  );
+  assert(ids.length === 2 && !ids.includes(2), "pick weak mon ids");
+  const smartIds = pickWeakMonIds(
+    [
+      { id: 1, pid: "a", lvl: 1, dex: 1, baseStats: bs, iv, isShiny: true },
+      { id: 2, pid: "b", lvl: 1, dex: 2, baseStats: bs, iv, stars: 1 },
+      { id: 3, pid: "c", lvl: 1, dex: 3, baseStats: bs, iv },
+      { id: 4, pid: "c", lvl: 2, dex: 3, baseStats: bs, iv },
+    ],
+    { softLimit: 1, batch: 3, smartProtect: true }
+  );
+  assert(
+    smartIds.length === 1 && smartIds[0] === 3,
+    "smart release protects shiny, starred, and sole species"
+  );
+  globalThis.POKEMON_EVO = { p001: ["p002"], p002: ["p003"] };
+  resetEvoFamilyCacheForTest();
+  const familyIds = pickWeakMonIds(
+    [
+      { id: 10, pid: "p001", lvl: 1, dex: 1, baseStats: bs, iv },
+      { id: 11, pid: "p003", lvl: 5, dex: 3, baseStats: bs, iv },
+      { id: 12, pid: "p003", lvl: 1, dex: 3, baseStats: bs, iv },
+    ],
+    { softLimit: 1, batch: 2, smartProtect: true }
+  );
+  assert(
+    familyIds.length === 1 && familyIds[0] === 12,
+    "smart release protects last mon per evolution family"
+  );
+  globalThis.POKEMON_EVO = { p001: ["p002"], p002: ["p003"] };
+  resetEvoFamilyCacheForTest();
+  assert(isSameEvoFamily("p001", "p003") === true, "evo family same line");
+  assert(isSameEvoFamily("p001", "p999") === false, "evo family different");
+  const pvpLine = summarizePvpBattle({
+    winner: 2,
+    rounds: 8,
+    battleLog: ["你 派出 皮卡丘！", "对手 倒下了！", "你获胜！"],
+  });
+  assert(pvpLine.includes("险胜"), "pvp narrative win");
+  const seasonLine = summarizePvpBattle(
+    { winner: 2, rounds: 4, battleLog: [] },
+    "你",
+    { seasonId: "s3", recent: [{ winner: 2 }, { winner: 2 }] }
+  );
+  assert(seasonLine.includes("赛季 s3") && seasonLine.includes("2 连胜"), "pvp season narrative");
+  const headline = formatPvpSeasonHeadline({ wins: 2, losses: 1 }, "s2");
+  assert(headline.includes("赛季 s2") && headline.includes("2胜1负"), "pvp season headline");
+  const ev = pickExpeditionEventCard(() => 0);
+  assert(ev?.id && ev?.title, "expedition event card");
+  assert(listNpcTrainers().length >= 3, "npc trainers");
+  assert(buildNpcTeam("npc_youngster").length >= 2, "npc team build");
+  {
+    const st = { meta: {} };
+    recordNpcFight(st, "npc_youngster", true);
+    assert(npcRecordLine(st.meta.npcRecord, "npc_youngster") === "1胜0负", "npc record helper");
+  }
+  const rareIds = pickWeakMonIds(
+    [
+      { id: 20, pid: "a", lvl: 10, dex: 1, tier: "rare", baseStats: bs, iv },
+      { id: 21, pid: "a", lvl: 1, dex: 1, tier: "common", baseStats: bs, iv },
+      { id: 22, pid: "a", lvl: 2, dex: 1, tier: "common", baseStats: bs, iv },
+    ],
+    { softLimit: 1, batch: 1, smartProtect: true }
+  );
+  assert(rareIds.length === 1 && rareIds[0] === 21, "smart release protects rare tier");
+  const recent = normalizePvpRecent([{ line: "test", winner: 2, at: 1 }, { bad: true }]);
+  assert(recent.length === 1 && recent[0].line === "test", "normalize pvp recent");
+  const meta = {};
+  bumpPvpSeasonStats(meta, 2);
+  bumpPvpSeasonStats(meta, 1);
+  assert(formatPvpSeasonStats(meta.pvpStats) === "本赛季 1胜1负", "pvp season stats");
+  assert(
+    existsSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "apply-d1-migrations.mjs")),
+    "apply d1 migrations script exists"
+  );
+}
+
 import { createPvpBattle } from "../modules/pvp_battle.js";
 const pvp = createPvpBattle();
 const empty = pvp.simulateBattle([], [{ name: "A", hp: 10, attack: 5, defense: 5, speed: 5, types: [] }], "P1", "P2");
@@ -177,6 +377,14 @@ const win = pvp.simulateBattle(
   "P2"
 );
 assert(win.winner === 1 && win.rounds > 0, "pvp strong wins");
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const era = spawnSync(process.execPath, [path.join(__dirname, "era-selfcheck.mjs")], { stdio: "inherit" });
+if (era.status !== 0) failed += 1;
+const collection = spawnSync(process.execPath, [path.join(__dirname, "collection-fun-selfcheck.mjs")], { stdio: "inherit" });
+if (collection.status !== 0) failed += 1;
+const pve = spawnSync(process.execPath, [path.join(__dirname, "pve-selfcheck.mjs")], { stdio: "inherit" });
+if (pve.status !== 0) failed += 1;
 
 if (failed) {
   console.error(`selfcheck: ${failed} failed`);

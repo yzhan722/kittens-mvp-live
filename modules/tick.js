@@ -1,5 +1,24 @@
 import { clamp, randFloat } from "./utils.js";
 import { runAutomation } from "./automation.js?v=0.31.4";
+import { eraEncounterRechargeMul } from "./systems/era.js";
+import {
+  pickBreedEventCard,
+  pickExpeditionEventCard,
+  resolveSeasonId,
+  tickExpeditionMilestones,
+} from "./systems/expedition.js";
+import {
+  bumpSessionExpedition,
+  natureAffectionMul,
+  natureBreedTimeMul,
+  natureEncounterRechargeMul,
+  natureResearchDtMul,
+  natureSatietyDecayMul,
+  natureSatietyRegenMul,
+  natureTrainExpMul,
+  noteExpeditionDailyDone,
+} from "./systems/gameplay_fun.js";
+import { noteSeasonRelic, noteShinySpecies, rollSeasonRelic } from "./systems/collection_fun.js";
 
 export function createTick(ctx) {
   const ui = ctx.ui;
@@ -19,6 +38,7 @@ export function createTick(ctx) {
   const pay = ctx.pay;
   const getPokeballMakeCost = ctx.getPokeballMakeCost;
   const getState = ctx.getState;
+  const onResearchComplete = ctx.onResearchComplete;
 
   // Cached monById/aliveSet — only rebuilt when mons list changes
   let __cachedMonById = null;
@@ -198,7 +218,7 @@ export function createTick(ctx) {
     }
 
     if ((state.breeding.eggRemainingSec ?? 0) > 0) return;
-    let t = breedingEggTotalSec(lvl);
+    let t = breedingEggTotalSec(lvl) * natureBreedTimeMul(state);
     let basePid = null;
     if (a.pid === dittoPid && b.pid !== dittoPid) basePid = getBasePid(b.pid);
     else if (b.pid === dittoPid && a.pid !== dittoPid) basePid = getBasePid(a.pid);
@@ -240,12 +260,23 @@ export function createTick(ctx) {
     if (shiny) {
       const prevShiny = typeof state.shinyCount === "number" && Number.isFinite(state.shinyCount) ? state.shinyCount : 0;
       state.shinyCount = Math.max(0, Math.floor(prevShiny)) + 1;
+      const mile = noteShinySpecies(state, sp);
+      if (mile?.item) {
+        addRes(mile.item, 1);
+        addLog(mile.label, true);
+      }
     }
     if (!state.mons) state.mons = { nextId: 1, list: [] };
     if (!Array.isArray(state.mons.list)) state.mons.list = [];
     state.mons.list.push(mon);
     state.mons.nextId = Math.max(state.mons.nextId ?? 1, (mon?.id ?? 0) + 1);
     addLog(`生蛋成功：${sp.name} +1`, true);
+    const breedCard = pickBreedEventCard(randFloat);
+    if (breedCard?.title) {
+      addLog(`孵化奇遇：${breedCard.title} — ${breedCard.blurb}`, true);
+      const fc = Math.max(0, Math.floor(breedCard.bonusFuturecoin || 0));
+      if (fc > 0) addRes("futurecoin", fc);
+    }
     if (ui) {
       ui.monsDirty = true;
       ui.functionsDirty = true;
@@ -263,6 +294,16 @@ export function createTick(ctx) {
       if (v1 > 0) out.push(v1);
     }
     return out;
+  };
+
+  const applyPsychicCraftBoost = (state, sec) => {
+    const charges0 =
+      typeof state.skills?.psychicCraftBoostCharges === "number" && Number.isFinite(state.skills.psychicCraftBoostCharges)
+        ? Math.max(0, Math.floor(state.skills.psychicCraftBoostCharges))
+        : 0;
+    if (charges0 <= 0) return sec;
+    state.skills.psychicCraftBoostCharges = charges0 - 1;
+    return Math.max(1, Math.ceil(sec * 0.8));
   };
 
   return function tick(dtSec, opts = null) {
@@ -361,13 +402,19 @@ export function createTick(ctx) {
     }
     const expBoostOn = expBoost1 > 0;
 
+    const shinyCharm0 =
+      typeof state.shinyCharmRemainingSec === "number" && Number.isFinite(state.shinyCharmRemainingSec) ? state.shinyCharmRemainingSec : 0;
+    const shinyCharm1 = shinyCharm0 > 0 ? Math.max(0, shinyCharm0 - dtSec) : 0;
+    if (shinyCharm0 !== shinyCharm1) state.shinyCharmRemainingSec = shinyCharm1;
+
     const encPlusCharges0 =
       typeof state.encounterPlusCharges === "number" && Number.isFinite(state.encounterPlusCharges) ? state.encounterPlusCharges : 1;
     const encPlusCd0 =
       typeof state.encounterPlusCdSec === "number" && Number.isFinite(state.encounterPlusCdSec) ? state.encounterPlusCdSec : 0;
     const encPlusMaxBonus = typeof state.permanentBoosts?.encPlusMax === "number" ? Math.max(0, Math.min(20, Math.floor(state.permanentBoosts.encPlusMax))) : 0;
     const maxCharges = 10 + encPlusMaxBonus;
-    const rechargeSec = 600;
+    const eraRechargeMul = eraEncounterRechargeMul(state) * natureEncounterRechargeMul(state);
+    const rechargeSec = 600 * eraRechargeMul;
 
     let encPlusCharges1 = Math.max(0, Math.min(maxCharges, Math.floor(encPlusCharges0)));
     let encPlusCd1 = Math.max(0, encPlusCd0);
@@ -456,7 +503,7 @@ export function createTick(ctx) {
     const encCharges0 = typeof state.encounterCharges === "number" && Number.isFinite(state.encounterCharges) ? state.encounterCharges : 100;
     const encCd0 = typeof state.encounterCdSec === "number" && Number.isFinite(state.encounterCdSec) ? state.encounterCdSec : 0;
     const encMax = 100;
-    const encRechargeSec = 60;
+    const encRechargeSec = 60 * eraRechargeMul;
     let encCharges1 = Math.max(0, Math.min(encMax, Math.floor(encCharges0)));
     let encCd1 = Math.max(0, encCd0);
 
@@ -500,13 +547,14 @@ export function createTick(ctx) {
       const tdef = defs.tech?.[tid];
       const rem0 =
         typeof state.research.remainingSec === "number" && Number.isFinite(state.research.remainingSec) ? state.research.remainingSec : 0;
-      const rem1 = rem0 - dtSec;
+      const rem1 = rem0 - dtSec * natureResearchDtMul(state);
       state.research.remainingSec = rem1;
       if (rem1 <= 0) {
         state.research = null;
         if (tdef && !state.tech[tid]) {
           state.tech[tid] = true;
           addLog(`研究完成：${tdef.name}`);
+          if (typeof onResearchComplete === "function") onResearchComplete(tid);
           // Starter balls granted in computeDerived via meta.starterBallsGranted
           tryAutoResearch();
         }
@@ -561,7 +609,8 @@ export function createTick(ctx) {
               return !(t && typeof t === "object" && typeof t.remainingSec === "number" && t.remainingSec > 0);
             };
             const startTask = (k, totalSec) => {
-              craftObj[k] = { remainingSec: totalSec, totalSec };
+              const boostedSec = applyPsychicCraftBoost(state, totalSec);
+              craftObj[k] = { remainingSec: boostedSec, totalSec: boostedSec };
               if (ui && ui.activeTab === "future") ui.futureDirty = true;
             };
 
@@ -736,6 +785,18 @@ export function createTick(ctx) {
     }
 
     const mons = Array.isArray(state.mons?.list) ? state.mons.list : [];
+    if (
+      Boolean(state.auto?.autoFeedBigBerry) &&
+      (state.res.bigBerry?.value ?? 0) >= 1 &&
+      mons.some((m) => m && typeof m === "object" && (typeof m.satiety === "number" ? m.satiety : 100) < 30)
+    ) {
+      state.res.bigBerry.value = Math.max(0, state.res.bigBerry.value - 1);
+      for (const m of mons) {
+        if (!m || typeof m !== "object") continue;
+        const sat0 = clamp(typeof m.satiety === "number" && Number.isFinite(m.satiety) ? m.satiety : 100, 0, 100);
+        m.satiety = clamp(sat0 + 50, 0, 100);
+      }
+    }
     let monById = null;
     let aliveSet = null;
     if (mons.length > 0) {
@@ -803,15 +864,23 @@ export function createTick(ctx) {
           }
         }
 
+        const mega0 =
+          typeof m.megaAuraRemainingSec === "number" && Number.isFinite(m.megaAuraRemainingSec) ? m.megaAuraRemainingSec : 0;
+        const mega1 = mega0 > 0 ? Math.max(0, mega0 - dtSec) : 0;
+        if (mega1 !== mega0) {
+          m.megaAuraRemainingSec = mega1;
+          skillTimerChanged = true;
+        }
+
         const isTraining = trainingSet ? trainingSet.has(m.id) : false;
         const isBreeding = breedingOn && (m.id === breedingAId || m.id === breedingBId);
-        const satietyMul = satietyMulBase * (isTraining ? 2 : 1);
+        const satietyMul = satietyMulBase * (isTraining ? 2 : 1) * natureSatietyDecayMul(m);
         const loss = (dtSec / 600) * satietyMul * (ice1 > 0 ? 0.5 : 1);
-        const affRate = affRateBase;
+        const affRate = affRateBase * natureAffectionMul(m);
 
         const sat0 = clamp(typeof m.satiety === "number" && Number.isFinite(m.satiety) ? m.satiety : 100, 0, 100);
         const breedRegen = isBreeding ? dtSec / 60 : 0;
-        const sat1 = clamp(sat0 - loss + satRegen + breedRegen, 0, 100);
+        const sat1 = clamp(sat0 - loss + satRegen * natureSatietyRegenMul(m) + breedRegen, 0, 100);
         m.satiety = sat1;
         if (Math.ceil(sat0) !== Math.ceil(sat1)) satietyUiChanged = true;
 
@@ -867,13 +936,19 @@ export function createTick(ctx) {
 
         if (sat1 > 0) {
           const carry0 = typeof m.autoExpCarry === "number" && Number.isFinite(m.autoExpCarry) ? Math.max(0, m.autoExpCarry) : 0;
-          const expMul = isBreeding ? 50 : isTraining ? trainExpMul : 1;
+          const natureMul = isTraining ? natureTrainExpMul(m, trainingIds.length) : 1;
+          const expMul = isBreeding ? 50 : isTraining ? trainExpMul * natureMul : 1;
           const carry1 = carry0 + (dtSec / 300) * expMul;
           const add = Math.floor(carry1);
           m.autoExpCarry = carry1 - add;
           if (add > 0) {
             addExpToMon(m, add);
             expAdded = true;
+            if (isTraining) {
+              if (!state.meta || typeof state.meta !== "object") state.meta = {};
+              state.meta.trainingExpGained =
+                Math.max(0, Math.floor(state.meta.trainingExpGained || 0)) + add;
+            }
           }
         }
       }
@@ -915,6 +990,8 @@ export function createTick(ctx) {
     if (expOn && expRem0 > 0) {
       const expRem1 = Math.max(0, expRem0 - dtSec);
       if (expRem1 !== expRem0) {
+        const lines = tickExpeditionMilestones(state.expedition, expRem0, expRem1);
+        for (const line of lines) addLog(line);
         state.expedition.remainingSec = expRem1;
         if (ui) ui.functionsDirty = true;
       }
@@ -940,6 +1017,13 @@ export function createTick(ctx) {
         }
         if (coinAdd > 0) addRes("futurecoin", coinAdd);
 
+        const eventCard = pickExpeditionEventCard(randFloat);
+        let eventBonus = 0;
+        if (eventCard?.bonusFuturecoin > 0) {
+          eventBonus = Math.max(0, Math.floor(eventCard.bonusFuturecoin));
+          addRes("futurecoin", eventBonus);
+        }
+
         if (potTotal > 0) {
           const pool = ["hpPotion", "atkPotion", "defPotion", "spaPotion", "spdPotion", "spePotion"];
           for (let i = 0; i < potTotal; i += 1) {
@@ -952,6 +1036,18 @@ export function createTick(ctx) {
         const masterballAdd = lvlKey === "master" ? 1 : 0;
         if (masterballAdd > 0) addRes("masterball", masterballAdd);
 
+        const seasonId = resolveSeasonId(ui?.remoteConfig);
+        const relicRoll = rollSeasonRelic(seasonId, randFloat);
+        let seasonRelic = null;
+        if (relicRoll) {
+          seasonRelic = noteSeasonRelic(state, relicRoll);
+          if (seasonRelic?.item) {
+            addRes(seasonRelic.item, 1);
+            addLog(`赛季掉落：${seasonRelic.name}（${seasonRelic.blurb}）→ 获得道具`, true);
+          }
+        }
+
+        const wasQuick = Boolean(state.expedition.quick);
         state.expedition.on = false;
         state.expedition.activeIds = [];
         state.expedition.remainingSec = 0;
@@ -960,17 +1056,29 @@ export function createTick(ctx) {
         state.expedition.rewardCoin = 0;
         state.expedition.rewardPotionTotal = 0;
         state.expedition.dungeonType = null;
+        state.expedition.quick = false;
+        state.expedition.milestonesFired = {};
         regenExpeditionDungeons(state);
 
-        addLog("远征完成", true);
+        if (!state.meta || typeof state.meta !== "object") state.meta = {};
+        state.meta.expeditionsCompleted =
+          Math.max(0, Math.floor(state.meta.expeditionsCompleted || 0)) + 1;
+        bumpSessionExpedition(state);
+        noteExpeditionDailyDone(state);
+
+        addLog(wasQuick ? "远征完成（急行）" : "远征完成", true);
+        if (eventCard?.title) addLog(`奇遇：${eventCard.title} — ${eventCard.blurb}`, true);
         if (ui) {
           ui.expeditionRewardModalOpen = true;
           ui.expeditionRewardModalData = {
             expPerMon: expAdd,
             monCount: ids.length,
-            futurecoin: coinAdd,
+            futurecoin: coinAdd + eventBonus,
             potions: potMap,
             masterball: masterballAdd,
+            eventCard,
+            seasonRelic,
+            quick: wasQuick,
           };
           ui.functionsDirty = true;
           ui.futureDirty = true;

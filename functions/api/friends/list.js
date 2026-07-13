@@ -1,5 +1,5 @@
+import { requireUser } from "../_auth.js";
 import { dbAll, dbFirst, getDb, handleOptions, json } from "../_db.js";
-import { clampUid } from "../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;
@@ -7,10 +7,10 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "GET") return json({ error: "method not allowed" }, { status: 405, req });
 
-  const uid = clampUid(new URL(req.url).searchParams.get("uid") || "");
-  if (!uid) return json({ error: "uid required" }, { status: 400, req });
-
   const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+  const uid = user.uid;
   const friendRows = await dbAll(
     db,
     `SELECT CASE WHEN uid1 = ? THEN uid2 ELSE uid1 END AS friend_uid

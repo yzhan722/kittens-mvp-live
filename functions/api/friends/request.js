@@ -1,5 +1,6 @@
+import { requireUser } from "../_auth.js";
 import { dbFirst, dbRun, getDb, handleOptions, json, nowMs, readJson } from "../_db.js";
-import { clampStr, clampUid } from "../_uid.js";
+import { clampStr } from "../_uid.js";
 
 export async function onRequest(context) {
   const req = context.request;
@@ -7,12 +8,15 @@ export async function onRequest(context) {
   if (opt) return opt;
   if (req.method !== "POST") return json({ error: "method not allowed" }, { status: 405, req });
 
-  const body = await readJson(req);
-  const fromUid = clampUid(body?.fromUid);
-  const toUsername = clampStr(body?.toUsername, 32);
-  if (!fromUid || !toUsername) return json({ error: "bad request" }, { status: 400, req });
-
   const db = getDb(context.env);
+  const user = await requireUser(db, req);
+  if (!user) return json({ error: "unauthorized" }, { status: 401, req });
+  const fromUid = user.uid;
+
+  const body = await readJson(req);
+  const toUsername = clampStr(body?.toUsername, 32);
+  if (!toUsername) return json({ error: "bad request" }, { status: 400, req });
+
   let toUser = await dbFirst(db, "SELECT uid, username FROM users WHERE username = ?", [toUsername]);
   if (!toUser) {
     const byScore = await dbFirst(db, "SELECT uid, name AS username FROM scores WHERE name = ?", [toUsername]);

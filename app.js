@@ -1,41 +1,48 @@
 import { legacyIdMap, pokemon, getPokemonTier } from "./modules/pokemon_defs.js";
-import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.40.0";
-import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.40.0";
-import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.40.0";
-import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.40.0";
-import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.40.0";
+import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.41.0";
+import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.41.0";
+import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.41.0";
+import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.41.0";
+import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.41.0";
 import { createPokeApiClient } from "./modules/pokeapi_client.js";
-import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.40.0";
+import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isSameEvoFamily, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.41.0";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js";
-import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.40.0";
+import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.41.0";
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
+import {
+  getMonCurrentStatsWith,
+  createMonInstanceWith,
+  addExpToMonWith,
+  evolveMonWith,
+} from "./modules/systems/mon_stats.js";
+import { createLogUiSystem } from "./modules/app/log_ui.js";
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
-import { createTick } from "./modules/tick.js?v=0.40.0";
-import { createRenderResources } from "./modules/render/resources.js?v=0.40.0";
-import { createRenderLog } from "./modules/render/log.js?v=0.40.0";
-import { createRenderBuildings } from "./modules/render/buildings.js?v=0.40.0";
-import { createRenderTech } from "./modules/render/tech.js?v=0.40.0";
-import { createRenderCapture } from "./modules/render/capture.js?v=0.40.0";
-import { createRenderMons } from "./modules/render/mons.js?v=0.40.0";
-import { createRenderDex } from "./modules/render/dex.js?v=0.40.0";
-import { createRenderFutureShop } from "./modules/render/future.js?v=0.40.0";
-import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.40.0";
+import { createTick } from "./modules/tick.js?v=0.41.0";
+import { createRenderResources } from "./modules/render/resources.js?v=0.41.0";
+import { createRenderLog } from "./modules/render/log.js?v=0.41.0";
+import { createRenderBuildings } from "./modules/render/buildings.js?v=0.41.0";
+import { createRenderTech } from "./modules/render/tech.js?v=0.41.0";
+import { createRenderCapture } from "./modules/render/capture.js?v=0.41.0";
+import { createRenderMons } from "./modules/render/mons.js?v=0.41.0";
+import { createRenderDex } from "./modules/render/dex.js?v=0.41.0";
+import { createRenderFutureShop } from "./modules/render/future.js?v=0.41.0";
+import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.41.0";
 import { createDailySignin } from "./modules/daily_signin.js";
 import { createMonthlyCard } from "./modules/monthly_card.js";
 import { createDailyTasks } from "./modules/daily_tasks.js";
-import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.40.0";
-import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.40.0";
-import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.40.0";
-import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.40.0";
-import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.40.0";
-import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.40.0";
-import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.40.0";
-import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.40.0";
+import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.41.0";
+import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.41.0";
+import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.41.0";
+import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.41.0";
+import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.41.0";
+import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.41.0";
+import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.41.0";
+import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.41.0";
 import { createItemUsage } from "./modules/item_usage.js";
-import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.40.0";
+import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.41.0";
 import { createRenderDailyTasks } from "./modules/render/daily_tasks.js";
 import { createRenderFunctions, initFunctionsTab } from "./modules/tabs/functions_tab.js";
 import { getExpLevelDef } from "./modules/expedition_defs.js";
@@ -62,15 +69,17 @@ import {
   ensureDerivedContainers,
   finalizeProductionRates,
 } from "./modules/systems/production.js";
+import { computeDerived as computeDerivedCore } from "./modules/systems/compute_derived.js";
 import { createCaptureSystem } from "./modules/app/capture_system.js";
+import { awardCaughtPokemon as awardCaughtPokemonCore } from "./modules/app/capture_award.js";
 import { createTickerSystem } from "./modules/app/ticker.js";
 import { createRenderPve } from "./modules/tabs/pve_tab.js";
 import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
 import { createSocialSystem } from "./modules/social.js";
 import { createRenderSocial } from "./modules/render/social.js";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js";
-import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.40.0";
-import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.40.0";
+import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.41.0";
+import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.41.0";
 import {
   SERVER_BUFF_KEYS,
   SERVER_BUFF_BUY_MAX_MINUTES,
@@ -80,17 +89,22 @@ import {
   serverBuffMul as serverBuffMul0,
   serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
   serverBuffEffectText as serverBuffEffectText0,
-} from "./modules/systems/server_buffs.js?v=0.40.0";
+} from "./modules/systems/server_buffs.js?v=0.41.0";
 import { createSocialTab } from "./modules/tabs/social_tab.js";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
 import { setupGlobalErrorHandling } from "./modules/error_handler.js";
+import { advanceEra, bumpEraCounter, syncEraQuests } from "./modules/systems/era.js";
+import { createAnalytics } from "./modules/analytics.js";
+import { load as loadRemoteConfig } from "./modules/remote_config.js";
+import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatchStreak, natureResCapMul, formatWelcomeBackSummary, dailyGoalsChecklist, canClaimDexRegion, markDexRegionClaimed, sessionHighlightsLine, canClaimDailyGoalsBundle, markDailyGoalsBundleClaimed, bumpLoginStreak, loginStreakLine, localDateStr } from "./modules/systems/gameplay_fun.js";
 
 (() => {
   setupGlobalErrorHandling();
+  const analytics = createAnalytics({ gameVersion: "0.41.0" });
 
   const STORAGE_KEY = "kittens_mvp_save_v1";
-  // ===== SECTION:STORAGE_CONSTANTS — 存档键名常量/localStorage工具 =====
+  // ===== SECTION:STORAGE_CONSTANTS �?存档键名常量/localStorage工具 =====
   const STORAGE_BACKUP_KEY = `${STORAGE_KEY}_bak`;
   const SAVE_SLOT_KEY = "kittens_mvp_save_slot_1";
   const DAILY_LOGIN_REWARD_KEY = "kittens_mvp_daily_login_reward_v1";
@@ -110,7 +124,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     }
   }
 
-  // ===== SECTION:UTILS — 工具函数 formatLocalYmd等 =====
+  // ===== SECTION:UTILS �?工具函数 formatLocalYmd�?=====
   function formatLocalYmd(t = nowMs()) {
     const d = new Date(t);
     const y = d.getFullYear();
@@ -118,7 +132,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }
-  // ===== SECTION:DEFS_AND_BALANCE — defs定义 + 建筑/科技平衡参数 — 维护者窗口A =====
+  // ===== SECTION:DEFS_AND_BALANCE �?defs定义 + 建筑/科技平衡参数 �?维护者窗口A =====
 
   installSpriteHandlers();
 
@@ -171,7 +185,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     tech: {
       berryCultivation: {
         name: "树果培育",
-        desc: "树果产量 +50%，树果上限 +25。",
+        desc: "树果产量 +50%，树果上�?+25�?,
         cost: { catnip: 20 },
         prereq: [],
         req: () => true,
@@ -182,8 +196,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         },
       },
       composting: {
-        name: "堆肥技术",
-        desc: "树果产量 +20%，树果上限 +30。",
+        name: "堆肥技�?,
+        desc: "树果产量 +20%，树果上�?+30�?,
         cost: { catnip: 45 },
         prereq: ["berryCultivation"],
         req: () => true,
@@ -195,7 +209,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       irrigation: {
         name: "灌溉改良",
-        desc: "树果产量 +25%，树果上限 +40。",
+        desc: "树果产量 +25%，树果上�?+40�?,
         cost: { catnip: 100 },
         prereq: ["composting"],
         req: (state) => state.buildings.field.owned >= 2,
@@ -207,7 +221,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       greenhouse: {
         name: "温室栽培",
-        desc: "树果产量 +35%，树果上限 +80。",
+        desc: "树果产量 +35%，树果上�?+80�?,
         cost: { catnip: 240, wood: 30 },
         prereq: ["irrigation"],
         req: (state) => state.buildings.hut.owned >= 1,
@@ -219,7 +233,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       backpackWeaving: {
         name: "背包编织",
-        desc: "树果上限 +60。",
+        desc: "树果上限 +60�?,
         cost: { catnip: 70 },
         prereq: ["berryCultivation"],
         req: () => true,
@@ -230,7 +244,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       campLogistics: {
         name: "营地后勤",
-        desc: "营地建筑成本 -3%，球果上限 +30。",
+        desc: "营地建筑成本 -3%，球果上�?+30�?,
         cost: { catnip: 110, wood: 8 },
         prereq: ["backpackWeaving"],
         req: (state) => state.buildings.hut.owned > 0,
@@ -241,8 +255,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         },
       },
       trainerDrills: {
-        name: "训练家操练",
-        desc: "树果/球果/碎片产量 +10%。",
+        name: "训练家操�?,
+        desc: "树果/球果/碎片产量 +10%�?,
         cost: { catnip: 130 },
         prereq: ["campLogistics"],
         req: () => true,
@@ -255,8 +269,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       pokeballBasics: {
         name: "精灵球基础",
-        desc: "营地建筑成本 -5%，并解锁精灵球制作与捕捉。",
-        // After TECH researchCostMul(~2): ~30 catnip — short gather burst
+        desc: "营地建筑成本 -5%，并解锁精灵球制作与捕捉�?,
+        // After TECH researchCostMul(~2): ~30 catnip �?short gather burst
         cost: { catnip: 15 },
         prereq: [],
         req: () => true,
@@ -268,7 +282,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       ballMolds: {
         name: "球壳模具",
-        desc: "捕捉成功率 +1%。",
+        desc: "捕捉成功�?+1%�?,
         cost: { catnip: 140, wood: 30 },
         prereq: ["pokeballBasics"],
         req: (state) => state.buildings.hut.owned > 0,
@@ -279,7 +293,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       apricornCrafting: {
         name: "球果工艺",
-        desc: "捕捉成功率 +4%。",
+        desc: "捕捉成功�?+4%�?,
         cost: { catnip: 250, wood: 80 },
         prereq: ["ballMolds"],
         req: (state) => state.buildings.hut.owned >= 2,
@@ -289,7 +303,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       reinforcedBalls: {
         name: "加固球壳",
-        desc: "捕捉成功率 +6%。",
+        desc: "捕捉成功�?+6%�?,
         cost: { catnip: 400, wood: 140, minerals: 30 },
         prereq: ["apricornCrafting"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -299,7 +313,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       captureTraining: {
         name: "捕捉训练",
-        desc: "捕捉成功率 +6%。",
+        desc: "捕捉成功�?+6%�?,
         cost: { catnip: 600, wood: 180, minerals: 60 },
         prereq: ["reinforcedBalls"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -309,7 +323,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       fieldResearch: {
         name: "野外观察",
-        desc: "球果与进化石碎片产量 +100%，并提升对应上限。",
+        desc: "球果与进化石碎片产量 +100%，并提升对应上限�?,
         cost: { catnip: 200, wood: 30 },
         prereq: ["pokeballBasics"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -323,7 +337,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       fieldGuide: {
         name: "野外手册",
-        desc: "球果与进化石碎片产量 +25%，并提升对应上限。",
+        desc: "球果与进化石碎片产量 +25%，并提升对应上限�?,
         cost: { catnip: 350, wood: 60 },
         prereq: ["fieldResearch"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -336,7 +350,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       mineralSurvey: {
         name: "矿脉勘测",
-        desc: "进化石碎片产量 +35%，碎片上限 +60。",
+        desc: "进化石碎片产�?+35%，碎片上�?+60�?,
         cost: { wood: 100, minerals: 40 },
         prereq: ["fieldGuide"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -347,7 +361,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       excavationTools: {
         name: "挖掘工具",
-        desc: "进化石碎片产量 +40%，碎片上限 +80。",
+        desc: "进化石碎片产�?+40%，碎片上�?+80�?,
         cost: { wood: 180, minerals: 90 },
         prereq: ["mineralSurvey"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -358,7 +372,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       refining: {
         name: "精炼处理",
-        desc: "进化石碎片产量 +20%，球果产量 +15%，碎片上限 +120。",
+        desc: "进化石碎片产�?+20%，球果产�?+15%，碎片上�?+120�?,
         cost: { wood: 260, minerals: 160 },
         prereq: ["excavationTools"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -369,8 +383,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         },
       },
       oreStorage: {
-        name: "储矿箱",
-        desc: "球果上限 +120，进化石碎片上限 +200。",
+        name: "储矿�?,
+        desc: "球果上限 +120，进化石碎片上限 +200�?,
         cost: { wood: 220, minerals: 180 },
         prereq: ["refining"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -381,7 +395,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       carpentry: {
         name: "木工训练",
-        desc: "球果产量 +30%，球果上限 +80。",
+        desc: "球果产量 +30%，球果上�?+80�?,
         cost: { catnip: 220, wood: 60 },
         prereq: ["campLogistics"],
         req: (state) => state.buildings.hut.owned > 0,
@@ -391,8 +405,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         },
       },
       sawmillPlans: {
-        name: "锯木坊图纸",
-        desc: "球果产量 +45%，球果上限 +160。",
+        name: "锯木坊图�?,
+        desc: "球果产量 +45%，球果上�?+160�?,
         cost: { catnip: 500, wood: 200, minerals: 80 },
         prereq: ["carpentry"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -402,8 +416,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         },
       },
       supplyLines: {
-        name: "补给线",
-        desc: "树果/球果/碎片上限全面提升。",
+        name: "补给�?,
+        desc: "树果/球果/碎片上限全面提升�?,
         cost: { catnip: 800, wood: 300, minerals: 200 },
         prereq: ["sawmillPlans"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -414,8 +428,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         },
       },
       efficientConstruction: {
-        name: "高效建造",
-        desc: "营地建筑成本 -8%。",
+        name: "高效建�?,
+        desc: "营地建筑成本 -8%�?,
         cost: { catnip: 1200, wood: 450, minerals: 300 },
         prereq: ["supplyLines"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -425,7 +439,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       advancedGear: {
         name: "高级装备",
-        desc: "树果产量 +25%，并提升全部上限。",
+        desc: "树果产量 +25%，并提升全部上限�?,
         cost: { catnip: 900, wood: 250, minerals: 150 },
         prereq: ["efficientConstruction"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -439,7 +453,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       researchMethod: {
         name: "研究方法",
-        desc: "树果/球果/碎片产量 +15%。",
+        desc: "树果/球果/碎片产量 +15%�?,
         cost: { catnip: 1500, wood: 600, minerals: 400 },
         prereq: ["advancedGear"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -451,7 +465,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       },
       ultraStorage: {
         name: "超大容量仓储",
-        desc: "大幅提升所有资源上限。",
+        desc: "大幅提升所有资源上限�?,
         cost: { catnip: 2500, wood: 900, minerals: 700 },
         prereq: ["researchMethod"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -464,7 +478,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     buildings: BUILDING_DEFS,
   };
 
-  // 建筑平衡系数已预乘到 defs_buildings.js，此处全部设为1.0（rebalanceBuildingDefs变为无操作）
+  // 建筑平衡系数已预乘到 defs_buildings.js，此处全部设�?.0（rebalanceBuildingDefs变为无操作）
   const BUILDING_BALANCE = {
     costMul: 1.0,
     prodMul: 1.0,
@@ -588,7 +602,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       if (cCap) d = d.replace(/树果上限\s*\+\s*\d+/g, `树果上限 +${pctFromMul(cCap)}%`);
       if (wCap) d = d.replace(/球果上限\s*\+\s*\d+/g, `球果上限 +${pctFromMul(wCap)}%`);
       if (mCap) d = d.replace(/(进化石碎片|碎片)上限\s*\+\s*\d+/g, `$1上限 +${pctFromMul(mCap)}%`);
-      if (pCap) d = d.replace(/精灵球上限\s*\+\s*\d+/g, `精灵球上限 +${pctFromMul(pCap)}%`);
+      if (pCap) d = d.replace(/精灵球上限\s*\+\s*\d+/g, `精灵球上�?+${pctFromMul(pCap)}%`);
 
       return d;
     };
@@ -617,7 +631,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       if (typeof tdef.desc === "string") tdef.desc = adjustDesc(tdef.desc, eff);
     }
   }
-  // ===== SECTION:STATE_INIT — state初始化/存档加载/迁移 — 维护者窗口A =====
+  // ===== SECTION:STATE_INIT �?state初始�?存档加载/迁移 �?维护者窗口A =====
 
   rebalanceBuildingDefs();
   rebalanceTechDefs();
@@ -633,7 +647,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   delete defs.buildings.warehouse;
   delete defs.buildings.commandCenter;
 
-  // 迁移：根据最新 capture_rate 规则，重算所有已存在精灵实例的稀有度
+  // 迁移：根据最�?capture_rate 规则，重算所有已存在精灵实例的稀有度
   function migrateMonTiers() {
     if (!state || !state.mons || !Array.isArray(state.mons.list)) return;
     for (const m of state.mons.list) {
@@ -641,12 +655,12 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       try {
         m.tier = getPokemonTier(m.dex);
       } catch {
-        // 保底：如果计算失败，维持原 tier
+        // 保底：如果计算失败，维持�?tier
       }
     }
   }
 
-  // 统一存档加载：主存档 → 备份存档 → 新存档（并标记禁止自动覆盖）
+  // 统一存档加载：主存档 �?备份存档 �?新存档（并标记禁止自动覆盖）
   let autosaveEnabled = true;
   let state;
   const __rawPrimary = readLocalStorage(STORAGE_KEY);
@@ -672,8 +686,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
 
   migrateMonTiers();
 
-  // 确保所有道具资源都存在（兼容旧存档）
-  const ensureResources = [
+  // 确保所有道具资源都存在（兼容旧存档�?  const ensureResources = [
     "expCandy", "expCandyL", "expCandyXL",
     "ultraball", "quickball", "luxuryball",
     "affectionTreat", "friendshipBracelet",
@@ -699,8 +712,9 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     dexAreaId: "all",
     dexOnlyCaught: false,
     dexOnlyMissing: false,
+    dexOnlyShiny: false,
     dexPage: 0,
-  // ===== SECTION:UI_STATE — ui状态对象定义 — 维护者窗口C =====
+  // ===== SECTION:UI_STATE �?ui状态对象定�?�?维护者窗口C =====
     dexPageSize: 50,
     dexDirty: true,
     captureAreaId: "kanto",
@@ -812,7 +826,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   const elLeaderboard = document.getElementById("leaderboard");
   const elTicker = document.getElementById("ticker");
 
-  // ===== SECTION:TICKER_SYSTEM — Ticker跑马灯系统 — 维护者窗口B =====
+  // ===== SECTION:TICKER_SYSTEM �?Ticker跑马灯系�?�?维护者窗口B =====
   const tickerSystem = createTickerSystem({
     getElTicker: () => elTicker,
     getUi: () => ui,
@@ -829,7 +843,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   const elOverlays = document.getElementById("overlays");
   const elServerBuffBar = document.getElementById("serverBuffBar");
 
-  // ===== SECTION:DIRTY_FLAGS — 脏标记函数 markXxxDirty =====
+  // ===== SECTION:DIRTY_FLAGS �?脏标记函�?markXxxDirty =====
   function markOverlaysDirty() {
     ui.overlaysDirty = true;
   }
@@ -856,6 +870,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   const elDexSearch = document.getElementById("dexSearch");
   const elDexOnlyCaught = document.getElementById("dexOnlyCaught");
   const elDexOnlyMissing = document.getElementById("dexOnlyMissing");
+  const elDexOnlyShiny = document.getElementById("dexOnlyShiny");
   const elDexPrev = document.getElementById("dexPrev");
   const elDexNext = document.getElementById("dexNext");
   const elDexPageInfo = document.getElementById("dexPageInfo");
@@ -880,7 +895,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   const elMonPageInfo = document.getElementById("monPageInfo");
 
   const elTabs = document.querySelector(".tabs");
-  // ===== SECTION:DOM_ELEMENTS — DOM元素引用 =====
+  // ===== SECTION:DOM_ELEMENTS �?DOM元素引用 =====
   const elPanels = document.querySelector(".panels");
 
   const LOG_COLLAPSE_KEY = "kittens_mvp_log_collapsed_v1";
@@ -889,111 +904,16 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   const LB_NAME_KEY = "kittens_mvp_lb_name_v1";
   const LB_AVATAR_KEY = "kittens_mvp_lb_avatar_v1";
 
-  // ===== SECTION:LOG_UI — 日志UI折叠/展开/位置切换 — 维护者窗口C =====
-  function setLogCollapsed(collapsed) {
-    if (!elLog) return;
-    elLog.classList.toggle("is-collapsed", Boolean(collapsed));
-    if (elLogToggle) elLogToggle.textContent = collapsed ? "展开" : "收起";
-    try {
-      localStorage.setItem(LOG_COLLAPSE_KEY, collapsed ? "1" : "0");
-    } catch {
-    }
-    if (!collapsed) {
-      ui.logDirty = true;
-      render();
-    }
-  }
-
-  function moveLogToBottom() {
-    const titleRow = document.querySelector(".sidebar__sectionTitleRow--log");
-    const divider = document.querySelector(".sidebar__divider--log");
-    if (!elLog || !titleRow) return;
-
-    let host = document.getElementById("bottomLog");
-    if (!host) {
-      host = document.createElement("section");
-      host.id = "bottomLog";
-      host.className = "bottomLog";
-      const inner = document.createElement("div");
-      inner.className = "bottomLog__inner";
-      host.appendChild(inner);
-      const footer = document.querySelector("footer.footer");
-      if (footer && footer.parentNode) {
-        footer.parentNode.insertBefore(host, footer);
-      } else {
-        document.body.appendChild(host);
-      }
-    }
-
-    const inner = host.querySelector(".bottomLog__inner") || host;
-    if (divider) inner.appendChild(divider);
-    inner.appendChild(titleRow);
-    inner.appendChild(elLog);
-  }
-
-  function moveLogToSidebar() {
-    const titleRow = document.querySelector(".sidebar__sectionTitleRow--log");
-    const divider = document.querySelector(".sidebar__divider--log");
-    const sidebar = document.querySelector("aside.sidebar");
-    if (!elLog || !titleRow || !sidebar) return;
-
-    const hint = document.getElementById("hint");
-    const anchor = hint && hint.parentNode === sidebar ? hint : null;
-
-    const host = document.getElementById("bottomLog");
-    if (host && host.parentNode) host.parentNode.removeChild(host);
-
-    // 侧栏已无资源区；日志回到 hint 之后（或侧栏顶部）
-    const insertAfter = anchor || null;
-    if (divider) {
-      if (insertAfter && insertAfter.nextSibling) sidebar.insertBefore(divider, insertAfter.nextSibling);
-      else if (insertAfter) sidebar.appendChild(divider);
-      else sidebar.insertBefore(divider, sidebar.firstChild);
-    }
-
-    const afterDivider = divider && divider.parentNode === sidebar ? divider : insertAfter;
-    if (afterDivider && afterDivider.nextSibling) sidebar.insertBefore(titleRow, afterDivider.nextSibling);
-    else if (afterDivider) sidebar.appendChild(titleRow);
-    else sidebar.insertBefore(titleRow, sidebar.firstChild);
-
-    if (titleRow.nextSibling) sidebar.insertBefore(elLog, titleRow.nextSibling);
-    else sidebar.appendChild(elLog);
-  }
-
-  function initLogCollapse() {
-    if (!elLog || !elLogToggle) return;
-    let collapsed = true;
-    try {
-      const raw = localStorage.getItem(LOG_COLLAPSE_KEY);
-      if (raw === "1") collapsed = true;
-      if (raw === "0") collapsed = false;
-    } catch {
-    }
-
-    setLogCollapsed(collapsed);
-
-    elLogToggle.addEventListener("click", () => {
-      const next = !elLog.classList.contains("is-collapsed");
-      setLogCollapsed(next);
-    });
-  }
-
-  initLogCollapse();
-
-  try {
-    const mq = typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 980px)") : null;
-    const applyLogPlacement = () => {
-      if (mq && mq.matches) moveLogToBottom();
-      else moveLogToSidebar();
-    };
-    applyLogPlacement();
-    if (mq) {
-      if (typeof mq.addEventListener === "function") mq.addEventListener("change", applyLogPlacement);
-      else if (typeof mq.addListener === "function") mq.addListener(applyLogPlacement);
-    }
-  } catch {
-    moveLogToSidebar();
-  }
+  // ===== SECTION:LOG_UI �?日志UI折叠/展开/位置切换 �?维护者窗口C =====
+  const logUi = createLogUiSystem({
+    elLog,
+    elLogToggle,
+    ui,
+    render,
+    logCollapseKey: LOG_COLLAPSE_KEY,
+  });
+  logUi.initLogCollapse();
+  logUi.initLogPlacement();
 
   try {
     const raw = localStorage.getItem(CAPTURE_PREVIEW_KEY);
@@ -1002,7 +922,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   } catch {
   }
 
-  // ===== SECTION:LEADERBOARD_IDENTITY — 玩家标识/头像/排行榜身份 — 维护者窗口D =====
+  // ===== SECTION:LEADERBOARD_IDENTITY �?玩家标识/头像/排行榜身�?�?维护者窗口D =====
   const makeUid = () => {
     try {
       if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
@@ -1035,6 +955,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   let renderItems = () => {};
   let renderHelp = () => {};
   let renderDailyTasks = () => {};
+  let dailyTasks = null;
   let renderPve = () => {};
   let renderFunctionsImpl = () => {};
   let socialTab = null;
@@ -1048,6 +969,16 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   function markCaptureDirty() {
     ui.captureDirty = true;
     if (ui.activeTab === "capture") renderCapture();
+  }
+
+  function syncEraProgress() {
+    syncEraQuests(state, getCaptureAreas);
+  }
+
+  function tryAdvanceEra() {
+    const advanced = advanceEra(state, { addLog, getCaptureAreas });
+    if (advanced) markCaptureDirty();
+    return advanced;
   }
 
   function markMonsDirty() {
@@ -1077,9 +1008,21 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     elDexSearch,
     elDexOnlyCaught,
     elDexOnlyMissing,
+    elDexOnlyShiny,
     elDexPrev,
     elDexNext,
+    elDexList,
+    elDexSummary,
     markDexDirty,
+    getState: () => state,
+    addRes,
+    addLog,
+    render: () => render(),
+    setActiveTab: (name) => {
+      try {
+        document.querySelector(`.tab[data-tab="${name}"]`)?.click();
+      } catch {}
+    },
   });
 
   function markMonListDirty(resetPage = false) {
@@ -1101,10 +1044,31 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     render,
     doCatch,
     getState: () => state,
+    onGather: (intendedOrGained, maybeGained) => {
+      const intended =
+        typeof maybeGained === "number"
+          ? Math.max(0, Number(intendedOrGained) || 0)
+          : Math.max(0, Number(intendedOrGained) || 0);
+      const catnipGained =
+        typeof maybeGained === "number" ? Math.max(0, maybeGained) : intended;
+      bumpEraCounter(state, "gather_total", 1);
+      // ponytail: era berry quest counts gather yield even when warehouse is full
+      bumpEraCounter(state, "berry_earned", intended > 0 ? intended : catnipGained);
+      dailyTasks?.onEvent("gather", { resource: "catnip", amount: catnipGained });
+      dailyTasks?.onEvent("clickGather");
+      analytics.track("gather_click", { catnipGained: catnipGained ?? 0 });
+      syncEraProgress();
+      markCaptureDirty();
+    },
+    onPokeballCraft: (qty) => {
+      bumpEraCounter(state, "pokeball_earned", qty);
+      dailyTasks?.onEvent("craft", { item: "pokeball", amount: qty });
+      syncEraProgress();
+      markCaptureDirty();
+    },
   });
 
-  // 标签页切换
-  const tabController = createTabController({
+  // 标签页切�?  const tabController = createTabController({
     ui,
     elTabs,
     elPanels,
@@ -1116,7 +1080,69 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     renderLeaderboard: () => renderLeaderboard(),
     renderHelp: () => renderHelp(),
     renderPve: () => renderPve(),
+    renderOptions: () => renderOptionsGoals(),
   });
+
+  function renderOptionsGoals() {
+    const el = document.getElementById("dailyGoalsList");
+    if (!el) return;
+    if (!state.meta || typeof state.meta !== "object") state.meta = {};
+    const streak = bumpLoginStreak(state.meta, localDateStr());
+    const streakLine = loginStreakLine(state.meta) || `连续登录 ${streak} 天`;
+    const items = dailyGoalsChecklist(state);
+    const highlights = sessionHighlightsLine(state);
+    const canBundle = canClaimDailyGoalsBundle(state, localDateStr());
+    const bundleClaimed = state.meta.dailyGoalsClaimDate === localDateStr();
+    el.innerHTML = `
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">今日指挥�?/div>
+          <div class="row__desc">${items
+            .map((g) => `${g.done ? "�? : "�?} ${escapeHtml(g.label)}`)
+            .join(" · ")}</div>
+          <div class="row__desc muted">${escapeHtml(highlights)}${highlights ? " · " : ""}${escapeHtml(streakLine)}</div>
+        </div>
+        <div class="row__right">
+          <button type="button" class="btn btn--primary btn--small" data-opt-goals-claim ${canBundle ? "" : "disabled"}>${bundleClaimed ? "日目标已�? : "完成三目�?+12"}</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row__left">
+          <div class="row__title">一键出�?/div>
+          <div class="row__desc">点按钮直达核心循环，不用在菜单里找�?/div>
+        </div>
+        <div class="row__right">
+          <button type="button" class="btn btn--primary btn--small" data-opt-goto="capture">去捕�?/button>
+          <button type="button" class="btn btn--small" data-opt-goto="pve">去挑�?/button>
+          <button type="button" class="btn btn--small" data-opt-goto="functions">去功�?/button>
+          <button type="button" class="btn btn--small" data-opt-goto="future">去商�?/button>
+        </div>
+      </div>
+    `;
+    el.querySelectorAll("[data-opt-goto]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const name = btn.getAttribute("data-opt-goto");
+        if (name) activateTab(name);
+      });
+    });
+    const claimBtn = el.querySelector("[data-opt-goals-claim]");
+    if (claimBtn) {
+      claimBtn.addEventListener("click", () => {
+        if (!markDailyGoalsBundleClaimed(state, localDateStr())) {
+          if (typeof addLog === "function") addLog("日目标未完成或已领取");
+          return;
+        }
+        if (typeof addRes === "function") addRes("futurecoin", 12);
+        else {
+          if (!state.res.futurecoin) state.res.futurecoin = { value: 0 };
+          state.res.futurecoin.value = Math.max(0, Math.floor(state.res.futurecoin.value || 0)) + 12;
+        }
+        if (typeof addLog === "function") addLog("日目标全清：未来�?+12", true);
+        renderOptionsGoals();
+      });
+    }
+    ui.optionsDirty = false;
+  }
 
   function activateTab(name) {
     tabController.activateTab(name);
@@ -1129,11 +1155,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   } catch {
   }
 
-  renderHelp = createRenderHelp({
-    elHelp,
-    ui,
-    escapeHtml,
-  });
+  renderHelp = () => {};
 
   const itemUsage = createItemUsage({
     state,
@@ -1153,6 +1175,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     ui,
     render,
     markMonsDirty,
+    addLog,
   });
 
   function dexCaughtUnique() {
@@ -1178,6 +1201,19 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     pickRandomFromPool,
   } = captureSystem;
 
+  renderHelp = createRenderHelp({
+    elHelp,
+    ui,
+    escapeHtml,
+    getState: () => state,
+    getCaptureAreas,
+    dexCaughtUnique,
+    defs,
+    addRes,
+    addLog,
+    render: () => render(),
+  });
+
   initCaptureTab({
     elCaptureArea,
     elCaptureInfo,
@@ -1202,6 +1238,14 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     awardCaughtPokemon,
     doCatch,
     pushTickerEvent,
+    onPokeballCraft: (qty) => {
+      bumpEraCounter(state, "pokeball_earned", qty);
+      dailyTasks?.onEvent("craft", { item: "pokeball", amount: qty });
+      syncEraProgress();
+      markCaptureDirty();
+    },
+    onEraAdvance: tryAdvanceEra,
+    getCaptureAreas,
   });
 
   initBuildingsTab({
@@ -1226,12 +1270,16 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     render,
   });
 
-  // ===== SECTION:CORE_HELPERS — hint / addLog / getSpeciesByPid — 维护者窗口A =====
+  // ===== SECTION:CORE_HELPERS �?hint / addLog / getSpeciesByPid �?维护者窗口A =====
   function hint(text, ttl = 2000) {
     elHint.textContent = text;
+    elHint.hidden = !text;
     if (ttl > 0) {
       window.setTimeout(() => {
-        if (elHint.textContent === text) elHint.textContent = "";
+        if (elHint.textContent === text) {
+          elHint.textContent = "";
+          elHint.hidden = true;
+        }
       }, ttl);
     }
   }
@@ -1291,7 +1339,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     }
   }
 
-  // ===== SECTION:LEADERBOARD_NETWORK — 排行榜网络 lbBaseUrl/lbFetchJson — 维护者窗口D =====
+  // ===== SECTION:LEADERBOARD_NETWORK �?排行榜网�?lbBaseUrl/lbFetchJson �?维护者窗口D =====
   function lbBaseUrl() {
     try {
       const loc = window.location;
@@ -1301,8 +1349,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       if (!host) return "http://127.0.0.1:8080";
       if (host === "localhost" || host === "127.0.0.1") return "http://127.0.0.1:8080";
 
-      // 默认同源（适配 ngrok/反代：同一个域名同时提供页面与 /api）
-      if (origin) return origin;
+      // 默认同源（适配 ngrok/反代：同一个域名同时提供页面与 /api�?      if (origin) return origin;
     } catch {
     }
     return "http://127.0.0.1:8080";
@@ -1458,7 +1505,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     return sum;
   }
 
-  // ===== SECTION:SERVER_BUFFS — 全服Buff系统 — 维护者窗口D =====
+  // ===== SECTION:SERVER_BUFFS �?全服Buff系统 �?维护者窗口D =====
   async function lbFetchJson(url, opts = null) {
     const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
     const id = window.setTimeout(() => {
@@ -1468,7 +1515,18 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       }
     }, 8000);
     try {
-      const res = await fetch(url, { ...(opts || {}), signal: ctrl ? ctrl.signal : undefined });
+      const baseOpts = opts && typeof opts === "object" ? { ...opts } : {};
+      const headers = { ...(baseOpts.headers || {}) };
+      // Harden write APIs require Bearer; attach when logged in (GET also OK with token)
+      try {
+        const token = cloudSave?.getToken?.();
+        if (token && !headers.Authorization && !headers.authorization) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+      } catch {
+      }
+      baseOpts.headers = headers;
+      const res = await fetch(url, { ...baseOpts, signal: ctrl ? ctrl.signal : undefined });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } finally {
@@ -1549,13 +1607,13 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     const m = Math.min(SERVER_BUFF_BUY_MAX_MINUTES, m0);
     const price = m;
     if ((state.res.futurecoin?.value ?? 0) < price) {
-      addLog("未来币不足。", true);
+      addLog("未来币不足�?, true);
       return;
     }
 
     try {
       const base = lbBaseUrl();
-      const name = typeof ui.lbName === "string" && ui.lbName.trim() ? ui.lbName.trim() : "训练家";
+      const name = typeof ui.lbName === "string" && ui.lbName.trim() ? ui.lbName.trim() : "训练�?;
       await lbFetchJson(`${base}/api/server/buffs/buy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1563,10 +1621,11 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       });
 
       state.res.futurecoin.value = Math.max(0, (state.res.futurecoin?.value ?? 0) - price);
+      analytics.trackFuturecoinSpend(price, "server_buff");
       ui.futureDirty = true;
-      addLog(`购买全服增益：${SERVER_BUFF_UI[k]?.name ?? k}（+${m} 分钟，花费未来币 ${price}）`, true);
+      addLog(`购买全服增益�?{SERVER_BUFF_UI[k]?.name ?? k}�?${m} 分钟，花费未来币 ${price}）`, true);
       if (typeof pushTickerEvent === "function") {
-        pushTickerEvent("sbuff", `贡献全服增益 ${SERVER_BUFF_UI[k]?.name ?? k}（+${m} 分钟）`);
+        pushTickerEvent("sbuff", `贡献全服增益 ${SERVER_BUFF_UI[k]?.name ?? k}�?${m} 分钟）`);
       }
       save();
       closeServerBuffBuyModal();
@@ -1574,9 +1633,9 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     } catch (e) {
       const msg = typeof e?.message === "string" ? e.message : "";
       if (msg.includes("HTTP 422")) {
-        addLog(`购买失败：单次购买上限 ${SERVER_BUFF_BUY_MAX_MINUTES} 分钟`, true);
+        addLog(`购买失败：单次购买上�?${SERVER_BUFF_BUY_MAX_MINUTES} 分钟`, true);
       } else {
-        addLog("购买失败：请求失败，请稍后重试", true);
+        addLog("购买失败：请求失败，请稍后重�?, true);
       }
     }
   }
@@ -1590,7 +1649,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     });
   }
 
-  // ===== SECTION:RENDER_SERVER_BUFF_BAR — 全服Buff渲染 — 维护者窗口C =====
+  // ===== SECTION:RENDER_SERVER_BUFF_BAR �?全服Buff渲染 �?维护者窗口C =====
   function renderServerBuffBar() {
     if (!elServerBuffBar) return;
     if (!ui.serverBuffsDirty) return;
@@ -1621,7 +1680,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
               return `<div class="serverBuffBar__tipLine muted">#${idx + 1} ${nm} · ${fmtDuration(sec)}</div>`;
             })
             .join("")
-        : `<div class="serverBuffBar__tipLine muted">暂无贡献者</div>`;
+        : `<div class="serverBuffBar__tipLine muted">暂无贡献�?/div>`;
 
       rows.push(`
         <div class="serverBuffBar__slot">
@@ -1631,11 +1690,11 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
           </button>
           <div class="serverBuffBar__tip" style="--sbuff-tip-shift:${tipShift}px">
             <div class="serverBuffBar__tipTitle">${escapeHtml(title)} Lv.${lvl}</div>
-            <div class="serverBuffBar__tipLine">效果：${escapeHtml(effectLine)}</div>
-            <div class="serverBuffBar__tipLine">剩余：${escapeHtml(fmtDuration(rem))}</div>
+            <div class="serverBuffBar__tipLine">效果�?{escapeHtml(effectLine)}</div>
+            <div class="serverBuffBar__tipLine">剩余�?{escapeHtml(fmtDuration(rem))}</div>
             <div class="serverBuffBar__tipLine muted" style="margin-top:6px">贡献者（按贡献时间）</div>
             ${contribLines}
-            <div class="serverBuffBar__tipLine muted" style="margin-top:8px">点击图标可购买/续费（1未来币=1分钟）</div>
+            <div class="serverBuffBar__tipLine muted" style="margin-top:8px">点击图标可购�?续费�?未来�?1分钟�?/div>
           </div>
         </div>
       `);
@@ -1656,7 +1715,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   }
 
   const BOSS_BULLY_SNOOZE_KEY = "kittens_mvp_boss_bully_snooze_until_v1";
-  // ===== SECTION:BOSS_BULLY — Boss林佬系统 — 维护者窗口D =====
+  // ===== SECTION:BOSS_BULLY �?Boss林佬系统 �?维护者窗口D =====
   const {
     refreshBossBullyOnce,
     ensureBossBullyPolling,
@@ -1718,7 +1777,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         const raw = input ? String(input.value || "").trim() : String(ui.serverBuffBuyMinutes || "");
         const m0 = Math.floor(Number(raw));
         if (!Number.isFinite(m0) || m0 < 1) {
-          addLog("请输入正确分钟数。", true);
+          addLog("请输入正确分钟数�?, true);
           return;
         }
         ui.serverBuffBuyMinutes = m0;
@@ -1752,7 +1811,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     });
   }
 
-  // ===== SECTION:RENDER_OVERLAYS — 全局弹窗渲染 renderOverlays — 维护者窗口C =====
+  // ===== SECTION:RENDER_OVERLAYS �?全局弹窗渲染 renderOverlays �?维护者窗口C =====
   function renderOverlays() {
     if (!elOverlays) return;
     if (!ui.overlaysDirty) return;
@@ -1789,7 +1848,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
           ? potEntries
               .map((x) => `${escapeHtml(defs.resources?.[x.rid]?.name ?? x.rid)} x${x.qty}`)
               .join(" · ")
-          : "无";
+          : "�?;
 
       rows.push(`
         <div class="modalOverlay" data-exp-reward-overlay="1">
@@ -1800,12 +1859,14 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
                 <button class="btn btn--small" data-exp-reward-close="1">关闭</button>
               </div>
             </div>
-            <div class="modal__desc">本次远征获得如下奖励。</div>
+            <div class="modal__desc">本次远征获得如下奖励�?/div>
             <div class="modal__body">
-              ${expPerMon > 0 && monCount > 0 ? `<div class="badge">经验：每只 +${expPerMon}（参与 ${monCount} 只）</div>` : ""}
-              ${fc > 0 ? `<div class="badge">${escapeHtml(defs.resources?.futurecoin?.name ?? "未来币")} x${fc}</div>` : ""}
-              ${mb > 0 ? `<div class="badge">${escapeHtml(defs.resources?.masterball?.name ?? "大师球")} x${mb}</div>` : ""}
-              <div class="badge">药剂：${potText}</div>
+              ${expPerMon > 0 && monCount > 0 ? `<div class="badge">经验：每�?+${expPerMon}（参�?${monCount} 只）</div>` : ""}
+              ${fc > 0 ? `<div class="badge">${escapeHtml(defs.resources?.futurecoin?.name ?? "未来�?)} x${fc}</div>` : ""}
+              ${mb > 0 ? `<div class="badge">${escapeHtml(defs.resources?.masterball?.name ?? "大师�?)} x${mb}</div>` : ""}
+              <div class="badge">药剂�?{potText}</div>
+              ${expData.eventCard?.title ? `<div class="badge badge--ok">奇遇 · ${escapeHtml(expData.eventCard.title)}�?{escapeHtml(expData.eventCard.blurb || "")}</div>` : ""}
+              ${expData.seasonRelic?.name ? `<div class="badge badge--ok">赛季印记 · ${escapeHtml(expData.seasonRelic.name)}（累�?${Math.floor(expData.seasonRelic.count || 1)}）→ ${escapeHtml(defs.resources?.[expData.seasonRelic.item]?.name ?? expData.seasonRelic.item)}</div>` : ""}
             </div>
           </div>
         </div>
@@ -1836,7 +1897,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
                 <button class="btn btn--small" data-boss-bully-close="1">关闭</button>
               </div>
             </div>
-            <div class="modal__desc">林佬已被击败（第 ${killSeq} 次）。你有未领取奖励。</div>
+            <div class="modal__desc">林佬已被击败（第 ${killSeq} 次）。你有未领取奖励�?/div>
             <div class="modal__body">
               <div class="row">
                 <div class="row__left">
@@ -1868,12 +1929,12 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
                 <button class="btn btn--small" data-sbuff-close="1">关闭</button>
               </div>
             </div>
-            <div class="modal__desc">${escapeHtml(title)}（1未来币=1分钟）</div>
+            <div class="modal__desc">${escapeHtml(title)}�?未来�?1分钟�?/div>
             <div class="modal__body">
               <div class="row">
                 <div class="row__left">
                   <div class="row__title">购买时长（分钟）</div>
-                  <div class="row__desc">花费未来币 = 分钟数</div>
+                  <div class="row__desc">花费未来�?= 分钟�?/div>
                 </div>
                 <div class="row__right">
                   <input class="input" type="number" inputmode="numeric" min="1" max="${SERVER_BUFF_BUY_MAX_MINUTES}" step="1" value="${minutes}" data-sbuff-min-input />
@@ -1903,7 +1964,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     ui.overlaysDirty = false;
   }
 
-  // ===== SECTION:LEADERBOARD_DATA — 排行榜数据刷新/渲染 — 维护者窗口D =====
+  // ===== SECTION:LEADERBOARD_DATA �?排行榜数据刷�?渲染 �?维护者窗口D =====
   async function refreshLeaderboards() {
     const base = lbBaseUrl();
     ui.lbBusy = true;
@@ -1934,7 +1995,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     } catch (e) {
       const raw = String(e && typeof e === "object" && "message" in e ? e.message : e || "请求失败");
       const isAbort = Boolean(e && typeof e === "object" && "name" in e && e.name === "AbortError");
-      ui.lbErr = isAbort || raw.toLowerCase().includes("aborted") ? "请求超时/被取消" : raw;
+      ui.lbErr = isAbort || raw.toLowerCase().includes("aborted") ? "请求超时/被取�? : raw;
     } finally {
       ui.lbBusy = false;
       markLeaderboardDirty();
@@ -1990,7 +2051,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     } catch (e) {
       const raw = String(e && typeof e === "object" && "message" in e ? e.message : e || "提交失败");
       const isAbort = Boolean(e && typeof e === "object" && "name" in e && e.name === "AbortError");
-      ui.lbErr = isAbort || raw.toLowerCase().includes("aborted") ? "请求超时/被取消" : raw;
+      ui.lbErr = isAbort || raw.toLowerCase().includes("aborted") ? "请求超时/被取�? : raw;
       ui.lbBusy = false;
       markLeaderboardDirty();
       render();
@@ -2015,110 +2076,28 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     refreshLeaderboards,
   });
 
-  // ===== SECTION:MON_HELPERS — 精灵辅助函数 getMonCurrentStats等 — 维护者窗口B =====
+  // ===== SECTION:MON_HELPERS �?精灵辅助函数 getMonCurrentStats�?�?维护者窗口B =====
+  function monStatsDeps() {
+    return { state, ui, getPokeApiDataByDex, getSpeciesByPid, serverBuffMul, addLog };
+  }
+
   function getMonCurrentStats(mon) {
-    return getMonCurrentStats0(mon, getPokeApiDataByDex);
+    return getMonCurrentStatsWith(monStatsDeps(), mon);
   }
 
   function createMonInstance(species, idOverride = null) {
-    const m = createMonInstance0(species, {
-      idOverride,
-      idFallback: state?.mons?.nextId ?? 1,
-    });
-    m.skillCdRemainingSec = 0;
-    m.skillActiveType = null;
-    m.skillActiveRemainingSec = 0;
-    return m;
+    return createMonInstanceWith(monStatsDeps(), species, idOverride);
   }
 
   function addExpToMon(mon, expAdd) {
-    const add0 = typeof expAdd === "number" && Number.isFinite(expAdd) ? expAdd : 0;
-    const boostOn = typeof state.expBoostRemainingSec === "number" && Number.isFinite(state.expBoostRemainingSec) && state.expBoostRemainingSec > 0;
-    const permExpLvl = typeof state.permanentBoosts?.exp === "number" ? Math.max(0, Math.min(10, Math.floor(state.permanentBoosts.exp))) : 0;
-    const permExpMul = 1 + permExpLvl * 0.1;
-    const mul = (boostOn ? 2 : 1) * serverBuffMul("exp") * permExpMul;
-    return addExpToMon0(mon, Math.floor(add0 * mul));
+    return addExpToMonWith(monStatsDeps(), mon, expAdd);
   }
 
   function evolveMon(mon, toPid) {
-    const ok = evolveMon0(mon, toPid, getSpeciesByPid);
-    if (!ok) return false;
-
-    if (!state.dex || typeof state.dex !== "object") state.dex = { caught: {} };
-    if (!state.dex.caught || typeof state.dex.caught !== "object") state.dex.caught = {};
-    const sp = getSpeciesByPid(toPid);
-    if (sp) {
-      const caught = state.dex.caught;
-      const prev = typeof caught[sp.id] === "number" ? caught[sp.id] : 0;
-      caught[sp.id] = prev + 1;
-      if (prev === 0) {
-        addLog(`图鉴登记：${sp.name}（进化解锁）`, true);
-      }
-    }
-
-    ui.dexDirty = true;
-    return true;
+    return evolveMonWith(monStatsDeps(), mon, toPid);
   }
 
-  let EVO_FAMILY_ID_BY_PID = null;
-  function buildEvoFamilyIdMap() {
-    const evo = getEvoMap();
-    if (!evo || typeof evo !== "object") return null;
-
-    const adj = {};
-    const ensure = (pid) => {
-      if (!pid || typeof pid !== "string") return;
-      if (!adj[pid]) adj[pid] = new Set();
-    };
-
-    for (const [from, tos] of Object.entries(evo)) {
-      if (typeof from !== "string") continue;
-      if (!Array.isArray(tos)) continue;
-      ensure(from);
-      for (const to of tos) {
-        if (typeof to !== "string") continue;
-        ensure(to);
-        adj[from].add(to);
-        adj[to].add(from);
-      }
-    }
-
-    const famId = new Map();
-    let next = 1;
-    for (const pid of Object.keys(adj)) {
-      if (famId.has(pid)) continue;
-      const id = next;
-      next += 1;
-      const q = [pid];
-      famId.set(pid, id);
-      while (q.length) {
-        const cur = q.pop();
-        const ns = adj[cur];
-        if (!ns) continue;
-        for (const n of ns) {
-          if (famId.has(n)) continue;
-          famId.set(n, id);
-          q.push(n);
-        }
-      }
-    }
-
-    return famId;
-  }
-
-  function isSameEvoFamily(pidA, pidB) {
-    if (!pidA || !pidB) return false;
-    if (pidA === pidB) return true;
-    if (!EVO_FAMILY_ID_BY_PID) EVO_FAMILY_ID_BY_PID = buildEvoFamilyIdMap();
-    const m = EVO_FAMILY_ID_BY_PID;
-    if (!m) return false;
-    const a = m.get(pidA);
-    const b = m.get(pidB);
-    if (!a || !b) return false;
-    return a === b;
-  }
-
-  // ===== SECTION:SAVE_CLOUD — 存档序列化/云同步 — 维护者窗口A =====
+  // ===== SECTION:SAVE_CLOUD �?存档序列�?云同�?�?维护者窗口A =====
   function getAutosaveRawJson() {
     try {
       const enc = localStorage.getItem(STORAGE_KEY);
@@ -2151,6 +2130,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     slotKeys: [SAVE_SLOT_KEY],
     applyAutosaveRaw,
   });
+  cloudSave.installCloudPanelUI({ setStatus: setCloudStatus, refreshGame: () => render() });
 
   // API fetch for daily_tasks / authenticated endpoints (Bearer from cloudSave)
   ui.fetch = async (path, { method = "GET", body = null } = {}) => {
@@ -2180,33 +2160,34 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     const token = cloudSave.getToken();
     const username = cloudSave.getUsername();
     if (token) setCloudStatus(`已登录：${username || "-"}`);
-    else setCloudStatus("未登录");
+    else setCloudStatus("未登�?);
   }
 
   async function doCloudSyncNow() {
     try {
       refreshCloudUI();
       if (!cloudSave.getToken()) {
-        setCloudStatus("未登录");
+        setCloudStatus("未登�?);
         return;
       }
-      setCloudStatus("同步中...");
+      setCloudStatus("同步�?..");
       await cloudSave.syncAll();
+      await dailyTasks?.syncFromServer?.();
       cloudSave.startAutoSync();
       const st = cloudSave.getSyncStatus();
       if (st.status === "error") {
-        setCloudStatus(`同步失败：${st.error || "未知错误"}`);
+        setCloudStatus(`同步失败�?{st.error || "未知错误"}`);
       } else if (st.status === "partial") {
-        setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（部分同步：${st.error || "有冲突"}）`);
+        setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（部分同步：${st.error || "有冲�?}）`);
       } else if (!cloudSave.getToken()) {
-        setCloudStatus("登录已过期，请重新登录");
+        setCloudStatus("登录已过期，请重新登�?);
       } else {
         setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（已同步）`);
       }
     } catch (e) {
       const msg = typeof e?.message === "string" ? e.message : "同步失败";
-      if (!cloudSave.getToken()) setCloudStatus("登录已过期，请重新登录");
-      else setCloudStatus(`同步失败：${msg}`);
+      if (!cloudSave.getToken()) setCloudStatus("登录已过期，请重新登�?);
+      else setCloudStatus(`同步失败�?{msg}`);
     }
   }
 
@@ -2225,9 +2206,9 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       a.download = `kittens-save-${formatLocalYmd()}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      setCloudStatus("已导出存档文件");
+      setCloudStatus("已导出存档文�?);
     } catch (e) {
-      setCloudStatus(`导出失败：${e?.message || "unknown"}`);
+      setCloudStatus(`导出失败�?{e?.message || "unknown"}`);
     }
   }
 
@@ -2239,20 +2220,20 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         const text = String(reader.result || "");
         const s = loadFromRaw(text);
         if (!s) {
-          setCloudStatus("导入失败：存档损坏或不兼容");
+          setCloudStatus("导入失败：存档损坏或不兼�?);
           return;
         }
         state = s;
         ui.dexDirty = true;
         save();
         render();
-        setCloudStatus("已导入本地存档");
+        setCloudStatus("已导入本地存�?);
         if (cloudSave.getToken()) doCloudSyncNow();
       } catch (e) {
-        setCloudStatus(`导入失败：${e?.message || "unknown"}`);
+        setCloudStatus(`导入失败�?{e?.message || "unknown"}`);
       }
     };
-    reader.onerror = () => setCloudStatus("导入失败：无法读取文件");
+    reader.onerror = () => setCloudStatus("导入失败：无法读取文�?);
     reader.readAsText(file);
   }
 
@@ -2270,23 +2251,23 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   function loadFromKey(key) {
     const raw0 = localStorage.getItem(key);
     if (!raw0) {
-      hint("该槽位为空。", 1600);
+      hint("该槽位为空�?, 1600);
       return false;
     }
     const raw = decodeSaveText(raw0);
     const s = loadFromRaw(raw);
     if (!s) {
-      hint("该槽位存档损坏或不兼容。", 2000);
+      hint("该槽位存档损坏或不兼容�?, 2000);
       return false;
     }
     state = s;
     ui.dexDirty = true;
     render();
-    hint("已读取存档。", 1200);
+    hint("已读取存档�?, 1200);
     return true;
   }
 
-  // ===== SECTION:DEX_EFFECTS — 图鉴计数/图鉴加成效果 — 维护者窗口A =====
+  // ===== SECTION:DEX_EFFECTS �?图鉴计数/图鉴加成效果 �?维护者窗口A =====
   function dexCaughtCount() {
     return dexCaughtCount0(state);
   }
@@ -2317,7 +2298,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     return `${mm}:${pad2(ss)}`;
   }
 
-  // ===== SECTION:TECH_EFFECTS — computeTechEffects / getBuildingCost — 维护者窗口A =====
+  // ===== SECTION:TECH_EFFECTS �?computeTechEffects / getBuildingCost �?维护者窗口A =====
   function computeTechEffects() {
     return computeTechEffects0(state, defs, ui);
   }
@@ -2326,7 +2307,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     return getBuildingCost0(id, state, defs, ui);
   }
 
-  // ===== SECTION:ECONOMY — canAfford / pay / research逻辑 — 维护者窗口A =====
+  // ===== SECTION:ECONOMY �?canAfford / pay / research逻辑 �?维护者窗口A =====
   function canAfford(cost) {
     for (const [rid, v] of Object.entries(cost)) {
       if ((state.res[rid]?.value ?? 0) < v) return false;
@@ -2338,6 +2319,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     for (const [rid, v] of Object.entries(cost)) {
       state.res[rid].value = Math.max(0, state.res[rid].value - v);
     }
+    const fc = cost?.futurecoin;
+    if (typeof fc === "number" && Number.isFinite(fc) && fc > 0) analytics.trackFuturecoinSpend(fc, "pay");
   }
 
   function canStartResearch(tid) {
@@ -2422,7 +2405,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     return startResearchByTid(best.tid, "auto");
   }
 
-  // ===== SECTION:RESOURCES — addRes / getPokeballMakeCost — 维护者窗口A =====
+  // ===== SECTION:RESOURCES �?addRes / getPokeballMakeCost �?维护者窗口A =====
   function addRes(rid, amount) {
     const r = state.res[rid];
     if (!r) return;
@@ -2444,69 +2427,15 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     return getPokeballMakeCost0(qty, state, ui, opts, defs);
   }
 
-  // ===== SECTION:COMPUTE_DERIVED — computeDerived主函数 — 维护者窗口A =====
+  // ===== SECTION:COMPUTE_DERIVED �?computeDerived主函�?�?维护者窗口A =====
   function computeDerived() {
-    const eff = accumulateBuildingEffects(state, defs);
-    const techEff = computeTechEffects();
-    applyTechAndServerCapToEff(eff, techEff, serverBuffMul("resCap"));
-    eff.unlockPokeball = Boolean(state.tech.pokeballBasics);
-
-    const caps = computeBaseResourceCaps(defs, eff);
-    const permCapMul = permanentBoostMul(state.permanentBoosts?.capacity);
-    applyCoreResourceCaps(state, caps, eff.unlockPokeball, permCapMul);
-    applyStaticItemCaps(state, computeStaticItemCaps(defs));
-
-    state.unlocks.wood = Boolean(eff.unlockWood);
-    state.unlocks.minerals = Boolean(eff.unlockMinerals);
-    state.unlocks.pokeball = Boolean(eff.unlockPokeball);
-
-    // Soft early-game boost for brand-new / pre-catch saves (one-time)
-    if (!state.meta || typeof state.meta !== "object") state.meta = {};
-    if (!state.meta.earlyPaceGranted && (state.catchCount || 0) === 0) {
-      state.meta.earlyPaceGranted = true;
-      if ((state.buildings?.field?.owned ?? 0) < 1) {
-        if (!state.buildings.field) state.buildings.field = { owned: 0 };
-        state.buildings.field.owned = 1;
-      }
-      if ((state.res.catnip?.value ?? 0) < 12) {
-        state.res.catnip.value = Math.max(Number(state.res.catnip.value) || 0, 12);
-      }
-    }
-
-    // After caps applied: one-time starter pack so first catch isn't blocked by wood/hut farm.
-    // (Previously granting inside tick lost balls when pokeball.cap was reset to 0 here.)
-    if (eff.unlockPokeball) {
-      if (!state.meta || typeof state.meta !== "object") state.meta = {};
-      state.res.pokeball.cap = Math.max(Number(state.res.pokeball.cap) || 0, 10);
-      if (!state.meta.starterBallsGranted) {
-        // Skip grant for saves that already progressed past the tutorial pack
-        if ((state.catchCount || 0) > 0 || (state.pokeballMade || 0) > 0 || (state.res.pokeball.value || 0) > 0) {
-          state.meta.starterBallsGranted = true;
-        } else {
-          state.meta.starterBallsGranted = true;
-          state.res.pokeball.value = Math.min(
-            state.res.pokeball.cap,
-            (Number(state.res.pokeball.value) || 0) + 5
-          );
-          state.res.wood.cap = Math.max(Number(state.res.wood.cap) || 0, 40);
-          state.res.wood.value = Math.max(Number(state.res.wood.value) || 0, 24);
-          try {
-            addLog("精灵球基础生效：赠送精灵球×5与球果×24，可直接去捕捉。", true);
-          } catch {
-            // ignore
-          }
-        }
-      }
-    }
-
-    ensureDerivedContainers(state, clamp);
-
-    const unlockedRates = computeUnlockedResourceRates(state, techEff);
-    if (state.unlocks.wood) eff.woodPerSec = unlockedRates.woodPerSec;
-    if (state.unlocks.minerals) eff.mineralsPerSec = unlockedRates.mineralsPerSec;
-
-    finalizeProductionRates(eff, state, serverBuffMul("resProd"));
-    return eff;
+    return computeDerivedCore(state, {
+      defs,
+      computeTechEffects,
+      serverBuffMul,
+      clamp,
+      addLog,
+    });
   }
 
   renderFunctionsImpl = createRenderFunctions({
@@ -2544,18 +2473,13 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     getState: () => state,
     TYPE_ZH,
     dexCaughtUnique,
+    onPveAttempt: () => dailyTasks?.onEvent("pveAttempt"),
+    onPveWin: () => dailyTasks?.onEvent("pveWin"),
   });
 
-  // ===== SECTION:RENDER_FUNCTIONS — renderFunctions — 维护者窗口C =====
+  // ===== SECTION:RENDER_FUNCTIONS �?renderFunctions �?维护者窗口C =====
   function renderFunctions() {
     return renderFunctionsImpl();
-  }
-
-  function markMonListDirty(resetPage = false) {
-    ui.monsDirty = true;
-    ui.functionsDirty = true;
-    if (resetPage) ui.monPage = 0;
-    if (ui.activeTab === "mons") renderMons();
   }
 
   const renderResources = createRenderResources({
@@ -2598,11 +2522,24 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     addLog,
   });
 
-  const dailyTasks = createDailyTasks({
+  dailyTasks = createDailyTasks({
     state,
     addRes,
     addLog,
+    dailySignin,
+    apiFetch: (path, opts) => ui.fetch(path, opts),
+    hasAuth: () => Boolean(cloudSave.getToken()),
   });
+  {
+    const claimRewards0 = dailyTasks.claimRewards.bind(dailyTasks);
+    dailyTasks.claimRewards = async () => {
+      const res = await claimRewards0();
+      if (res?.ok) analytics.track("daily_claim", { futurecoin: res.futurecoin ?? 0 });
+      return res;
+    };
+  }
+  dailyTasks.onEvent("login");
+  if (cloudSave.getToken()) dailyTasks.syncFromServer().catch(() => {});
 
   renderFutureShop = createRenderFutureShop({
     elFutureShop,
@@ -2610,14 +2547,13 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     defs,
     fmt,
     getState: () => state,
-    dailySignin,
     monthlyCard,
   });
 
   renderDailyTasks = createRenderDailyTasks({
     elDailyTasks,
-    ui,
     fmt,
+    dailyTasks,
   });
 
   const tick = createTick({
@@ -2673,89 +2609,73 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     getState: () => state,
   });
 
-  // ===== SECTION:CAPTURE_AWARD — pickRandomPokemon / awardCaughtPokemon / doCatch — 维护者窗口B =====
+  // ===== SECTION:CAPTURE_AWARD �?pickRandomPokemon / awardCaughtPokemon / doCatch �?维护者窗口B =====
   function pickRandomPokemon() {
     const pool = defs.pokemon;
     return pickRandomFromPool(pool);
   }
 
   function awardCaughtPokemon(p, opts = null) {
-    const isShiny = Boolean(opts && typeof opts === "object" && opts.isShiny);
-    const caught = state.dex.caught;
-    const prev = typeof caught[p.id] === "number" ? caught[p.id] : 0;
-    caught[p.id] = prev + 1;
+    awardCaughtPokemonCore(state, p, opts, {
+      createMonInstance,
+      ui,
+      addLog,
+      addRes,
+      bumpEraCounter,
+      syncEraProgress: () => syncEraProgress(),
+      afterAward: ({ species, prev, isShiny, prevCatchCount }) => {
+        if (prevCatchCount === 0) analytics.trackFirstCapture({ pokemonId: species.id, dex: species.dex });
+        dailyTasks?.onEvent("catch");
 
-    const prevCatch = typeof state.catchCount === "number" && Number.isFinite(state.catchCount) ? state.catchCount : 0;
-    state.catchCount = Math.max(0, Math.floor(prevCatch)) + 1;
-    if (isShiny) {
-      const prevShiny = typeof state.shinyCount === "number" && Number.isFinite(state.shinyCount) ? state.shinyCount : 0;
-      state.shinyCount = Math.max(0, Math.floor(prevShiny)) + 1;
-    }
+        if (prev === 0 && (species.tier === "rare" || species.tier === "epic") && typeof pushTickerEvent === "function") {
+          pushTickerEvent("catch", `捕捉成功 ${species.name}`);
+        }
+        if (prev === 0 && species.tier === "epic" && typeof pushTickerEvent === "function") {
+          pushTickerEvent("mythic", `捕捉到神�?${species.name}`);
+        }
+        if (isShiny && typeof pushTickerEvent === "function") {
+          pushTickerEvent("shiny", `捕捉到闪�?${species.name}`);
+        }
 
-    if (!state.mons) state.mons = { nextId: 1, list: [] };
-    const mon = createMonInstance(p);
-    mon.isShiny = isShiny;
-    const caughtWithBall = opts && typeof opts === "object" && typeof opts.ballType === "string" ? opts.ballType : "pokeball";
-    mon.caughtWith = caughtWithBall;
-    state.mons.list.push(mon);
-    state.mons.nextId = Math.max(state.mons.nextId, mon.id + 1);
+        if (!socialTab || !ui.lbUid) return;
+        const tier = getPokemonTier(species.id);
+        const tierNum =
+          tier === "common"
+            ? 5
+            : tier === "uncommon"
+              ? 4
+              : tier === "rare"
+                ? 3
+                : tier === "epic"
+                  ? 2
+                  : tier === "legendary"
+                    ? 1
+                    : 6;
 
-    ui.dexDirty = true;
-    ui.captureDirty = true;
-    ui.monsDirty = true;
-    ui.functionsDirty = true;
-
-    if (prev === 0) {
-      addLog(`图鉴登记：${p.name}（首次捕获）`, true);
-    } else {
-      addLog(`捕获：${p.name} +1`);
-    }
-
-    if (prev === 0 && (p.tier === "rare" || p.tier === "epic") && typeof pushTickerEvent === "function") {
-      pushTickerEvent("catch", `捕捉成功 ${p.name}`);
-    }
-    if (prev === 0 && p.tier === "epic" && typeof pushTickerEvent === "function") pushTickerEvent("mythic", `捕捉到神兽 ${p.name}`);
-    if (isShiny && typeof pushTickerEvent === "function") pushTickerEvent("shiny", `捕捉到闪光 ${p.name}`);
-
-    if (isShiny) {
-      addLog(`！！！闪光入队：${p.name}！！！`, true);
-    }
-
-    // 自动分享成就
-    if (socialTab && ui.lbUid) {
-      const tier = getPokemonTier(p.id);
-      const tierNum = tier === "common" ? 5 : tier === "uncommon" ? 4 : tier === "rare" ? 3 : tier === "epic" ? 2 : tier === "legendary" ? 1 : 6;
-      
-      // 分享稀有精灵或闪光精灵
-      if (tierNum <= 2 || isShiny) {
-        socialTab.autoShareAchievement("rare_catch", {
-          name: p.name,
-          pid: p.id,
-          tier: tierNum,
-          isShiny: isShiny,
-        });
-      }
-
-      // 图鉴里程碑（首次捕获时检查）
-      if (prev === 0) {
-        const dexCount = dexCaughtUnique();
-        if (dexCount % 50 === 0 && dexCount > 0) {
-          socialTab.autoShareAchievement("dex_milestone", {
-            count: dexCount,
+        if (tierNum <= 2 || isShiny) {
+          socialTab.autoShareAchievement("rare_catch", {
+            name: species.name,
+            pid: species.id,
+            tier: tierNum,
+            isShiny,
           });
         }
-      }
 
-      // 闪光里程碑
-      if (isShiny) {
-        const shinyCount = state.shinyCount || 0;
-        if (shinyCount % 10 === 0 && shinyCount > 0) {
-          socialTab.autoShareAchievement("shiny_milestone", {
-            count: shinyCount,
-          });
+        if (prev === 0) {
+          const dexCount = dexCaughtUnique();
+          if (dexCount % 50 === 0 && dexCount > 0) {
+            socialTab.autoShareAchievement("dex_milestone", { count: dexCount });
+          }
         }
-      }
-    }
+
+        if (isShiny) {
+          const shinyCount = state.shinyCount || 0;
+          if (shinyCount % 10 === 0 && shinyCount > 0) {
+            socialTab.autoShareAchievement("shiny_milestone", { count: shinyCount });
+          }
+        }
+      },
+    });
   }
 
   function doCatch() {
@@ -2764,7 +2684,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
 
     const pool = getCapturePool();
     if (!pool || pool.length === 0) {
-      addLog("捕捉失败：该区域没有可捕捉的宝可梦。");
+      addLog("捕捉失败：该区域没有可捕捉的宝可梦�?);
       return;
     }
     const p = pickRandomFromPool(pool);
@@ -2777,27 +2697,34 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         ? Math.max(0, state.skills.dragonCatchBoostRemainingSec)
         : 0;
     const dragonAdd = dragonRem > 0 ? 0.1 : 0;
-    // 科技加成递减边际：前20%线性，之后逐渐衰减（避免common精灵接近100%）
-    const addRaw = add + dragonAdd;
+    // 科技加成递减边际：前20%线性，之后逐渐衰减（避免common精灵接近100%�?    const addRaw = add + dragonAdd;
     const addSoft = addRaw <= 0.2 ? addRaw : 0.2 + (addRaw - 0.2) * 0.4;
     const baseWithTech = base * Math.max(1, 1 + addSoft);
     const fails = typeof state.rng?.catchFails === "number" ? state.rng.catchFails : 0;
-    const pity = Math.min(0.02 * Math.max(0, Math.floor(fails)), 0.15);
+    const pity = Math.min(0.02 * Math.max(0, Math.floor(fails)), 0.2);
     const capByTier = p.tier === "epic" ? 0.98 : p.tier === "rare" ? 0.92 : p.tier === "uncommon" ? 0.85 : 0.75;
     let chance = clamp(baseWithTech + pity, 0, capByTier);
+    chance = clamp(chance * luckyCatchMul(state, globalThis.POKEMON_TYPES?.[p.dex]), 0, Math.max(capByTier, 0.95));
     if (randFloat() > chance) {
       if (!state.rng) state.rng = { catchFails: 0 };
-      state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + 1);
-      addLog("捕捉失败：宝可梦逃走了。");
+      state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + pityFailStep(state, randFloat));
+      resetCatchStreak(state);
+      addLog("捕捉失败：宝可梦逃走了�?);
       return;
     }
 
     if (!state.rng) state.rng = { catchFails: 0 };
     state.rng.catchFails = 0;
     awardCaughtPokemon(p);
+    const { streak, reward } = bumpCatchStreak(state);
+    if (streak >= 3) addLog(`连捕中：×${streak}`);
+    if (reward?.berry > 0) {
+      addRes("catnip", reward.berry);
+      addLog(`�?${reward.label}：树�?+${reward.berry}`, true);
+    }
   }
 
-  // ===== SECTION:TAB_AND_RENDER_WIRE — render*/init*Tab / leaderboard listeners — 维护者窗口A/C =====
+  // ===== SECTION:TAB_AND_RENDER_WIRE �?render*/init*Tab / leaderboard listeners �?维护者窗口A/C =====
 
   renderCapture = createRenderCapture({
     elCaptureInfo,
@@ -2893,6 +2820,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     lbFetchJson,
     lbBaseUrl,
     onBossBullyMaybeReward,
+    onEvolve: () => dailyTasks?.onEvent("evolve"),
   });
 
   initFunctionsTab({
@@ -2905,6 +2833,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     markFunctionsDirty,
     markMonListDirty,
     addLog,
+    addRes,
     render,
     getState: () => state,
   });
@@ -2918,6 +2847,11 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     markLeaderboardDirty,
     render,
     submitScoreAndRefresh,
+    getState: () => state,
+    addRes,
+    addLog,
+    dexCaughtUnique,
+    activateTab,
   });
 
   initFutureTab({
@@ -2928,8 +2862,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     addRes,
     addLog,
     render,
-    dailySignin,
     monthlyCard,
+    dailyTasks,
   });
 
   renderDex = createRenderDex({
@@ -2950,6 +2884,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     dexCaughtCount,
     computeDexEffects,
     getCaptureAreas,
+    canClaimDexRegion,
+    markDexRegionClaimed,
   });
 
   const renderLog = createRenderLog({
@@ -2959,7 +2895,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
   });
 
   var renderQueued = false;
-  // ===== SECTION:RENDER_AND_SAVE — render() / save() / load() / boot() — 维护者窗口A =====
+  // ===== SECTION:RENDER_AND_SAVE �?render() / save() / load() / boot() �?维护者窗口A =====
   function render() {
     if (renderQueued) return;
     renderQueued = true;
@@ -2969,8 +2905,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       const eff = computeDerived();
       renderResources(eff);
 
-      // Tab 阶段性解锁：核心路径尽早可见，重玩法仍按进度开门
-      (function updateTabVisibility() {
+      // Tab 阶段性解锁：核心路径尽早可见，重玩法仍按进度开�?      (function updateTabVisibility() {
         const caught = state.dex?.caught ?? {};
         let unique = 0;
         for (const v of Object.values(caught)) if (typeof v === "number" && v > 0) unique++;
@@ -3006,7 +2941,10 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       if (ui.activeTab === "capture") renderCapture();
       if (ui.activeTab === "functions") renderFunctions();
       if (ui.activeTab === "leaderboard") renderLeaderboard();
-      if (ui.activeTab === "future") renderFutureShop();
+      if (ui.activeTab === "future") {
+        renderFutureShop();
+        renderDailyTasks.refresh();
+      }
       if (ui.activeTab === "mons") renderMons();
       if (ui.activeTab === "dex") renderDex();
       if (ui.activeTab === "pve") renderPve();
@@ -3060,6 +2998,15 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
 
     refreshCloudUI();
     cloudSave.installLifecycleFlush();
+    analytics.init({
+      baseUrl: lbBaseUrl,
+      getToken: () => cloudSave.getToken(),
+      getUid: () => (typeof ui.lbUid === "string" ? ui.lbUid : ""),
+    });
+    analytics.trackOnceSession("session_start");
+    loadRemoteConfig(lbBaseUrl()).then((cfg) => {
+      ui.remoteConfig = cfg;
+    }).catch(() => {});
     if (cloudSave.getToken()) {
       doCloudSyncNow();
     }
@@ -3070,7 +3017,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     }
 
     if (!autosaveEnabled) {
-      addLog("检测到存档读取失败：已暂停自动存档以防覆盖。请使用云存档恢复。", true);
+      addLog("检测到存档读取失败：已暂停自动存档以防覆盖。请使用云存档恢复�?, true);
     }
 
     // 新手引导系统
@@ -3079,8 +3026,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
     // Tab 红点系统
     const elTabsEl = document.querySelector(".tabs");
     const tabBadges = createTabBadgeSystem({ elTabs: elTabsEl, getState: () => state, defs });
-    // 每5秒刷新一次红点
-    setInterval(() => tabBadges.updateBadges(), 5000);
+    // �?秒刷新一次红�?    setInterval(() => tabBadges.updateBadges(), 5000);
     tabBadges.updateBadges();
 
     if (elBtnCloudLogin) {
@@ -3089,15 +3035,15 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
           const u = elCloudUsername ? String(elCloudUsername.value || "").trim() : "";
           const p = elCloudPassword ? String(elCloudPassword.value || "").trim() : "";
           if (!u || !p) {
-            setCloudStatus("请输入用户名和密码");
+            setCloudStatus("请输入用户名和密�?);
             return;
           }
-          setCloudStatus("登录中...");
+          setCloudStatus("登录�?..");
           await cloudSave.login(u, p);
           await doCloudSyncNow();
         } catch (e) {
           const msg = typeof e?.message === "string" ? e.message : "登录失败";
-          setCloudStatus(`登录失败：${msg}`);
+          setCloudStatus(`登录失败�?{msg}`);
         }
       });
     }
@@ -3108,15 +3054,15 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
           const u = elCloudUsername ? String(elCloudUsername.value || "").trim() : "";
           const p = elCloudPassword ? String(elCloudPassword.value || "").trim() : "";
           if (!u || !p) {
-            setCloudStatus("请输入用户名和密码");
+            setCloudStatus("请输入用户名和密�?);
             return;
           }
-          setCloudStatus("注册中...");
+          setCloudStatus("注册�?..");
           await cloudSave.register(u, p);
           await doCloudSyncNow();
         } catch (e) {
           const msg = typeof e?.message === "string" ? e.message : "注册失败";
-          setCloudStatus(`注册失败：${msg}`);
+          setCloudStatus(`注册失败�?{msg}`);
         }
       });
     }
@@ -3155,6 +3101,11 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
         wood: state.res.wood.value,
         minerals: state.res.minerals.value,
         pokeball: state.res.pokeball.value,
+        catchCount: state.catchCount || 0,
+        eraId: state.era?.id || "",
+        pveCleared: Object.keys(state.pve?.progress || {}).filter((k) => !k.includes("_")).length,
+        expeditionsCompleted: state.meta?.expeditionsCompleted ?? 0,
+        trainingExpGained: state.meta?.trainingExpGained ?? 0,
       };
 
       tick(dt, { offline: true });
@@ -3167,9 +3118,12 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       const parts = [];
       if (dCat > 0) parts.push(`树果 +${fmt(dCat)}`);
       if (dWood > 0) parts.push(`球果 +${fmt(dWood)}`);
-      if (dMin > 0) parts.push(`进化石碎片 +${fmt(dMin)}`);
-      if (dBall > 0) parts.push(`精灵球 +${fmt(dBall)}`);
-      if (parts.length > 0) addLog(`离线收益：${parts.join("，")}`);
+      if (dMin > 0) parts.push(`进化石碎�?+${fmt(dMin)}`);
+      if (dBall > 0) parts.push(`精灵�?+${fmt(dBall)}`);
+      if (parts.length > 0) addLog(`离线收益�?{parts.join("�?)}`);
+
+      const highlights = formatWelcomeBackSummary(state, before, dt);
+      if (highlights) addLog(`今日精彩�?{highlights}`, true);
     }
 
     if (autosaveEnabled) {
@@ -3182,8 +3136,8 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
           addRes("evolutionStone", 1);
           const gotMb = randFloat() < 0.05;
           if (gotMb) addRes("masterball", 1);
-          addLog(gotMb ? "每日登录奖励：精灵球 +20，进化石 +1，额外 大师球 +1" : "每日登录奖励：精灵球 +20，进化石 +1", true);
-          hint(gotMb ? "今日登录奖励已发放，获得大师球！" : "今日登录奖励已发放。", 3000);
+          addLog(gotMb ? "每日登录奖励：精灵球 +20，进化石 +1，额�?大师�?+1" : "每日登录奖励：精灵球 +20，进化石 +1", true);
+          hint(gotMb ? "今日登录奖励已发放，获得大师球！" : "今日登录奖励已发放�?, 3000);
           save();
         }
       } catch {
@@ -3191,8 +3145,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       }
     }
 
-    // 初始化好友系统
-    const friendsSystem = createFriendsSystem({
+    // 初始化好友系�?    const friendsSystem = createFriendsSystem({
       lbBaseUrl,
       lbFetchJson,
       ui,
@@ -3206,8 +3159,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       friendsSystem,
     });
 
-    // 初始化社交系统
-    const socialSystem = createSocialSystem({
+    // 初始化社交系�?    const socialSystem = createSocialSystem({
       lbBaseUrl,
       lbFetchJson,
       ui,
@@ -3218,6 +3170,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       ui,
       escapeHtml,
       socialSystem,
+      getState: () => state,
       formatTime: (ts) => {
         const now = Date.now();
         const diff = now - ts;
@@ -3253,8 +3206,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
 
     render();
 
-    // 默认落在 Bonfire 标签页
-    activateTab("bonfire");
+    // 默认落在 Bonfire 标签�?    activateTab("bonfire");
 
     let lastFrame = nowMs();
     window.setInterval(() => {
@@ -3278,7 +3230,7 @@ import { setupGlobalErrorHandling } from "./modules/error_handler.js";
       }, 3000);
     }
 
-    addLog("冒险开始。", true);
+    addLog("冒险开始�?, true);
   }
 
   boot();

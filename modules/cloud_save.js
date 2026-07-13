@@ -128,6 +128,9 @@ export function createCloudSave({
     }
     stopAutoSync();
     clearToken();
+    try {
+      await refreshSlotPanel();
+    } catch {}
   }
 
   function localEncoded(key) {
@@ -266,7 +269,173 @@ export function createCloudSave({
     }
   }
 
-  // Wired slots: 0=autosave, 1=optional manual key. API accepts 0–3; 2–3 unused.
+  const SLOT_LABELS = { 0: "自动存档", 1: "手动存档 1", 2: "手动存档 2" };
+
+  function wiredSlots() {
+    const items = [{ slot: 0, key: autosaveKey, label: SLOT_LABELS[0] }];
+    if (slotKeys[0]) items.push({ slot: 1, key: slotKeys[0], label: SLOT_LABELS[1] });
+    if (slotKeys[1]) items.push({ slot: 2, key: slotKeys[1], label: SLOT_LABELS[2] });
+    return items;
+  }
+
+  function slotItem(slot) {
+    return wiredSlots().find((it) => it.slot === slot) || null;
+  }
+
+  function formatTs(t) {
+    if (!t || t <= 0) return "—";
+    try {
+      return new Date(t).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return String(t);
+    }
+  }
+
+  async function forcePushSlot(slot, key, remoteAt) {
+    const raw = localRawJson(key);
+    if (!raw) return { applied: false };
+    const bumped = Math.max((Number(remoteAt) || 0) + 1, nowMs());
+    const data = safeJsonParse(raw);
+    if (!data) return { applied: false };
+    data.t = bumped;
+    const newRaw = JSON.stringify(data);
+    writeLocalEncoded(key, newRaw);
+    try {
+      const res = await apiFetch(`/api/save?slot=${slot}`, { method: "PUT", body: { saveJson: newRaw, updatedAt: bumped } });
+      return { applied: !!(res && res.applied), updatedAt: bumped };
+    } catch (e) {
+      if (e && e.status === 409) {
+        return { applied: false, conflict: true, remoteAt: e.data?.updatedAt };
+      }
+      throw e;
+    }
+  }
+
+  let panelHooks = { setStatus: null, refreshGame: null };
+  let slotPanelWired = false;
+
+  function showConflictModal({ slot, localAt, remoteAt }) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById("cloudConflictOverlay");
+      const desc = document.getElementById("cloudConflictDesc");
+      const btnLocal = document.getElementById("btnConflictKeepLocal");
+      const btnServer = document.getElementById("btnConflictKeepServer");
+      const btnCancel = document.getElementById("btnConflictCancel");
+      if (!overlay || !desc) {
+        resolve("cancel");
+        return;
+      }
+      const label = SLOT_LABELS[slot] ?? `槽位 ${slot}`;
+      desc.textContent = `${label}：本地 ${formatTs(localAt)}，云端 ${formatTs(remoteAt)}。选择要保留的版本。`;
+      const done = (choice) => {
+        overlay.hidden = true;
+        btnLocal?.removeEventListener("click", onLocal);
+        btnServer?.removeEventListener("click", onServer);
+        btnCancel?.removeEventListener("click", onCancel);
+        resolve(choice);
+      };
+      const onLocal = () => done("local");
+      const onServer = () => done("server");
+      const onCancel = () => done("cancel");
+      btnLocal?.addEventListener("click", onLocal);
+      btnServer?.addEventListener("click", onServer);
+      btnCancel?.addEventListener("click", onCancel);
+      overlay.hidden = false;
+    });
+  }
+
+  async function handleConflict(slot, key, remoteAt) {
+    const choice = await showConflictModal({ slot, localAt: localUpdatedAt(key), remoteAt: remoteAt || 0 });
+    if (choice === "server") {
+      await pullSlot(slot, key);
+      if (slot === 0 && typeof panelHooks.refreshGame === "function") panelHooks.refreshGame();
+      return true;
+    }
+    if (choice === "local") {
+      const pushed = await forcePushSlot(slot, key, remoteAt || 0);
+      if (pushed.conflict) return handleConflict(slot, key, pushed.remoteAt);
+      if (slot === 0 && pushed.applied) lastPushedAutosaveAt = localUpdatedAt(key);
+      return !!pushed.applied;
+    }
+    return false;
+  }
+
+  async function refreshSlotPanel() {
+    const panel = document.getElementById("cloudSlotPanel");
+    const list = document.getElementById("cloudSlotList");
+    if (!panel || !list) return;
+    if (!getToken()) {
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    let meta = new Map();
+    try {
+      meta = await getMeta();
+    } catch {}
+    list.innerHTML = wiredSlots()
+      .map((it) => {
+        const localT = localUpdatedAt(it.key);
+        const remoteT = meta.get(it.slot) || 0;
+        const hasLocal = !!localEncoded(it.key);
+        return `<div class="row" data-cloud-slot="${it.slot}">
+        <div class="row__left">
+          <div class="row__title">${it.label}（槽 ${it.slot}）</div>
+          <div class="row__desc muted">本地 ${hasLocal ? formatTs(localT) : "无"} · 云端 ${remoteT ? formatTs(remoteT) : "无"}</div>
+        </div>
+        <div class="row__right actions">
+          <button class="btn btn--small" type="button" data-cloud-pull="${it.slot}">拉取</button>
+          <button class="btn btn--small" type="button" data-cloud-push="${it.slot}">上传</button>
+        </div>
+      </div>`;
+      })
+      .join("");
+  }
+
+  function installCloudPanelUI({ setStatus, refreshGame } = {}) {
+    panelHooks = { setStatus, refreshGame };
+    const list = document.getElementById("cloudSlotList");
+    if (!list || slotPanelWired) return;
+    slotPanelWired = true;
+    // ponytail: no email infra — recovery is admin contact + local export only; do not fake 2FA/reset links
+    list.addEventListener("click", async (ev) => {
+      const pull = ev.target?.closest?.("[data-cloud-pull]");
+      const push = ev.target?.closest?.("[data-cloud-push]");
+      const slot = Number(pull?.getAttribute("data-cloud-pull") || push?.getAttribute("data-cloud-push"));
+      if (!Number.isFinite(slot)) return;
+      const it = slotItem(slot);
+      if (!it || !getToken()) return;
+      const say = (t) => {
+        if (typeof panelHooks.setStatus === "function") panelHooks.setStatus(t);
+      };
+      try {
+        if (pull) {
+          say(`拉取槽 ${slot}…`);
+          await pullSlot(slot, it.key);
+          if (slot === 0 && typeof panelHooks.refreshGame === "function") panelHooks.refreshGame();
+          say(`已拉取 ${it.label}`);
+        } else if (push) {
+          say(`上传槽 ${slot}…`);
+          const pushed = await pushSlot(slot, it.key);
+          if (pushed.conflict) {
+            const ok = await handleConflict(slot, it.key, pushed.remoteAt);
+            say(ok ? `已解决冲突并上传 ${it.label}` : `槽 ${slot} 冲突已取消`);
+          } else if (pushed.applied) {
+            if (slot === 0) lastPushedAutosaveAt = localUpdatedAt(it.key);
+            say(`已上传 ${it.label}`);
+          } else {
+            say(`槽 ${slot} 无本地存档可上传`);
+          }
+        }
+        await refreshSlotPanel();
+      } catch (e) {
+        say(`操作失败：${e?.message || "unknown"}`);
+      }
+    });
+    refreshSlotPanel();
+  }
+
+  // Wired slots: 0=autosave, 1=manual; slot 2 if second key; API slot 3 reserved.
   async function syncAll() {
     lastSyncStatus = "syncing";
     lastSyncError = null;
@@ -274,12 +443,7 @@ export function createCloudSave({
     try {
       backupOnce();
       const meta = await getMeta();
-      const items = [
-        { slot: 0, key: autosaveKey },
-        { slot: 1, key: slotKeys[0] },
-        { slot: 2, key: slotKeys[1] },
-        { slot: 3, key: slotKeys[2] },
-      ];
+      const items = wiredSlots();
 
       let hasConflict = false;
 
@@ -303,9 +467,13 @@ export function createCloudSave({
             } else {
               const pushed = await pushSlot(it.slot, it.key);
               if (pushed.conflict) {
-                hasConflict = true;
-                lastSyncError = `存档槽 ${it.slot} 冲突，已改拉远端`;
-                await pullSlot(it.slot, it.key);
+                const ok = await handleConflict(it.slot, it.key, pushed.remoteAt);
+                if (!ok) {
+                  hasConflict = true;
+                  lastSyncError = `存档槽 ${it.slot} 冲突（已取消）`;
+                } else if (it.slot === 0) {
+                  lastPushedAutosaveAt = localUpdatedAt(it.key);
+                }
               } else if (it.slot === 0 && pushed.applied) {
                 lastPushedAutosaveAt = localT;
               }
@@ -318,9 +486,13 @@ export function createCloudSave({
           try {
             const pushed = await pushSlot(it.slot, it.key);
             if (pushed.conflict) {
-              hasConflict = true;
-              lastSyncError = `存档槽 ${it.slot} 冲突，已改拉远端`;
-              await pullSlot(it.slot, it.key);
+              const ok = await handleConflict(it.slot, it.key, pushed.remoteAt);
+              if (!ok) {
+                hasConflict = true;
+                lastSyncError = `存档槽 ${it.slot} 冲突（已取消）`;
+              } else if (it.slot === 0) {
+                lastPushedAutosaveAt = localUpdatedAt(it.key);
+              }
             } else if (it.slot === 0 && pushed.applied) {
               lastPushedAutosaveAt = localT;
             }
@@ -333,6 +505,9 @@ export function createCloudSave({
 
       lastSyncStatus = hasConflict ? "partial" : "success";
       lastSyncTime = nowMs();
+      try {
+        await refreshSlotPanel();
+      } catch {}
     } catch (e) {
       lastSyncStatus = "error";
       lastSyncError = e.message || "同步失败";
@@ -421,5 +596,8 @@ export function createCloudSave({
     getSyncStatus,
     pushAutosaveFlush,
     installLifecycleFlush,
+    installCloudPanelUI,
+    refreshSlotPanel,
+    wiredSlots,
   };
 }

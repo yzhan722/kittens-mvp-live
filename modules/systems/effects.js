@@ -6,7 +6,23 @@
 // ======================================
 
 import { clamp } from "../utils.js";
+import { applyMutatorsToEff } from "./era.js";
+import { natureDexBonusMul } from "./gameplay_fun.js";
 import { serverBuffPct, serverBuffResearchTimeMul as _serverBuffResearchTimeMul } from "./server_buffs.js";
+
+function hasSkillTimer(state, key) {
+  const v = state?.skills?.[key];
+  return typeof v === "number" && Number.isFinite(v) && v > 0;
+}
+
+function applyCostMultiplier(cost, mul) {
+  if (!cost || typeof cost !== "object") return cost;
+  for (const [rid, v] of Object.entries(cost)) {
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
+    cost[rid] = Math.max(1, Math.ceil(v * mul));
+  }
+  return cost;
+}
 
 /**
  * 图鉴捕获统计
@@ -30,10 +46,11 @@ export function dexCaughtCount(state) {
  */
 export function computeDexEffects(state) {
   const { unique } = dexCaughtCount(state);
+  const dexMul = natureDexBonusMul(state);
   return {
-    catnipPerSecMul: 1 + unique * 0.01,
-    woodRateMul:     1 + unique * 0.005,
-    mineralsRateMul: 1 + unique * 0.005,
+    catnipPerSecMul: (1 + unique * 0.01) * dexMul,
+    woodRateMul: (1 + unique * 0.005) * dexMul,
+    mineralsRateMul: (1 + unique * 0.005) * dexMul,
     buildingCostMul: 1,
   };
 }
@@ -60,6 +77,9 @@ export function computeTechEffects(state, defs, ui) {
     capMineralsMul:    1,
     capPokeballMul:    1,
     pokeballMakeCostMul: 1,
+    researchTimeMul:   1,
+    researchCostMul:   1,
+    shinyChanceMul:    1,
     catchChanceAdd:    0,
   };
 
@@ -94,6 +114,7 @@ export function computeTechEffects(state, defs, ui) {
     eff.catchChanceAdd += permCaptureLvl * 0.05;
   }
 
+  applyMutatorsToEff(eff, state);
   return eff;
 }
 
@@ -132,10 +153,13 @@ export function getBuildingCost(id, state, defs, ui) {
     }
   }
 
-  if (id === "researchLab" && state.res?.minerals) {
-    const maxCost = Math.max(1, Math.floor((state.res.minerals.cap ?? 0) * 0.9));
-    if (cost.minerals && cost.minerals > maxCost) cost.minerals = maxCost;
+  if (state.res?.minerals) {
+    const maxMinerals = Math.max(1, Math.floor((state.res.minerals.cap ?? 0) * 0.9));
+    if (cost.minerals && cost.minerals > maxMinerals) cost.minerals = maxMinerals;
   }
+
+  if (hasSkillTimer(state, "rockBuildBoostRemainingSec")) applyCostMultiplier(cost, 0.8);
+  if (hasSkillTimer(state, "poisonResourceSaveRemainingSec")) applyCostMultiplier(cost, 0.8);
 
   for (const [rid, v] of Object.entries(cost)) {
     if (typeof v !== "number" || !Number.isFinite(v)) continue;
@@ -158,6 +182,13 @@ export function getResearchCost(tdef, state) {
     const cap = typeof cap0 === "number" && Number.isFinite(cap0) ? Math.max(0, Math.floor(cap0)) : 0;
     cost[rid] = (cap > 0 && v > cap) ? Math.max(1, Math.floor(cap * 0.9)) : v;
   }
+  const eraEff = applyMutatorsToEff({ researchCostMul: 1 }, state);
+  const mul = eraEff.researchCostMul || 1;
+  for (const [rid, v] of Object.entries(cost)) {
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
+    cost[rid] = Math.max(1, Math.ceil(v * mul));
+  }
+  if (hasSkillTimer(state, "poisonResourceSaveRemainingSec")) applyCostMultiplier(cost, 0.8);
   return cost;
 }
 
@@ -168,7 +199,10 @@ export function computeResearchTimeSec(tdef, state, ui) {
   const forced0 = tdef?.timeSec;
   const sbTimeMul = _serverBuffResearchTimeMul(ui, clamp);
   if (typeof forced0 === "number" && Number.isFinite(forced0) && forced0 > 0) {
-    return clamp(Math.ceil(forced0 * sbTimeMul), 1, Number.MAX_SAFE_INTEGER);
+    let t = forced0 * sbTimeMul;
+    const eraEff = applyMutatorsToEff({ researchTimeMul: 1 }, state);
+    t = t * (eraEff.researchTimeMul || 1);
+    return clamp(Math.ceil(t), 1, Number.MAX_SAFE_INTEGER);
   }
   const base = 90;
   const cost = getResearchCost(tdef, state);
@@ -188,6 +222,8 @@ export function computeResearchTimeSec(tdef, state, ui) {
   if (eq < 80) t = Math.min(t, 25);
   else if (eq < 200) t = Math.min(t, 55);
   else if (eq < 500) t = Math.min(t, 120);
+  const eraEff = applyMutatorsToEff({ researchTimeMul: 1 }, state);
+  t = t * (eraEff.researchTimeMul || 1);
   const minT = eq < 80 ? 8 : eq < 200 ? 20 : eq < 500 ? 40 : 60;
   return clamp(Math.ceil(t), minT, Number.MAX_SAFE_INTEGER);
 }
@@ -240,5 +276,7 @@ export function getPokeballMakeCost(qty = 1, state, ui, opts = null, defs = null
   if (consume && steelUsed > 0 && state.skills && typeof state.skills === "object") {
     state.skills.steelBallDiscountCharges = Math.max(0, steelCharges0 - steelUsed);
   }
-  return { wood };
+  const cost = { wood };
+  if (hasSkillTimer(state, "poisonResourceSaveRemainingSec")) applyCostMultiplier(cost, 0.8);
+  return cost;
 }
