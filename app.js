@@ -1,15 +1,15 @@
 import { legacyIdMap, pokemon, getPokemonTier } from "./modules/pokemon_defs.js";
-import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.40.1";
-import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.40.1";
-import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.40.1";
-import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.40.1";
-import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.40.1";
+import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.41.0";
+import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.41.0";
+import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.41.0";
+import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.41.0";
+import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.41.0";
 import { createPokeApiClient } from "./modules/pokeapi_client.js";
-import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isSameEvoFamily, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.40.1";
+import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isSameEvoFamily, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.41.0";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js";
-import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.40.1";
+import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.41.0";
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
 import {
   getMonCurrentStatsWith,
@@ -20,29 +20,29 @@ import {
 import { createLogUiSystem } from "./modules/app/log_ui.js";
 import { initGuideSystem } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
-import { createTick } from "./modules/tick.js?v=0.40.1";
-import { createRenderResources } from "./modules/render/resources.js?v=0.40.3";
-import { createRenderLog } from "./modules/render/log.js?v=0.40.1";
-import { createRenderBuildings } from "./modules/render/buildings.js?v=0.40.1";
-import { createRenderTech } from "./modules/render/tech.js?v=0.40.1";
-import { createRenderCapture } from "./modules/render/capture.js?v=0.40.1";
-import { createRenderMons } from "./modules/render/mons.js?v=0.40.1";
-import { createRenderDex } from "./modules/render/dex.js?v=0.40.1";
-import { createRenderFutureShop } from "./modules/render/future.js?v=0.40.1";
-import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.40.1";
+import { createTick } from "./modules/tick.js?v=0.41.0";
+import { createRenderResources } from "./modules/render/resources.js?v=0.41.0";
+import { createRenderLog } from "./modules/render/log.js?v=0.41.0";
+import { createRenderBuildings } from "./modules/render/buildings.js?v=0.41.0";
+import { createRenderTech } from "./modules/render/tech.js?v=0.41.0";
+import { createRenderCapture } from "./modules/render/capture.js?v=0.41.0";
+import { createRenderMons } from "./modules/render/mons.js?v=0.41.0";
+import { createRenderDex } from "./modules/render/dex.js?v=0.41.0";
+import { createRenderFutureShop } from "./modules/render/future.js?v=0.41.0";
+import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.41.0";
 import { createDailySignin } from "./modules/daily_signin.js";
 import { createMonthlyCard } from "./modules/monthly_card.js";
 import { createDailyTasks } from "./modules/daily_tasks.js";
-import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.40.1";
-import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.40.1";
-import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.40.1";
-import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.40.1";
-import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.40.1";
-import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.40.1";
-import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.40.1";
-import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.40.1";
+import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.41.0";
+import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.41.0";
+import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.41.0";
+import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.41.0";
+import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.41.0";
+import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.41.0";
+import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.41.0";
+import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.41.0";
 import { createItemUsage } from "./modules/item_usage.js";
-import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.40.1";
+import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.41.0";
 import { createRenderDailyTasks } from "./modules/render/daily_tasks.js";
 import { createRenderFunctions, initFunctionsTab } from "./modules/tabs/functions_tab.js";
 import { getExpLevelDef } from "./modules/expedition_defs.js";
@@ -78,8 +78,8 @@ import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
 import { createSocialSystem } from "./modules/social.js";
 import { createRenderSocial } from "./modules/render/social.js";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js";
-import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.40.1";
-import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.40.1";
+import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.41.0";
+import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.41.0";
 import {
   SERVER_BUFF_KEYS,
   SERVER_BUFF_BUY_MAX_MINUTES,
@@ -89,7 +89,7 @@ import {
   serverBuffMul as serverBuffMul0,
   serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
   serverBuffEffectText as serverBuffEffectText0,
-} from "./modules/systems/server_buffs.js?v=0.40.1";
+} from "./modules/systems/server_buffs.js?v=0.41.0";
 import { createSocialTab } from "./modules/tabs/social_tab.js";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
@@ -101,10 +101,10 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
 
 (() => {
   setupGlobalErrorHandling();
-  const analytics = createAnalytics({ gameVersion: "0.40.1" });
+  const analytics = createAnalytics({ gameVersion: "0.41.0" });
 
   const STORAGE_KEY = "kittens_mvp_save_v1";
-  // ===== SECTION:STORAGE_CONSTANTS — 存档键名常量/localStorage工具 =====
+  // ===== SECTION:STORAGE_CONSTANTS �?存档键名常量/localStorage工具 =====
   const STORAGE_BACKUP_KEY = `${STORAGE_KEY}_bak`;
   const SAVE_SLOT_KEY = "kittens_mvp_save_slot_1";
   const DAILY_LOGIN_REWARD_KEY = "kittens_mvp_daily_login_reward_v1";
@@ -124,7 +124,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     }
   }
 
-  // ===== SECTION:UTILS — 工具函数 formatLocalYmd等 =====
+  // ===== SECTION:UTILS �?工具函数 formatLocalYmd�?=====
   function formatLocalYmd(t = nowMs()) {
     const d = new Date(t);
     const y = d.getFullYear();
@@ -132,7 +132,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }
-  // ===== SECTION:DEFS_AND_BALANCE — defs定义 + 建筑/科技平衡参数 — 维护者窗口A =====
+  // ===== SECTION:DEFS_AND_BALANCE �?defs定义 + 建筑/科技平衡参数 �?维护者窗口A =====
 
   installSpriteHandlers();
 
@@ -185,7 +185,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     tech: {
       berryCultivation: {
         name: "树果培育",
-        desc: "树果产量 +50%，树果上限 +25。",
+        desc: "树果产量 +50%，树果上�?+25�?,
         cost: { catnip: 20 },
         prereq: [],
         req: () => true,
@@ -196,8 +196,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         },
       },
       composting: {
-        name: "堆肥技术",
-        desc: "树果产量 +20%，树果上限 +30。",
+        name: "堆肥技�?,
+        desc: "树果产量 +20%，树果上�?+30�?,
         cost: { catnip: 45 },
         prereq: ["berryCultivation"],
         req: () => true,
@@ -209,7 +209,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       irrigation: {
         name: "灌溉改良",
-        desc: "树果产量 +25%，树果上限 +40。",
+        desc: "树果产量 +25%，树果上�?+40�?,
         cost: { catnip: 100 },
         prereq: ["composting"],
         req: (state) => state.buildings.field.owned >= 2,
@@ -221,7 +221,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       greenhouse: {
         name: "温室栽培",
-        desc: "树果产量 +35%，树果上限 +80。",
+        desc: "树果产量 +35%，树果上�?+80�?,
         cost: { catnip: 240, wood: 30 },
         prereq: ["irrigation"],
         req: (state) => state.buildings.hut.owned >= 1,
@@ -233,7 +233,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       backpackWeaving: {
         name: "背包编织",
-        desc: "树果上限 +60。",
+        desc: "树果上限 +60�?,
         cost: { catnip: 70 },
         prereq: ["berryCultivation"],
         req: () => true,
@@ -244,7 +244,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       campLogistics: {
         name: "营地后勤",
-        desc: "营地建筑成本 -3%，球果上限 +30。",
+        desc: "营地建筑成本 -3%，球果上�?+30�?,
         cost: { catnip: 110, wood: 8 },
         prereq: ["backpackWeaving"],
         req: (state) => state.buildings.hut.owned > 0,
@@ -255,8 +255,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         },
       },
       trainerDrills: {
-        name: "训练家操练",
-        desc: "树果/球果/碎片产量 +10%。",
+        name: "训练家操�?,
+        desc: "树果/球果/碎片产量 +10%�?,
         cost: { catnip: 130 },
         prereq: ["campLogistics"],
         req: () => true,
@@ -269,8 +269,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       pokeballBasics: {
         name: "精灵球基础",
-        desc: "营地建筑成本 -5%，并解锁精灵球制作与捕捉。",
-        // After TECH researchCostMul(~2): ~30 catnip — short gather burst
+        desc: "营地建筑成本 -5%，并解锁精灵球制作与捕捉�?,
+        // After TECH researchCostMul(~2): ~30 catnip �?short gather burst
         cost: { catnip: 15 },
         prereq: [],
         req: () => true,
@@ -282,7 +282,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       ballMolds: {
         name: "球壳模具",
-        desc: "捕捉成功率 +1%。",
+        desc: "捕捉成功�?+1%�?,
         cost: { catnip: 140, wood: 30 },
         prereq: ["pokeballBasics"],
         req: (state) => state.buildings.hut.owned > 0,
@@ -293,7 +293,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       apricornCrafting: {
         name: "球果工艺",
-        desc: "捕捉成功率 +4%。",
+        desc: "捕捉成功�?+4%�?,
         cost: { catnip: 250, wood: 80 },
         prereq: ["ballMolds"],
         req: (state) => state.buildings.hut.owned >= 2,
@@ -303,7 +303,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       reinforcedBalls: {
         name: "加固球壳",
-        desc: "捕捉成功率 +6%。",
+        desc: "捕捉成功�?+6%�?,
         cost: { catnip: 400, wood: 140, minerals: 30 },
         prereq: ["apricornCrafting"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -313,7 +313,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       captureTraining: {
         name: "捕捉训练",
-        desc: "捕捉成功率 +6%。",
+        desc: "捕捉成功�?+6%�?,
         cost: { catnip: 600, wood: 180, minerals: 60 },
         prereq: ["reinforcedBalls"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -323,7 +323,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       fieldResearch: {
         name: "野外观察",
-        desc: "球果与进化石碎片产量 +100%，并提升对应上限。",
+        desc: "球果与进化石碎片产量 +100%，并提升对应上限�?,
         cost: { catnip: 200, wood: 30 },
         prereq: ["pokeballBasics"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -337,7 +337,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       fieldGuide: {
         name: "野外手册",
-        desc: "球果与进化石碎片产量 +25%，并提升对应上限。",
+        desc: "球果与进化石碎片产量 +25%，并提升对应上限�?,
         cost: { catnip: 350, wood: 60 },
         prereq: ["fieldResearch"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -350,7 +350,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       mineralSurvey: {
         name: "矿脉勘测",
-        desc: "进化石碎片产量 +35%，碎片上限 +60。",
+        desc: "进化石碎片产�?+35%，碎片上�?+60�?,
         cost: { wood: 100, minerals: 40 },
         prereq: ["fieldGuide"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -361,7 +361,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       excavationTools: {
         name: "挖掘工具",
-        desc: "进化石碎片产量 +40%，碎片上限 +80。",
+        desc: "进化石碎片产�?+40%，碎片上�?+80�?,
         cost: { wood: 180, minerals: 90 },
         prereq: ["mineralSurvey"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -372,7 +372,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       refining: {
         name: "精炼处理",
-        desc: "进化石碎片产量 +20%，球果产量 +15%，碎片上限 +120。",
+        desc: "进化石碎片产�?+20%，球果产�?+15%，碎片上�?+120�?,
         cost: { wood: 260, minerals: 160 },
         prereq: ["excavationTools"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -383,8 +383,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         },
       },
       oreStorage: {
-        name: "储矿箱",
-        desc: "球果上限 +120，进化石碎片上限 +200。",
+        name: "储矿�?,
+        desc: "球果上限 +120，进化石碎片上限 +200�?,
         cost: { wood: 220, minerals: 180 },
         prereq: ["refining"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -395,7 +395,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       carpentry: {
         name: "木工训练",
-        desc: "球果产量 +30%，球果上限 +80。",
+        desc: "球果产量 +30%，球果上�?+80�?,
         cost: { catnip: 220, wood: 60 },
         prereq: ["campLogistics"],
         req: (state) => state.buildings.hut.owned > 0,
@@ -405,8 +405,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         },
       },
       sawmillPlans: {
-        name: "锯木坊图纸",
-        desc: "球果产量 +45%，球果上限 +160。",
+        name: "锯木坊图�?,
+        desc: "球果产量 +45%，球果上�?+160�?,
         cost: { catnip: 500, wood: 200, minerals: 80 },
         prereq: ["carpentry"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -416,8 +416,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         },
       },
       supplyLines: {
-        name: "补给线",
-        desc: "树果/球果/碎片上限全面提升。",
+        name: "补给�?,
+        desc: "树果/球果/碎片上限全面提升�?,
         cost: { catnip: 800, wood: 300, minerals: 200 },
         prereq: ["sawmillPlans"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -428,8 +428,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         },
       },
       efficientConstruction: {
-        name: "高效建造",
-        desc: "营地建筑成本 -8%。",
+        name: "高效建�?,
+        desc: "营地建筑成本 -8%�?,
         cost: { catnip: 1200, wood: 450, minerals: 300 },
         prereq: ["supplyLines"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -439,7 +439,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       advancedGear: {
         name: "高级装备",
-        desc: "树果产量 +25%，并提升全部上限。",
+        desc: "树果产量 +25%，并提升全部上限�?,
         cost: { catnip: 900, wood: 250, minerals: 150 },
         prereq: ["efficientConstruction"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -453,7 +453,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       researchMethod: {
         name: "研究方法",
-        desc: "树果/球果/碎片产量 +15%。",
+        desc: "树果/球果/碎片产量 +15%�?,
         cost: { catnip: 1500, wood: 600, minerals: 400 },
         prereq: ["advancedGear"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -465,7 +465,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       },
       ultraStorage: {
         name: "超大容量仓储",
-        desc: "大幅提升所有资源上限。",
+        desc: "大幅提升所有资源上限�?,
         cost: { catnip: 2500, wood: 900, minerals: 700 },
         prereq: ["researchMethod"],
         req: (state) => state.buildings.workshop.owned > 0,
@@ -478,7 +478,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     buildings: BUILDING_DEFS,
   };
 
-  // 建筑平衡系数已预乘到 defs_buildings.js，此处全部设为1.0（rebalanceBuildingDefs变为无操作）
+  // 建筑平衡系数已预乘到 defs_buildings.js，此处全部设�?.0（rebalanceBuildingDefs变为无操作）
   const BUILDING_BALANCE = {
     costMul: 1.0,
     prodMul: 1.0,
@@ -602,7 +602,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       if (cCap) d = d.replace(/树果上限\s*\+\s*\d+/g, `树果上限 +${pctFromMul(cCap)}%`);
       if (wCap) d = d.replace(/球果上限\s*\+\s*\d+/g, `球果上限 +${pctFromMul(wCap)}%`);
       if (mCap) d = d.replace(/(进化石碎片|碎片)上限\s*\+\s*\d+/g, `$1上限 +${pctFromMul(mCap)}%`);
-      if (pCap) d = d.replace(/精灵球上限\s*\+\s*\d+/g, `精灵球上限 +${pctFromMul(pCap)}%`);
+      if (pCap) d = d.replace(/精灵球上限\s*\+\s*\d+/g, `精灵球上�?+${pctFromMul(pCap)}%`);
 
       return d;
     };
@@ -631,7 +631,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       if (typeof tdef.desc === "string") tdef.desc = adjustDesc(tdef.desc, eff);
     }
   }
-  // ===== SECTION:STATE_INIT — state初始化/存档加载/迁移 — 维护者窗口A =====
+  // ===== SECTION:STATE_INIT �?state初始�?存档加载/迁移 �?维护者窗口A =====
 
   rebalanceBuildingDefs();
   rebalanceTechDefs();
@@ -647,7 +647,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   delete defs.buildings.warehouse;
   delete defs.buildings.commandCenter;
 
-  // 迁移：根据最新 capture_rate 规则，重算所有已存在精灵实例的稀有度
+  // 迁移：根据最�?capture_rate 规则，重算所有已存在精灵实例的稀有度
   function migrateMonTiers() {
     if (!state || !state.mons || !Array.isArray(state.mons.list)) return;
     for (const m of state.mons.list) {
@@ -655,12 +655,12 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       try {
         m.tier = getPokemonTier(m.dex);
       } catch {
-        // 保底：如果计算失败，维持原 tier
+        // 保底：如果计算失败，维持�?tier
       }
     }
   }
 
-  // 统一存档加载：主存档 → 备份存档 → 新存档（并标记禁止自动覆盖）
+  // 统一存档加载：主存档 �?备份存档 �?新存档（并标记禁止自动覆盖）
   let autosaveEnabled = true;
   let state;
   const __rawPrimary = readLocalStorage(STORAGE_KEY);
@@ -686,8 +686,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
 
   migrateMonTiers();
 
-  // 确保所有道具资源都存在（兼容旧存档）
-  const ensureResources = [
+  // 确保所有道具资源都存在（兼容旧存档�?  const ensureResources = [
     "expCandy", "expCandyL", "expCandyXL",
     "ultraball", "quickball", "luxuryball",
     "affectionTreat", "friendshipBracelet",
@@ -715,7 +714,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     dexOnlyMissing: false,
     dexOnlyShiny: false,
     dexPage: 0,
-  // ===== SECTION:UI_STATE — ui状态对象定义 — 维护者窗口C =====
+  // ===== SECTION:UI_STATE �?ui状态对象定�?�?维护者窗口C =====
     dexPageSize: 50,
     dexDirty: true,
     captureAreaId: "kanto",
@@ -827,7 +826,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   const elLeaderboard = document.getElementById("leaderboard");
   const elTicker = document.getElementById("ticker");
 
-  // ===== SECTION:TICKER_SYSTEM — Ticker跑马灯系统 — 维护者窗口B =====
+  // ===== SECTION:TICKER_SYSTEM �?Ticker跑马灯系�?�?维护者窗口B =====
   const tickerSystem = createTickerSystem({
     getElTicker: () => elTicker,
     getUi: () => ui,
@@ -844,7 +843,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   const elOverlays = document.getElementById("overlays");
   const elServerBuffBar = document.getElementById("serverBuffBar");
 
-  // ===== SECTION:DIRTY_FLAGS — 脏标记函数 markXxxDirty =====
+  // ===== SECTION:DIRTY_FLAGS �?脏标记函�?markXxxDirty =====
   function markOverlaysDirty() {
     ui.overlaysDirty = true;
   }
@@ -896,7 +895,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   const elMonPageInfo = document.getElementById("monPageInfo");
 
   const elTabs = document.querySelector(".tabs");
-  // ===== SECTION:DOM_ELEMENTS — DOM元素引用 =====
+  // ===== SECTION:DOM_ELEMENTS �?DOM元素引用 =====
   const elPanels = document.querySelector(".panels");
 
   const LOG_COLLAPSE_KEY = "kittens_mvp_log_collapsed_v1";
@@ -905,7 +904,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   const LB_NAME_KEY = "kittens_mvp_lb_name_v1";
   const LB_AVATAR_KEY = "kittens_mvp_lb_avatar_v1";
 
-  // ===== SECTION:LOG_UI — 日志UI折叠/展开/位置切换 — 维护者窗口C =====
+  // ===== SECTION:LOG_UI �?日志UI折叠/展开/位置切换 �?维护者窗口C =====
   const logUi = createLogUiSystem({
     elLog,
     elLogToggle,
@@ -923,7 +922,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   } catch {
   }
 
-  // ===== SECTION:LEADERBOARD_IDENTITY — 玩家标识/头像/排行榜身份 — 维护者窗口D =====
+  // ===== SECTION:LEADERBOARD_IDENTITY �?玩家标识/头像/排行榜身�?�?维护者窗口D =====
   const makeUid = () => {
     try {
       if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
@@ -1069,8 +1068,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     },
   });
 
-  // 标签页切换
-  const tabController = createTabController({
+  // 标签页切�?  const tabController = createTabController({
     ui,
     elTabs,
     elPanels,
@@ -1098,26 +1096,26 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     el.innerHTML = `
       <div class="row">
         <div class="row__left">
-          <div class="row__title">今日指挥部</div>
+          <div class="row__title">今日指挥�?/div>
           <div class="row__desc">${items
-            .map((g) => `${g.done ? "☑" : "☐"} ${escapeHtml(g.label)}`)
+            .map((g) => `${g.done ? "�? : "�?} ${escapeHtml(g.label)}`)
             .join(" · ")}</div>
           <div class="row__desc muted">${escapeHtml(highlights)}${highlights ? " · " : ""}${escapeHtml(streakLine)}</div>
         </div>
         <div class="row__right">
-          <button type="button" class="btn btn--primary btn--small" data-opt-goals-claim ${canBundle ? "" : "disabled"}>${bundleClaimed ? "日目标已领" : "完成三目标 +12"}</button>
+          <button type="button" class="btn btn--primary btn--small" data-opt-goals-claim ${canBundle ? "" : "disabled"}>${bundleClaimed ? "日目标已�? : "完成三目�?+12"}</button>
         </div>
       </div>
       <div class="row">
         <div class="row__left">
-          <div class="row__title">一键出发</div>
-          <div class="row__desc">点按钮直达核心循环，不用在菜单里找。</div>
+          <div class="row__title">一键出�?/div>
+          <div class="row__desc">点按钮直达核心循环，不用在菜单里找�?/div>
         </div>
         <div class="row__right">
-          <button type="button" class="btn btn--primary btn--small" data-opt-goto="capture">去捕捉</button>
-          <button type="button" class="btn btn--small" data-opt-goto="pve">去挑战</button>
-          <button type="button" class="btn btn--small" data-opt-goto="functions">去功能</button>
-          <button type="button" class="btn btn--small" data-opt-goto="future">去商店</button>
+          <button type="button" class="btn btn--primary btn--small" data-opt-goto="capture">去捕�?/button>
+          <button type="button" class="btn btn--small" data-opt-goto="pve">去挑�?/button>
+          <button type="button" class="btn btn--small" data-opt-goto="functions">去功�?/button>
+          <button type="button" class="btn btn--small" data-opt-goto="future">去商�?/button>
         </div>
       </div>
     `;
@@ -1139,7 +1137,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           if (!state.res.futurecoin) state.res.futurecoin = { value: 0 };
           state.res.futurecoin.value = Math.max(0, Math.floor(state.res.futurecoin.value || 0)) + 12;
         }
-        if (typeof addLog === "function") addLog("日目标全清：未来币 +12", true);
+        if (typeof addLog === "function") addLog("日目标全清：未来�?+12", true);
         renderOptionsGoals();
       });
     }
@@ -1272,7 +1270,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     render,
   });
 
-  // ===== SECTION:CORE_HELPERS — hint / addLog / getSpeciesByPid — 维护者窗口A =====
+  // ===== SECTION:CORE_HELPERS �?hint / addLog / getSpeciesByPid �?维护者窗口A =====
   function hint(text, ttl = 2000) {
     elHint.textContent = text;
     elHint.hidden = !text;
@@ -1341,7 +1339,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     }
   }
 
-  // ===== SECTION:LEADERBOARD_NETWORK — 排行榜网络 lbBaseUrl/lbFetchJson — 维护者窗口D =====
+  // ===== SECTION:LEADERBOARD_NETWORK �?排行榜网�?lbBaseUrl/lbFetchJson �?维护者窗口D =====
   function lbBaseUrl() {
     try {
       const loc = window.location;
@@ -1351,8 +1349,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       if (!host) return "http://127.0.0.1:8080";
       if (host === "localhost" || host === "127.0.0.1") return "http://127.0.0.1:8080";
 
-      // 默认同源（适配 ngrok/反代：同一个域名同时提供页面与 /api）
-      if (origin) return origin;
+      // 默认同源（适配 ngrok/反代：同一个域名同时提供页面与 /api�?      if (origin) return origin;
     } catch {
     }
     return "http://127.0.0.1:8080";
@@ -1508,7 +1505,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     return sum;
   }
 
-  // ===== SECTION:SERVER_BUFFS — 全服Buff系统 — 维护者窗口D =====
+  // ===== SECTION:SERVER_BUFFS �?全服Buff系统 �?维护者窗口D =====
   async function lbFetchJson(url, opts = null) {
     const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
     const id = window.setTimeout(() => {
@@ -1610,13 +1607,13 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     const m = Math.min(SERVER_BUFF_BUY_MAX_MINUTES, m0);
     const price = m;
     if ((state.res.futurecoin?.value ?? 0) < price) {
-      addLog("未来币不足。", true);
+      addLog("未来币不足�?, true);
       return;
     }
 
     try {
       const base = lbBaseUrl();
-      const name = typeof ui.lbName === "string" && ui.lbName.trim() ? ui.lbName.trim() : "训练家";
+      const name = typeof ui.lbName === "string" && ui.lbName.trim() ? ui.lbName.trim() : "训练�?;
       await lbFetchJson(`${base}/api/server/buffs/buy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1626,9 +1623,9 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       state.res.futurecoin.value = Math.max(0, (state.res.futurecoin?.value ?? 0) - price);
       analytics.trackFuturecoinSpend(price, "server_buff");
       ui.futureDirty = true;
-      addLog(`购买全服增益：${SERVER_BUFF_UI[k]?.name ?? k}（+${m} 分钟，花费未来币 ${price}）`, true);
+      addLog(`购买全服增益�?{SERVER_BUFF_UI[k]?.name ?? k}�?${m} 分钟，花费未来币 ${price}）`, true);
       if (typeof pushTickerEvent === "function") {
-        pushTickerEvent("sbuff", `贡献全服增益 ${SERVER_BUFF_UI[k]?.name ?? k}（+${m} 分钟）`);
+        pushTickerEvent("sbuff", `贡献全服增益 ${SERVER_BUFF_UI[k]?.name ?? k}�?${m} 分钟）`);
       }
       save();
       closeServerBuffBuyModal();
@@ -1636,9 +1633,9 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     } catch (e) {
       const msg = typeof e?.message === "string" ? e.message : "";
       if (msg.includes("HTTP 422")) {
-        addLog(`购买失败：单次购买上限 ${SERVER_BUFF_BUY_MAX_MINUTES} 分钟`, true);
+        addLog(`购买失败：单次购买上�?${SERVER_BUFF_BUY_MAX_MINUTES} 分钟`, true);
       } else {
-        addLog("购买失败：请求失败，请稍后重试", true);
+        addLog("购买失败：请求失败，请稍后重�?, true);
       }
     }
   }
@@ -1652,7 +1649,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     });
   }
 
-  // ===== SECTION:RENDER_SERVER_BUFF_BAR — 全服Buff渲染 — 维护者窗口C =====
+  // ===== SECTION:RENDER_SERVER_BUFF_BAR �?全服Buff渲染 �?维护者窗口C =====
   function renderServerBuffBar() {
     if (!elServerBuffBar) return;
     if (!ui.serverBuffsDirty) return;
@@ -1683,7 +1680,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
               return `<div class="serverBuffBar__tipLine muted">#${idx + 1} ${nm} · ${fmtDuration(sec)}</div>`;
             })
             .join("")
-        : `<div class="serverBuffBar__tipLine muted">暂无贡献者</div>`;
+        : `<div class="serverBuffBar__tipLine muted">暂无贡献�?/div>`;
 
       rows.push(`
         <div class="serverBuffBar__slot">
@@ -1693,11 +1690,11 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           </button>
           <div class="serverBuffBar__tip" style="--sbuff-tip-shift:${tipShift}px">
             <div class="serverBuffBar__tipTitle">${escapeHtml(title)} Lv.${lvl}</div>
-            <div class="serverBuffBar__tipLine">效果：${escapeHtml(effectLine)}</div>
-            <div class="serverBuffBar__tipLine">剩余：${escapeHtml(fmtDuration(rem))}</div>
+            <div class="serverBuffBar__tipLine">效果�?{escapeHtml(effectLine)}</div>
+            <div class="serverBuffBar__tipLine">剩余�?{escapeHtml(fmtDuration(rem))}</div>
             <div class="serverBuffBar__tipLine muted" style="margin-top:6px">贡献者（按贡献时间）</div>
             ${contribLines}
-            <div class="serverBuffBar__tipLine muted" style="margin-top:8px">点击图标可购买/续费（1未来币=1分钟）</div>
+            <div class="serverBuffBar__tipLine muted" style="margin-top:8px">点击图标可购�?续费�?未来�?1分钟�?/div>
           </div>
         </div>
       `);
@@ -1718,7 +1715,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   }
 
   const BOSS_BULLY_SNOOZE_KEY = "kittens_mvp_boss_bully_snooze_until_v1";
-  // ===== SECTION:BOSS_BULLY — Boss林佬系统 — 维护者窗口D =====
+  // ===== SECTION:BOSS_BULLY �?Boss林佬系统 �?维护者窗口D =====
   const {
     refreshBossBullyOnce,
     ensureBossBullyPolling,
@@ -1780,7 +1777,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         const raw = input ? String(input.value || "").trim() : String(ui.serverBuffBuyMinutes || "");
         const m0 = Math.floor(Number(raw));
         if (!Number.isFinite(m0) || m0 < 1) {
-          addLog("请输入正确分钟数。", true);
+          addLog("请输入正确分钟数�?, true);
           return;
         }
         ui.serverBuffBuyMinutes = m0;
@@ -1814,7 +1811,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     });
   }
 
-  // ===== SECTION:RENDER_OVERLAYS — 全局弹窗渲染 renderOverlays — 维护者窗口C =====
+  // ===== SECTION:RENDER_OVERLAYS �?全局弹窗渲染 renderOverlays �?维护者窗口C =====
   function renderOverlays() {
     if (!elOverlays) return;
     if (!ui.overlaysDirty) return;
@@ -1851,7 +1848,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           ? potEntries
               .map((x) => `${escapeHtml(defs.resources?.[x.rid]?.name ?? x.rid)} x${x.qty}`)
               .join(" · ")
-          : "无";
+          : "�?;
 
       rows.push(`
         <div class="modalOverlay" data-exp-reward-overlay="1">
@@ -1862,14 +1859,14 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
                 <button class="btn btn--small" data-exp-reward-close="1">关闭</button>
               </div>
             </div>
-            <div class="modal__desc">本次远征获得如下奖励。</div>
+            <div class="modal__desc">本次远征获得如下奖励�?/div>
             <div class="modal__body">
-              ${expPerMon > 0 && monCount > 0 ? `<div class="badge">经验：每只 +${expPerMon}（参与 ${monCount} 只）</div>` : ""}
-              ${fc > 0 ? `<div class="badge">${escapeHtml(defs.resources?.futurecoin?.name ?? "未来币")} x${fc}</div>` : ""}
-              ${mb > 0 ? `<div class="badge">${escapeHtml(defs.resources?.masterball?.name ?? "大师球")} x${mb}</div>` : ""}
-              <div class="badge">药剂：${potText}</div>
-              ${expData.eventCard?.title ? `<div class="badge badge--ok">奇遇 · ${escapeHtml(expData.eventCard.title)}：${escapeHtml(expData.eventCard.blurb || "")}</div>` : ""}
-              ${expData.seasonRelic?.name ? `<div class="badge badge--ok">赛季印记 · ${escapeHtml(expData.seasonRelic.name)}（累计 ${Math.floor(expData.seasonRelic.count || 1)}）→ ${escapeHtml(defs.resources?.[expData.seasonRelic.item]?.name ?? expData.seasonRelic.item)}</div>` : ""}
+              ${expPerMon > 0 && monCount > 0 ? `<div class="badge">经验：每�?+${expPerMon}（参�?${monCount} 只）</div>` : ""}
+              ${fc > 0 ? `<div class="badge">${escapeHtml(defs.resources?.futurecoin?.name ?? "未来�?)} x${fc}</div>` : ""}
+              ${mb > 0 ? `<div class="badge">${escapeHtml(defs.resources?.masterball?.name ?? "大师�?)} x${mb}</div>` : ""}
+              <div class="badge">药剂�?{potText}</div>
+              ${expData.eventCard?.title ? `<div class="badge badge--ok">奇遇 · ${escapeHtml(expData.eventCard.title)}�?{escapeHtml(expData.eventCard.blurb || "")}</div>` : ""}
+              ${expData.seasonRelic?.name ? `<div class="badge badge--ok">赛季印记 · ${escapeHtml(expData.seasonRelic.name)}（累�?${Math.floor(expData.seasonRelic.count || 1)}）→ ${escapeHtml(defs.resources?.[expData.seasonRelic.item]?.name ?? expData.seasonRelic.item)}</div>` : ""}
             </div>
           </div>
         </div>
@@ -1900,7 +1897,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
                 <button class="btn btn--small" data-boss-bully-close="1">关闭</button>
               </div>
             </div>
-            <div class="modal__desc">林佬已被击败（第 ${killSeq} 次）。你有未领取奖励。</div>
+            <div class="modal__desc">林佬已被击败（第 ${killSeq} 次）。你有未领取奖励�?/div>
             <div class="modal__body">
               <div class="row">
                 <div class="row__left">
@@ -1932,12 +1929,12 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
                 <button class="btn btn--small" data-sbuff-close="1">关闭</button>
               </div>
             </div>
-            <div class="modal__desc">${escapeHtml(title)}（1未来币=1分钟）</div>
+            <div class="modal__desc">${escapeHtml(title)}�?未来�?1分钟�?/div>
             <div class="modal__body">
               <div class="row">
                 <div class="row__left">
                   <div class="row__title">购买时长（分钟）</div>
-                  <div class="row__desc">花费未来币 = 分钟数</div>
+                  <div class="row__desc">花费未来�?= 分钟�?/div>
                 </div>
                 <div class="row__right">
                   <input class="input" type="number" inputmode="numeric" min="1" max="${SERVER_BUFF_BUY_MAX_MINUTES}" step="1" value="${minutes}" data-sbuff-min-input />
@@ -1967,7 +1964,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     ui.overlaysDirty = false;
   }
 
-  // ===== SECTION:LEADERBOARD_DATA — 排行榜数据刷新/渲染 — 维护者窗口D =====
+  // ===== SECTION:LEADERBOARD_DATA �?排行榜数据刷�?渲染 �?维护者窗口D =====
   async function refreshLeaderboards() {
     const base = lbBaseUrl();
     ui.lbBusy = true;
@@ -1998,7 +1995,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     } catch (e) {
       const raw = String(e && typeof e === "object" && "message" in e ? e.message : e || "请求失败");
       const isAbort = Boolean(e && typeof e === "object" && "name" in e && e.name === "AbortError");
-      ui.lbErr = isAbort || raw.toLowerCase().includes("aborted") ? "请求超时/被取消" : raw;
+      ui.lbErr = isAbort || raw.toLowerCase().includes("aborted") ? "请求超时/被取�? : raw;
     } finally {
       ui.lbBusy = false;
       markLeaderboardDirty();
@@ -2054,7 +2051,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     } catch (e) {
       const raw = String(e && typeof e === "object" && "message" in e ? e.message : e || "提交失败");
       const isAbort = Boolean(e && typeof e === "object" && "name" in e && e.name === "AbortError");
-      ui.lbErr = isAbort || raw.toLowerCase().includes("aborted") ? "请求超时/被取消" : raw;
+      ui.lbErr = isAbort || raw.toLowerCase().includes("aborted") ? "请求超时/被取�? : raw;
       ui.lbBusy = false;
       markLeaderboardDirty();
       render();
@@ -2079,7 +2076,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     refreshLeaderboards,
   });
 
-  // ===== SECTION:MON_HELPERS — 精灵辅助函数 getMonCurrentStats等 — 维护者窗口B =====
+  // ===== SECTION:MON_HELPERS �?精灵辅助函数 getMonCurrentStats�?�?维护者窗口B =====
   function monStatsDeps() {
     return { state, ui, getPokeApiDataByDex, getSpeciesByPid, serverBuffMul, addLog };
   }
@@ -2100,7 +2097,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     return evolveMonWith(monStatsDeps(), mon, toPid);
   }
 
-  // ===== SECTION:SAVE_CLOUD — 存档序列化/云同步 — 维护者窗口A =====
+  // ===== SECTION:SAVE_CLOUD �?存档序列�?云同�?�?维护者窗口A =====
   function getAutosaveRawJson() {
     try {
       const enc = localStorage.getItem(STORAGE_KEY);
@@ -2163,34 +2160,34 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     const token = cloudSave.getToken();
     const username = cloudSave.getUsername();
     if (token) setCloudStatus(`已登录：${username || "-"}`);
-    else setCloudStatus("未登录");
+    else setCloudStatus("未登�?);
   }
 
   async function doCloudSyncNow() {
     try {
       refreshCloudUI();
       if (!cloudSave.getToken()) {
-        setCloudStatus("未登录");
+        setCloudStatus("未登�?);
         return;
       }
-      setCloudStatus("同步中...");
+      setCloudStatus("同步�?..");
       await cloudSave.syncAll();
       await dailyTasks?.syncFromServer?.();
       cloudSave.startAutoSync();
       const st = cloudSave.getSyncStatus();
       if (st.status === "error") {
-        setCloudStatus(`同步失败：${st.error || "未知错误"}`);
+        setCloudStatus(`同步失败�?{st.error || "未知错误"}`);
       } else if (st.status === "partial") {
-        setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（部分同步：${st.error || "有冲突"}）`);
+        setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（部分同步：${st.error || "有冲�?}）`);
       } else if (!cloudSave.getToken()) {
-        setCloudStatus("登录已过期，请重新登录");
+        setCloudStatus("登录已过期，请重新登�?);
       } else {
         setCloudStatus(`已登录：${cloudSave.getUsername() || "-"}（已同步）`);
       }
     } catch (e) {
       const msg = typeof e?.message === "string" ? e.message : "同步失败";
-      if (!cloudSave.getToken()) setCloudStatus("登录已过期，请重新登录");
-      else setCloudStatus(`同步失败：${msg}`);
+      if (!cloudSave.getToken()) setCloudStatus("登录已过期，请重新登�?);
+      else setCloudStatus(`同步失败�?{msg}`);
     }
   }
 
@@ -2209,9 +2206,9 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       a.download = `kittens-save-${formatLocalYmd()}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      setCloudStatus("已导出存档文件");
+      setCloudStatus("已导出存档文�?);
     } catch (e) {
-      setCloudStatus(`导出失败：${e?.message || "unknown"}`);
+      setCloudStatus(`导出失败�?{e?.message || "unknown"}`);
     }
   }
 
@@ -2223,20 +2220,20 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         const text = String(reader.result || "");
         const s = loadFromRaw(text);
         if (!s) {
-          setCloudStatus("导入失败：存档损坏或不兼容");
+          setCloudStatus("导入失败：存档损坏或不兼�?);
           return;
         }
         state = s;
         ui.dexDirty = true;
         save();
         render();
-        setCloudStatus("已导入本地存档");
+        setCloudStatus("已导入本地存�?);
         if (cloudSave.getToken()) doCloudSyncNow();
       } catch (e) {
-        setCloudStatus(`导入失败：${e?.message || "unknown"}`);
+        setCloudStatus(`导入失败�?{e?.message || "unknown"}`);
       }
     };
-    reader.onerror = () => setCloudStatus("导入失败：无法读取文件");
+    reader.onerror = () => setCloudStatus("导入失败：无法读取文�?);
     reader.readAsText(file);
   }
 
@@ -2254,23 +2251,23 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   function loadFromKey(key) {
     const raw0 = localStorage.getItem(key);
     if (!raw0) {
-      hint("该槽位为空。", 1600);
+      hint("该槽位为空�?, 1600);
       return false;
     }
     const raw = decodeSaveText(raw0);
     const s = loadFromRaw(raw);
     if (!s) {
-      hint("该槽位存档损坏或不兼容。", 2000);
+      hint("该槽位存档损坏或不兼容�?, 2000);
       return false;
     }
     state = s;
     ui.dexDirty = true;
     render();
-    hint("已读取存档。", 1200);
+    hint("已读取存档�?, 1200);
     return true;
   }
 
-  // ===== SECTION:DEX_EFFECTS — 图鉴计数/图鉴加成效果 — 维护者窗口A =====
+  // ===== SECTION:DEX_EFFECTS �?图鉴计数/图鉴加成效果 �?维护者窗口A =====
   function dexCaughtCount() {
     return dexCaughtCount0(state);
   }
@@ -2301,7 +2298,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     return `${mm}:${pad2(ss)}`;
   }
 
-  // ===== SECTION:TECH_EFFECTS — computeTechEffects / getBuildingCost — 维护者窗口A =====
+  // ===== SECTION:TECH_EFFECTS �?computeTechEffects / getBuildingCost �?维护者窗口A =====
   function computeTechEffects() {
     return computeTechEffects0(state, defs, ui);
   }
@@ -2310,7 +2307,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     return getBuildingCost0(id, state, defs, ui);
   }
 
-  // ===== SECTION:ECONOMY — canAfford / pay / research逻辑 — 维护者窗口A =====
+  // ===== SECTION:ECONOMY �?canAfford / pay / research逻辑 �?维护者窗口A =====
   function canAfford(cost) {
     for (const [rid, v] of Object.entries(cost)) {
       if ((state.res[rid]?.value ?? 0) < v) return false;
@@ -2408,7 +2405,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     return startResearchByTid(best.tid, "auto");
   }
 
-  // ===== SECTION:RESOURCES — addRes / getPokeballMakeCost — 维护者窗口A =====
+  // ===== SECTION:RESOURCES �?addRes / getPokeballMakeCost �?维护者窗口A =====
   function addRes(rid, amount) {
     const r = state.res[rid];
     if (!r) return;
@@ -2430,7 +2427,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     return getPokeballMakeCost0(qty, state, ui, opts, defs);
   }
 
-  // ===== SECTION:COMPUTE_DERIVED — computeDerived主函数 — 维护者窗口A =====
+  // ===== SECTION:COMPUTE_DERIVED �?computeDerived主函�?�?维护者窗口A =====
   function computeDerived() {
     return computeDerivedCore(state, {
       defs,
@@ -2480,7 +2477,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     onPveWin: () => dailyTasks?.onEvent("pveWin"),
   });
 
-  // ===== SECTION:RENDER_FUNCTIONS — renderFunctions — 维护者窗口C =====
+  // ===== SECTION:RENDER_FUNCTIONS �?renderFunctions �?维护者窗口C =====
   function renderFunctions() {
     return renderFunctionsImpl();
   }
@@ -2612,7 +2609,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     getState: () => state,
   });
 
-  // ===== SECTION:CAPTURE_AWARD — pickRandomPokemon / awardCaughtPokemon / doCatch — 维护者窗口B =====
+  // ===== SECTION:CAPTURE_AWARD �?pickRandomPokemon / awardCaughtPokemon / doCatch �?维护者窗口B =====
   function pickRandomPokemon() {
     const pool = defs.pokemon;
     return pickRandomFromPool(pool);
@@ -2634,10 +2631,10 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           pushTickerEvent("catch", `捕捉成功 ${species.name}`);
         }
         if (prev === 0 && species.tier === "epic" && typeof pushTickerEvent === "function") {
-          pushTickerEvent("mythic", `捕捉到神兽 ${species.name}`);
+          pushTickerEvent("mythic", `捕捉到神�?${species.name}`);
         }
         if (isShiny && typeof pushTickerEvent === "function") {
-          pushTickerEvent("shiny", `捕捉到闪光 ${species.name}`);
+          pushTickerEvent("shiny", `捕捉到闪�?${species.name}`);
         }
 
         if (!socialTab || !ui.lbUid) return;
@@ -2687,7 +2684,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
 
     const pool = getCapturePool();
     if (!pool || pool.length === 0) {
-      addLog("捕捉失败：该区域没有可捕捉的宝可梦。");
+      addLog("捕捉失败：该区域没有可捕捉的宝可梦�?);
       return;
     }
     const p = pickRandomFromPool(pool);
@@ -2700,8 +2697,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
         ? Math.max(0, state.skills.dragonCatchBoostRemainingSec)
         : 0;
     const dragonAdd = dragonRem > 0 ? 0.1 : 0;
-    // 科技加成递减边际：前20%线性，之后逐渐衰减（避免common精灵接近100%）
-    const addRaw = add + dragonAdd;
+    // 科技加成递减边际：前20%线性，之后逐渐衰减（避免common精灵接近100%�?    const addRaw = add + dragonAdd;
     const addSoft = addRaw <= 0.2 ? addRaw : 0.2 + (addRaw - 0.2) * 0.4;
     const baseWithTech = base * Math.max(1, 1 + addSoft);
     const fails = typeof state.rng?.catchFails === "number" ? state.rng.catchFails : 0;
@@ -2713,7 +2709,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       if (!state.rng) state.rng = { catchFails: 0 };
       state.rng.catchFails = Math.max(0, (state.rng.catchFails ?? 0) + pityFailStep(state, randFloat));
       resetCatchStreak(state);
-      addLog("捕捉失败：宝可梦逃走了。");
+      addLog("捕捉失败：宝可梦逃走了�?);
       return;
     }
 
@@ -2724,11 +2720,11 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     if (streak >= 3) addLog(`连捕中：×${streak}`);
     if (reward?.berry > 0) {
       addRes("catnip", reward.berry);
-      addLog(`★ ${reward.label}：树果 +${reward.berry}`, true);
+      addLog(`�?${reward.label}：树�?+${reward.berry}`, true);
     }
   }
 
-  // ===== SECTION:TAB_AND_RENDER_WIRE — render*/init*Tab / leaderboard listeners — 维护者窗口A/C =====
+  // ===== SECTION:TAB_AND_RENDER_WIRE �?render*/init*Tab / leaderboard listeners �?维护者窗口A/C =====
 
   renderCapture = createRenderCapture({
     elCaptureInfo,
@@ -2899,7 +2895,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
   });
 
   var renderQueued = false;
-  // ===== SECTION:RENDER_AND_SAVE — render() / save() / load() / boot() — 维护者窗口A =====
+  // ===== SECTION:RENDER_AND_SAVE �?render() / save() / load() / boot() �?维护者窗口A =====
   function render() {
     if (renderQueued) return;
     renderQueued = true;
@@ -2909,8 +2905,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       const eff = computeDerived();
       renderResources(eff);
 
-      // Tab 阶段性解锁：核心路径尽早可见，重玩法仍按进度开门
-      (function updateTabVisibility() {
+      // Tab 阶段性解锁：核心路径尽早可见，重玩法仍按进度开�?      (function updateTabVisibility() {
         const caught = state.dex?.caught ?? {};
         let unique = 0;
         for (const v of Object.values(caught)) if (typeof v === "number" && v > 0) unique++;
@@ -3022,7 +3017,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     }
 
     if (!autosaveEnabled) {
-      addLog("检测到存档读取失败：已暂停自动存档以防覆盖。请使用云存档恢复。", true);
+      addLog("检测到存档读取失败：已暂停自动存档以防覆盖。请使用云存档恢复�?, true);
     }
 
     // 新手引导系统
@@ -3031,8 +3026,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     // Tab 红点系统
     const elTabsEl = document.querySelector(".tabs");
     const tabBadges = createTabBadgeSystem({ elTabs: elTabsEl, getState: () => state, defs });
-    // 每5秒刷新一次红点
-    setInterval(() => tabBadges.updateBadges(), 5000);
+    // �?秒刷新一次红�?    setInterval(() => tabBadges.updateBadges(), 5000);
     tabBadges.updateBadges();
 
     if (elBtnCloudLogin) {
@@ -3041,15 +3035,15 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           const u = elCloudUsername ? String(elCloudUsername.value || "").trim() : "";
           const p = elCloudPassword ? String(elCloudPassword.value || "").trim() : "";
           if (!u || !p) {
-            setCloudStatus("请输入用户名和密码");
+            setCloudStatus("请输入用户名和密�?);
             return;
           }
-          setCloudStatus("登录中...");
+          setCloudStatus("登录�?..");
           await cloudSave.login(u, p);
           await doCloudSyncNow();
         } catch (e) {
           const msg = typeof e?.message === "string" ? e.message : "登录失败";
-          setCloudStatus(`登录失败：${msg}`);
+          setCloudStatus(`登录失败�?{msg}`);
         }
       });
     }
@@ -3060,15 +3054,15 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           const u = elCloudUsername ? String(elCloudUsername.value || "").trim() : "";
           const p = elCloudPassword ? String(elCloudPassword.value || "").trim() : "";
           if (!u || !p) {
-            setCloudStatus("请输入用户名和密码");
+            setCloudStatus("请输入用户名和密�?);
             return;
           }
-          setCloudStatus("注册中...");
+          setCloudStatus("注册�?..");
           await cloudSave.register(u, p);
           await doCloudSyncNow();
         } catch (e) {
           const msg = typeof e?.message === "string" ? e.message : "注册失败";
-          setCloudStatus(`注册失败：${msg}`);
+          setCloudStatus(`注册失败�?{msg}`);
         }
       });
     }
@@ -3124,12 +3118,12 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       const parts = [];
       if (dCat > 0) parts.push(`树果 +${fmt(dCat)}`);
       if (dWood > 0) parts.push(`球果 +${fmt(dWood)}`);
-      if (dMin > 0) parts.push(`进化石碎片 +${fmt(dMin)}`);
-      if (dBall > 0) parts.push(`精灵球 +${fmt(dBall)}`);
-      if (parts.length > 0) addLog(`离线收益：${parts.join("，")}`);
+      if (dMin > 0) parts.push(`进化石碎�?+${fmt(dMin)}`);
+      if (dBall > 0) parts.push(`精灵�?+${fmt(dBall)}`);
+      if (parts.length > 0) addLog(`离线收益�?{parts.join("�?)}`);
 
       const highlights = formatWelcomeBackSummary(state, before, dt);
-      if (highlights) addLog(`今日精彩：${highlights}`, true);
+      if (highlights) addLog(`今日精彩�?{highlights}`, true);
     }
 
     if (autosaveEnabled) {
@@ -3142,8 +3136,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           addRes("evolutionStone", 1);
           const gotMb = randFloat() < 0.05;
           if (gotMb) addRes("masterball", 1);
-          addLog(gotMb ? "每日登录奖励：精灵球 +20，进化石 +1，额外 大师球 +1" : "每日登录奖励：精灵球 +20，进化石 +1", true);
-          hint(gotMb ? "今日登录奖励已发放，获得大师球！" : "今日登录奖励已发放。", 3000);
+          addLog(gotMb ? "每日登录奖励：精灵球 +20，进化石 +1，额�?大师�?+1" : "每日登录奖励：精灵球 +20，进化石 +1", true);
+          hint(gotMb ? "今日登录奖励已发放，获得大师球！" : "今日登录奖励已发放�?, 3000);
           save();
         }
       } catch {
@@ -3151,8 +3145,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       }
     }
 
-    // 初始化好友系统
-    const friendsSystem = createFriendsSystem({
+    // 初始化好友系�?    const friendsSystem = createFriendsSystem({
       lbBaseUrl,
       lbFetchJson,
       ui,
@@ -3166,8 +3159,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       friendsSystem,
     });
 
-    // 初始化社交系统
-    const socialSystem = createSocialSystem({
+    // 初始化社交系�?    const socialSystem = createSocialSystem({
       lbBaseUrl,
       lbFetchJson,
       ui,
@@ -3214,8 +3206,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
 
     render();
 
-    // 默认落在 Bonfire 标签页
-    activateTab("bonfire");
+    // 默认落在 Bonfire 标签�?    activateTab("bonfire");
 
     let lastFrame = nowMs();
     window.setInterval(() => {
@@ -3239,7 +3230,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       }, 3000);
     }
 
-    addLog("冒险开始。", true);
+    addLog("冒险开始�?, true);
   }
 
   boot();

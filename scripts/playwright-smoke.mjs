@@ -77,7 +77,7 @@ try {
     console.error("playwright-smoke: FAIL unexpected title:", title);
     process.exit(1);
   }
-  if (!status.includes("v0.40")) {
+  if (!status.includes("v0.41")) {
     console.error("playwright-smoke: FAIL unexpected topbar:", status);
     process.exit(1);
   }
