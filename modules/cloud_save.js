@@ -29,6 +29,7 @@ export function createCloudSave({
 }) {
   const TOKEN_KEY = "kittens_mvp_cloud_token_v1";
   const USER_KEY = "kittens_mvp_cloud_user_v1";
+  const UID_KEY = "kittens_mvp_cloud_uid_v1";
 
   let syncTimer = 0;
   let lastPushedAutosaveAt = 0;
@@ -56,10 +57,20 @@ export function createCloudSave({
     }
   }
 
-  function setToken(token, username) {
+  function getCloudUid() {
+    try {
+      const u = localStorage.getItem(UID_KEY);
+      return u ? String(u) : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function setToken(token, username, uid) {
     try {
       localStorage.setItem(TOKEN_KEY, String(token || ""));
       localStorage.setItem(USER_KEY, String(username || ""));
+      if (uid) localStorage.setItem(UID_KEY, String(uid));
     } catch {}
   }
 
@@ -67,6 +78,7 @@ export function createCloudSave({
     try {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(UID_KEY);
     } catch {}
   }
 
@@ -77,6 +89,10 @@ export function createCloudSave({
     } catch {
       return "";
     }
+  }
+
+  function isLoggedIn() {
+    return Boolean(getToken());
   }
 
   async function apiFetch(path, { method = "GET", body = null } = {}) {
@@ -108,14 +124,14 @@ export function createCloudSave({
   async function register(username, password) {
     const data = await apiFetch("/api/auth/register", { method: "POST", body: { username, password } });
     if (!data || !data.token) throw new Error("bad response");
-    setToken(data.token, data.username || username);
+    setToken(data.token, data.username || username, data.uid);
     return data;
   }
 
   async function login(username, password) {
     const data = await apiFetch("/api/auth/login", { method: "POST", body: { username, password } });
     if (!data || !data.token) throw new Error("bad response");
-    setToken(data.token, data.username || username);
+    setToken(data.token, data.username || username, data.uid);
     return data;
   }
 
@@ -587,6 +603,9 @@ export function createCloudSave({
   return {
     getToken,
     getUsername,
+    getCloudUid,
+    isLoggedIn,
+    clearToken,
     register,
     login,
     logout,

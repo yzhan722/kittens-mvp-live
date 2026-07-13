@@ -13,24 +13,28 @@ function getAuthToken() {
 function authHeaders() {
   const token = getAuthToken();
   const headers = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
 
-export function createFriendsSystem({ lbBaseUrl, lbFetchJson, ui, addLog, render }) {
-  
-  // 获取好友列表
-  async function getFriendsList() {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
-      return null;
-    }
+function needLogin(addLog) {
+  if (getAuthToken()) return false;
+  addLog("请先在设置页登录云账号", true);
+  return true;
+}
 
+export function createFriendsSystem({ lbBaseUrl, ui, addLog }) {
+  async function getFriendsList() {
+    if (!getAuthToken()) return null;
     try {
       const base = lbBaseUrl();
-      const data = await lbFetchJson(`${base}/api/friends/list?uid=${encodeURIComponent(ui.lbUid)}`, {
-        headers: authHeaders(),
-      });
+      const response = await fetch(`${base}/api/friends/list`, { headers: authHeaders() });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        if (response.status === 401) addLog("云登录已失效，请重新登录", true);
+        else addLog("获取好友列表失败", true);
+        return null;
+      }
       return data;
     } catch (error) {
       console.error("Get friends error:", error);
@@ -39,31 +43,20 @@ export function createFriendsSystem({ lbBaseUrl, lbFetchJson, ui, addLog, render
     }
   }
 
-  // 发送好友请求
   async function sendFriendRequest(toUsername) {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
-      return false;
-    }
-
+    if (needLogin(addLog)) return false;
     try {
       const base = lbBaseUrl();
       const response = await fetch(`${base}/api/friends/request`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({
-          fromUid: ui.lbUid,
-          toUsername,
-        }),
+        body: JSON.stringify({ toUsername }),
       });
-
-      const data = await response.json();
-      
-      if (data.error) {
-        addLog(`发送好友请求失败：${data.error}`, true);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.error) {
+        addLog(`发送好友请求失败：${data.error || `HTTP ${response.status}`}`, true);
         return false;
       }
-
       addLog(`已向 ${toUsername} 发送好友请求`, true);
       return true;
     } catch (error) {
@@ -73,31 +66,20 @@ export function createFriendsSystem({ lbBaseUrl, lbFetchJson, ui, addLog, render
     }
   }
 
-  // 接受好友请求
   async function acceptFriendRequest(requestId) {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
-      return false;
-    }
-
+    if (needLogin(addLog)) return false;
     try {
       const base = lbBaseUrl();
       const response = await fetch(`${base}/api/friends/accept`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({
-          requestId,
-          uid: ui.lbUid,
-        }),
+        body: JSON.stringify({ requestId }),
       });
-
-      const data = await response.json();
-      
-      if (data.error) {
-        addLog(`接受好友请求失败：${data.error}`, true);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.error) {
+        addLog(`接受好友请求失败：${data.error || `HTTP ${response.status}`}`, true);
         return false;
       }
-
       addLog("已接受好友请求", true);
       return true;
     } catch (error) {
@@ -107,67 +89,28 @@ export function createFriendsSystem({ lbBaseUrl, lbFetchJson, ui, addLog, render
     }
   }
 
-  // 赠送道具
-  async function giftItem(toUid, itemType, quantity) {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
-      return false;
-    }
-
-    try {
-      const base = lbBaseUrl();
-      const response = await fetch(`${base}/api/friends/gift`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          fromUid: ui.lbUid,
-          toUid,
-          itemType,
-          quantity,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.status === 429) {
-        addLog(data.message || "今日赠送次数已达上限，明天再来吧", true);
-        return false;
-      }
-
-      if (data.error) {
-        addLog(`赠送道具失败：${data.error}`, true);
-        return false;
-      }
-
-      addLog(`已赠送 ${quantity} 个 ${itemType}`, true);
-      return true;
-    } catch (error) {
-      console.error("Gift item error:", error);
-      addLog("赠送道具失败", true);
-      return false;
-    }
-  }
-
   return {
     getFriendsList,
     sendFriendRequest,
     acceptFriendRequest,
-    giftItem,
+    hasAuth: () => Boolean(getAuthToken()),
   };
 }
 
-// 渲染好友列表
 export function createRenderFriends({ ui, escapeHtml, friendsSystem }) {
   return async function renderFriends() {
     const elFriends = document.getElementById("friends");
     if (!elFriends) return;
 
-    if (!ui.lbUid) {
+    if (!friendsSystem.hasAuth()) {
       elFriends.innerHTML = `
         <div class="row">
           <div class="row__left">
             <div class="row__title">好友系统</div>
-            <div class="row__desc">请先在排行榜标签页登录</div>
+            <div class="row__desc">请先在设置页登录云账号，再添加好友与发起对战。</div>
+          </div>
+          <div class="row__right">
+            <button type="button" class="btn btn--primary btn--small" data-social-goto-options>去设置</button>
           </div>
         </div>
       `;
@@ -180,7 +123,7 @@ export function createRenderFriends({ ui, escapeHtml, friendsSystem }) {
         <div class="row">
           <div class="row__left">
             <div class="row__title">加载失败</div>
-            <div class="row__desc">无法获取好友列表</div>
+            <div class="row__desc">无法获取好友列表（检查登录或网络）</div>
           </div>
         </div>
       `;
@@ -188,14 +131,14 @@ export function createRenderFriends({ ui, escapeHtml, friendsSystem }) {
     }
 
     const { friends, pendingRequests } = data;
-
     let html = `
       <div class="row">
         <div class="row__left">
           <div class="row__title">添加好友</div>
+          <div class="row__desc">输入对方云用户名</div>
         </div>
         <div class="row__right">
-          <input class="input" id="friendUsername" placeholder="输入用户名" />
+          <input class="input" id="friendUsername" placeholder="用户名" />
           <button class="btn btn--primary btn--small" data-friend-action="send-request">发送请求</button>
         </div>
       </div>
@@ -209,7 +152,6 @@ export function createRenderFriends({ ui, escapeHtml, friendsSystem }) {
           </div>
         </div>
       `;
-      
       for (const req of pendingRequests) {
         html += `
           <div class="row">
@@ -232,7 +174,6 @@ export function createRenderFriends({ ui, escapeHtml, friendsSystem }) {
           </div>
         </div>
       `;
-      
       for (const friend of friends) {
         html += `
           <div class="row">
@@ -240,7 +181,7 @@ export function createRenderFriends({ ui, escapeHtml, friendsSystem }) {
               <div class="row__title">${escapeHtml(friend.username)}</div>
             </div>
             <div class="row__right">
-              <button class="btn btn--small" data-friend-action="gift" data-friend-uid="${friend.uid}">赠送道具</button>
+              <button class="btn btn--small" data-friend-action="challenge" data-friend-uid="${escapeHtml(friend.uid)}" data-friend-name="${escapeHtml(friend.username)}">发起对战</button>
             </div>
           </div>
         `;
@@ -250,7 +191,7 @@ export function createRenderFriends({ ui, escapeHtml, friendsSystem }) {
         <div class="row">
           <div class="row__left">
             <div class="row__title">暂无好友</div>
-            <div class="row__desc">添加好友后可以互相赠送道具</div>
+            <div class="row__desc">添加并互相同意后，可发起异步 PvP</div>
           </div>
         </div>
       `;

@@ -59,12 +59,12 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
     const elPvpInvites = document.getElementById("pvpInvites");
     if (!elPvpInvites) return;
 
-    if (!ui.lbUid) {
+    if (!socialSystem.hasAuth()) {
       elPvpInvites.innerHTML = `
         <div class="row">
           <div class="row__left">
             <div class="row__title">好友对战邀请${pvpSeasonSuffix()}</div>
-            <div class="row__desc">登录后可收发好友挑战。上方「训练家对战」无需登录。</div>
+            <div class="row__desc">登录云账号后可收发好友挑战。上方「训练家对战」无需登录。</div>
             ${pvpSeasonStatsHtml()}
           </div>
         </div>
@@ -73,7 +73,7 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
     }
 
     const invites = await socialSystem.getPvpInvites();
-    if (invites === null && ui.lbUid) {
+    if (invites === null) {
       elPvpInvites.innerHTML = socialUnavailableRow("社交服务暂时不可用");
       return;
     }

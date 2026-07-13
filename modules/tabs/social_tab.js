@@ -13,7 +13,19 @@ import {
   claimNpcWeeklyFc,
 } from "../systems/npc_pvp.js";
 
-export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friendsSystem, state, createPvpBattle, getMonCurrentStats, getPokeApiDataByDex }) {
+export function createSocialTab({
+  ui,
+  addLog,
+  socialSystem,
+  renderSocial,
+  friendsSystem,
+  renderFriends,
+  state,
+  createPvpBattle,
+  getMonCurrentStats,
+  getPokeApiDataByDex,
+  pushTickerEvent,
+}) {
   
   let selectedTeam = []; // 当前选中的队伍（已归一化为 PVP 战报字段）
   ui.pvpRecent = normalizePvpRecent(state?.meta?.pvpRecent);
@@ -121,11 +133,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
         }
         <div class="social-section">
           <h3>好友</h3>
-          <div class="row">
-            <div class="row__left">
-              <div class="row__desc">在下方查看动态与消息；添加好友后可发起对战。</div>
-            </div>
-          </div>
+          <div id="friends"></div>
         </div>
         <div class="social-section">
           <h3>PVP 对战</h3>
@@ -178,11 +186,84 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
     renderNpcTrainers();
     renderPvpRecent();
     renderPvpInvites();
+    if (typeof renderFriends === "function") renderFriends();
     renderSocial.renderFriendFeed();
     renderSocial.renderMessages();
+    ingestOutgoingPvpResults();
 
     // 设置事件监听
     setupSocialEvents();
+  }
+
+  const PVP_SEEN_KEY = "kittens_mvp_pvp_seen_battles_v1";
+
+  function readSeenBattleIds() {
+    try {
+      const raw = localStorage.getItem(PVP_SEEN_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(arr) ? arr.map(Number).filter((n) => Number.isFinite(n)) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function writeSeenBattleIds(set) {
+    try {
+      localStorage.setItem(PVP_SEEN_KEY, JSON.stringify([...set].slice(-50)));
+    } catch {
+    }
+  }
+
+  async function ingestOutgoingPvpResults() {
+    if (!socialSystem.hasAuth?.()) return;
+    const results = await socialSystem.getPvpResults();
+    if (!Array.isArray(results) || !results.length) return;
+    const seen = readSeenBattleIds();
+    let changed = false;
+    for (const r of results) {
+      const id = Number(r.id);
+      if (!Number.isFinite(id) || seen.has(id)) continue;
+      seen.add(id);
+      changed = true;
+      const myUid = (() => {
+        try {
+          return localStorage.getItem("kittens_mvp_cloud_uid_v1") || "";
+        } catch {
+          return "";
+        }
+      })();
+      const iWon = r.winner_uid && myUid && r.winner_uid === myUid;
+      const winner = iWon ? 2 : r.winner_uid ? 1 : 0;
+      const opp = r.opponent_name || "好友";
+      const line = iWon ? `对战 ${opp}：胜利` : r.winner_uid ? `对战 ${opp}：落败` : `对战 ${opp}：平局`;
+      if (!ui.pvpRecent) ui.pvpRecent = [];
+      ui.pvpRecent.unshift({ line, winner, at: r.created_at || Date.now() });
+      ui.pvpRecent = ui.pvpRecent.slice(0, 5);
+      if (!state.meta || typeof state.meta !== "object") state.meta = {};
+      state.meta.pvpRecent = ui.pvpRecent.slice();
+      bumpPvpSeasonStats(state.meta, winner);
+      addLog(`PvP（回传）：${line}`, iWon);
+      if (typeof pushTickerEvent === "function") pushTickerEvent("pvp", line);
+    }
+    if (changed) {
+      writeSeenBattleIds(seen);
+      renderPvpRecent();
+    }
+  }
+
+  async function refreshSocial() {
+    const panelSocial = document.getElementById("panel-social");
+    if (!panelSocial) return;
+    ui.socialDirty = false;
+    renderNpcTrainers();
+    renderMyTeam();
+    renderPvpRecent();
+    await renderPvpInvites();
+    if (typeof renderFriends === "function") await renderFriends();
+    await loadFriendsList();
+    await renderSocial.renderFriendFeed();
+    await renderSocial.renderMessages();
+    await ingestOutgoingPvpResults();
   }
 
   function renderNpcTrainers() {
@@ -251,7 +332,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
   }
 
   async function loadFriendsList() {
-    if (!ui.lbUid) return;
+    if (!friendsSystem.hasAuth?.()) return;
 
     const data = await friendsSystem.getFriendsList();
     if (!data || !data.friends) return;
@@ -386,6 +467,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
         stats: state.meta?.pvpStats,
       });
       addLog(`PvP：${line}`, result.winner === 2);
+      if (typeof pushTickerEvent === "function") pushTickerEvent("pvp", line);
       ui.pvpRecent.unshift({ line, winner: result.winner, at: Date.now() });
       ui.pvpRecent = ui.pvpRecent.slice(0, 5);
       if (!state.meta || typeof state.meta !== "object") state.meta = {};
@@ -397,6 +479,68 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
       // 刷新邀请列表
       renderPvpRecent();
       renderPvpInvites();
+    });
+
+    // 好友系统：添加 / 接受 / 发起对战
+    panelSocial.addEventListener("click", async (e) => {
+      const gotoOpt = e.target.closest("[data-social-goto-options]");
+      if (gotoOpt && panelSocial.contains(gotoOpt)) {
+        try {
+          document.querySelector('.tab[data-tab="options"]')?.click();
+        } catch {
+        }
+        return;
+      }
+
+      const friendBtn = e.target.closest("[data-friend-action]");
+      if (!friendBtn || !panelSocial.contains(friendBtn)) return;
+      const act = friendBtn.getAttribute("data-friend-action");
+      if (act === "send-request") {
+        const input = document.getElementById("friendUsername");
+        const name = String(input?.value || "").trim();
+        if (!name) {
+          addLog("请输入用户名", true);
+          return;
+        }
+        friendBtn.disabled = true;
+        const ok = await friendsSystem.sendFriendRequest(name);
+        friendBtn.disabled = false;
+        if (ok) {
+          if (input) input.value = "";
+          if (typeof pushTickerEvent === "function") pushTickerEvent("friend", `向 ${name} 发送好友请求`);
+          if (typeof renderFriends === "function") await renderFriends();
+        }
+        return;
+      }
+      if (act === "accept") {
+        const requestId = Number(friendBtn.getAttribute("data-request-id"));
+        if (!Number.isFinite(requestId)) return;
+        friendBtn.disabled = true;
+        const ok = await friendsSystem.acceptFriendRequest(requestId);
+        friendBtn.disabled = false;
+        if (ok) {
+          if (typeof pushTickerEvent === "function") pushTickerEvent("friend", "接受了好友请求");
+          if (typeof renderFriends === "function") await renderFriends();
+          await loadFriendsList();
+        }
+        return;
+      }
+      if (act === "challenge") {
+        const friendUid = friendBtn.getAttribute("data-friend-uid");
+        const friendName = friendBtn.getAttribute("data-friend-name") || "好友";
+        if (!friendUid) return;
+        if (!selectedTeam || selectedTeam.length === 0) {
+          addLog("请先选择你的队伍，再发起对战", true);
+          return;
+        }
+        friendBtn.disabled = true;
+        const success = await socialSystem.sendPvpInvite(friendUid, selectedTeam);
+        friendBtn.disabled = false;
+        if (success) {
+          if (typeof pushTickerEvent === "function") pushTickerEvent("pvp", `向 ${friendName} 发起对战`);
+          await renderPvpInvites();
+        }
+      }
     });
 
     // 点赞成就
@@ -668,7 +812,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
 
   // 自动分享成就
   async function autoShareAchievement(type, data) {
-    if (!ui.lbUid) return;
+    if (!socialSystem.hasAuth?.()) return;
     
     // 只分享重要成就
     const shouldShare = 
@@ -684,6 +828,7 @@ export function createSocialTab({ ui, addLog, socialSystem, renderSocial, friend
 
   return {
     setupSocialTab,
+    refreshSocial,
     autoShareAchievement,
   };
 }

@@ -464,6 +464,8 @@ const collection = spawnSync(process.execPath, [path.join(__dirname, "collection
 if (collection.status !== 0) failed += 1;
 const pve = spawnSync(process.execPath, [path.join(__dirname, "pve-selfcheck.mjs")], { stdio: "inherit" });
 if (pve.status !== 0) failed += 1;
+const social = spawnSync(process.execPath, [path.join(__dirname, "social-selfcheck.mjs")], { stdio: "inherit" });
+if (social.status !== 0) failed += 1;
 
 if (failed) {
   console.error(`selfcheck: ${failed} failed`);

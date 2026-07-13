@@ -83,7 +83,7 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   // ========== 消息系统 ==========
   
   async function getMessages() {
-    if (!ui.lbUid) return null;
+    if (!getAuthToken()) return null;
     try {
       const base = lbBaseUrl();
       const data = await lbFetchJson(`${base}/api/social/messages?uid=${encodeURIComponent(ui.lbUid)}`, {
@@ -99,14 +99,14 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   }
 
   async function sendMessage(toUid, message) {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
+    if (!getAuthToken()) {
+      addLog("请先在设置页登录云账号", true);
       return false;
     }
 
     try {
       const base = lbBaseUrl();
-      const response = await fetch(`${base}/api/social/messages?uid=${encodeURIComponent(ui.lbUid)}`, {
+      const response = await fetch(`${base}/api/social/messages`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ toUid, message }),
@@ -128,11 +128,11 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   }
 
   async function markMessageRead(messageId) {
-    if (!ui.lbUid) return false;
+    if (!getAuthToken()) return false;
 
     try {
       const base = lbBaseUrl();
-      const response = await fetch(`${base}/api/social/messages?uid=${encodeURIComponent(ui.lbUid)}`, {
+      const response = await fetch(`${base}/api/social/messages`, {
         method: "PUT",
         headers: authHeaders(),
         body: JSON.stringify({ messageId }),
@@ -150,11 +150,11 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   // ========== PVP 对战系统 ==========
   
   async function getPvpInvites() {
-    if (!ui.lbUid) return null;
+    if (!getAuthToken()) return null;
 
     try {
       const base = lbBaseUrl();
-      const data = await lbFetchJson(`${base}/api/social/pvp-invites?uid=${encodeURIComponent(ui.lbUid)}`, {
+      const data = await lbFetchJson(`${base}/api/social/pvp-invites`, {
         headers: authHeaders(),
       });
       clearSocialDegraded();
@@ -165,10 +165,27 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
       return null;
     }
   }
+
+  /** Inviter: recent battle results against friends (async). */
+  async function getPvpResults() {
+    if (!getAuthToken()) return null;
+    try {
+      const base = lbBaseUrl();
+      const data = await lbFetchJson(`${base}/api/social/pvp-invites?box=results`, {
+        headers: authHeaders(),
+      });
+      clearSocialDegraded();
+      return Array.isArray(data?.results) ? data.results : [];
+    } catch (error) {
+      console.error("Get PVP results error:", error);
+      markSocialDegraded(error, "获取对战结果失败，社交功能暂时不可用");
+      return null;
+    }
+  }
   
   async function sendPvpInvite(toUid, teamData) {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
+    if (!getAuthToken()) {
+      addLog("请先在设置页登录云账号", true);
       return false;
     }
 
@@ -177,7 +194,7 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
       const response = await fetch(`${base}/api/social/pvp-invite`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ fromUid: ui.lbUid, toUid, teamData }),
+        body: JSON.stringify({ toUid, teamData }),
       });
 
       const data = await readSocialJson(response);
@@ -196,8 +213,8 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   }
 
   async function acceptPvpInvite(inviteId, teamData) {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
+    if (!getAuthToken()) {
+      addLog("请先在设置页登录云账号", true);
       return null;
     }
 
@@ -206,7 +223,7 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
       const response = await fetch(`${base}/api/social/pvp-accept`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ inviteId, uid: ui.lbUid, teamData }),
+        body: JSON.stringify({ inviteId, teamData }),
       });
 
       const data = await readSocialJson(response);
@@ -244,7 +261,7 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   // ========== 成就分享系统 ==========
   
   async function getAchievements() {
-    if (!ui.lbUid) return null;
+    if (!getAuthToken()) return null;
 
     try {
       const base = lbBaseUrl();
@@ -261,8 +278,8 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   }
 
   async function shareAchievement(achievementType, achievementData) {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
+    if (!getAuthToken()) {
+      addLog("请先在设置页登录云账号", true);
       return false;
     }
 
@@ -290,8 +307,8 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   }
 
   async function likeAchievement(achievementId) {
-    if (!ui.lbUid) {
-      addLog("请先登录", true);
+    if (!getAuthToken()) {
+      addLog("请先在设置页登录云账号", true);
       return false;
     }
 
@@ -324,7 +341,7 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
   // ========== 好友资料系统 ==========
   
   async function getFriendProfile(friendUid) {
-    if (!ui.lbUid) return null;
+    if (!getAuthToken()) return null;
 
     try {
       const base = lbBaseUrl();
@@ -348,6 +365,7 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
     markMessageRead,
     // PVP
     getPvpInvites,
+    getPvpResults,
     sendPvpInvite,
     acceptPvpInvite,
     savePvpResult,
@@ -357,5 +375,6 @@ export function createSocialSystem({ lbBaseUrl, lbFetchJson, ui, addLog }) {
     likeAchievement,
     // 资料
     getFriendProfile,
+    hasAuth: () => Boolean(getAuthToken()),
   };
 }

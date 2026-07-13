@@ -8,7 +8,7 @@ import { createPokeApiClient } from "./modules/pokeapi_client.js";
 import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isSameEvoFamily, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.41.0";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
-import { createCloudSave } from "./modules/cloud_save.js";
+import { createCloudSave } from "./modules/cloud_save.js?v=0.41.3";
 import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.41.0";
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
 import {
@@ -42,7 +42,7 @@ import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.41.0";
 import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.41.1";
 import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.41.0";
 import { createItemUsage } from "./modules/item_usage.js";
-import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.41.0";
+import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.41.3";
 import { createRenderDailyTasks } from "./modules/render/daily_tasks.js";
 import { createRenderFunctions, initFunctionsTab } from "./modules/tabs/functions_tab.js";
 import { getExpLevelDef } from "./modules/expedition_defs.js";
@@ -74,9 +74,9 @@ import { createCaptureSystem } from "./modules/app/capture_system.js";
 import { awardCaughtPokemon as awardCaughtPokemonCore } from "./modules/app/capture_award.js";
 import { createTickerSystem } from "./modules/app/ticker.js?v=0.41.2";
 import { createRenderPve } from "./modules/tabs/pve_tab.js";
-import { createFriendsSystem, createRenderFriends } from "./modules/friends.js";
-import { createSocialSystem } from "./modules/social.js";
-import { createRenderSocial } from "./modules/render/social.js";
+import { createFriendsSystem, createRenderFriends } from "./modules/friends.js?v=0.41.3";
+import { createSocialSystem } from "./modules/social.js?v=0.41.3";
+import { createRenderSocial } from "./modules/render/social.js?v=0.41.3";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js?v=0.41.2";
 import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.41.0";
 import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.41.0";
@@ -90,7 +90,7 @@ import {
   serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
   serverBuffEffectText as serverBuffEffectText0,
 } from "./modules/systems/server_buffs.js?v=0.41.0";
-import { createSocialTab } from "./modules/tabs/social_tab.js";
+import { createSocialTab } from "./modules/tabs/social_tab.js?v=0.41.3";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
 import { setupGlobalErrorHandling } from "./modules/error_handler.js";
@@ -1090,6 +1090,12 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     renderHelp: () => renderHelp(),
     renderPve: () => renderPve(),
     renderOptions: () => renderOptionsGoals(),
+    renderSocial: () => {
+      try {
+        socialTab?.refreshSocial?.();
+      } catch {
+      }
+    },
   });
 
   function renderOptionsGoals() {
@@ -3056,6 +3062,10 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           setCloudStatus("登录中...");
           await cloudSave.login(u, p);
           await doCloudSyncNow();
+          try {
+            socialTab?.refreshSocial?.();
+          } catch {
+          }
         } catch (e) {
           const msg = typeof e?.message === "string" ? e.message : "登录失败";
           setCloudStatus(`登录失败：${msg}`);
@@ -3075,6 +3085,10 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
           setCloudStatus("注册中...");
           await cloudSave.register(u, p);
           await doCloudSyncNow();
+          try {
+            socialTab?.refreshSocial?.();
+          } catch {
+          }
         } catch (e) {
           const msg = typeof e?.message === "string" ? e.message : "注册失败";
           setCloudStatus(`注册失败：${msg}`);
@@ -3163,10 +3177,8 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     // 初始化好友系统
     const friendsSystem = createFriendsSystem({
       lbBaseUrl,
-      lbFetchJson,
       ui,
       addLog,
-      render,
     });
 
     const renderFriends = createRenderFriends({
@@ -3209,10 +3221,12 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
       socialSystem,
       renderSocial,
       friendsSystem,
+      renderFriends,
       state,
       createPvpBattle,
       getMonCurrentStats,
       getPokeApiDataByDex,
+      pushTickerEvent,
     });
 
     // 赋值给全局变量以便其他函数使用
