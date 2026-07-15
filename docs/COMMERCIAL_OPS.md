@@ -18,11 +18,12 @@
 
 - [ ] 增量 migration（`migrations/*.sql`、`scripts/migrations/*.sql`），**禁止**未授权全量 `d1_schema.sql`
 - [ ] `node scripts/apply-d1-migrations.mjs`（本地 `--local`；上线前改 `--remote`）
-  - `npx wrangler d1 execute kittens-mvp --local --file scripts/migrations/2026-07-12-rate-limits.sql`
-  - `npx wrangler d1 execute kittens-mvp --local --file scripts/migrations/2026-07-13-iap-orders.sql`
+  - `npx wrangler d1 execute kittens-mvp --local --config scripts/wrangler.d1.toml --file scripts/migrations/2026-07-12-rate-limits.sql`
+  - `npx wrangler d1 execute kittens-mvp --local --config scripts/wrangler.d1.toml --file scripts/migrations/2026-07-13-iap-orders.sql`
+  - `npx wrangler d1 execute kittens-mvp --local --config scripts/wrangler.d1.toml --file scripts/migrations/2026-07-12-analytics.sql`
 - [ ] 本地验证通过后，先备份/确认 D1 环境，再将同一命令改为 `--remote` 执行
-- [ ] Prod 执行后查询 `rate_limits`、`iap_orders` 表存在；记录执行时间与操作者
-- [ ] 当前状态：上述两个 Prod migration **尚未确认 apply**
+- [x] Prod 执行后查询 `rate_limits`、`iap_orders`、`analytics_events` 表存在；记录执行时间与操作者
+- [x] 当前状态：三份 SQL 已于 2026-07-15（UTC）经 `node scripts/apply-d1-migrations.mjs --remote` apply（D1 `kittens-mvp`，tables 21）
 
 ## IAP / 赞助（诚实桩）
 

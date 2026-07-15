@@ -24,6 +24,11 @@ const expected = [
     table: "iap_orders",
     column: "status",
   },
+  {
+    file: "scripts/migrations/2026-07-12-analytics.sql",
+    table: "analytics_events",
+    column: "props_json",
+  },
 ];
 
 for (const item of expected) {

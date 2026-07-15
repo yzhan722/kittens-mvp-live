@@ -17,6 +17,7 @@ const CONFIG = path.join(root, "scripts", "wrangler.d1.toml");
 const files = [
   "scripts/migrations/2026-07-12-rate-limits.sql",
   "scripts/migrations/2026-07-13-iap-orders.sql",
+  "scripts/migrations/2026-07-12-analytics.sql",
 ];
 
 for (const rel of files) {
