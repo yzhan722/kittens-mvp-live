@@ -21,7 +21,7 @@
 
     <meta http-equiv="Expires" content="0" />
 
-    <title>宝可梦放置冒险 v0.41.0</title>
+    <title>宝可梦放置冒险 v0.41.1</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -44,7 +44,7 @@
       <div class="topbar__identity">
         <div class="brand">
           <div class="brand__title">宝可梦放置冒险</div>
-          <div class="brand__subtitle" id="topbarStatus">v0.41.0 · 挂机冒险</div>
+          <div class="brand__subtitle" id="topbarStatus">v0.41.1 · 挂机冒险</div>
         </div>
         <div id="trainerHost" class="topbar__trainer" aria-label="训练家等级"></div>
       </div>
@@ -73,7 +73,7 @@
             <div class="bulletin__line">【玩法】无障碍：可跳到主内容；Tab 与面板已关联；建造按钮带建筑名。</div>
             <details class="bulletin__eng">
               <summary class="bulletin__engSummary">工程更新（开发笔记）</summary>
-              <div class="bulletin__line">【v0.41.0】玩家乐趣环：试炼塔、闪光馆、赛季印记、商店日循环。</div>
+              <div class="bulletin__line">【v0.41.1】玩家乐趣环：试炼塔、闪光馆、赛季印记、商店日循环。</div>
               <div class="bulletin__line">【v0.39.10】A11y：skip-link、tab/panel 关联、建造 aria-label、云登录 sr-only label。</div>
               <div class="bulletin__line">【v0.39.9】建筑等级条直出 + 分类锚点；移除损坏的 DOM inject。</div>
               <div class="bulletin__line">【v0.39.8】Design Sprint F：DESIGN.md + CTA/Tab/筹码/焦点环/空日志。</div>
@@ -414,6 +414,15 @@
 
             <div class="panel__title">今日目标</div>
             <div class="list" id="dailyGoalsList"></div>
+
+            <div class="sidebar__divider"></div>
+
+            <div class="panel__title">手动存档槽</div>
+            <div class="muted" style="font-size:12px;line-height:1.5;margin:0 0 8px">槽 1：本机手动快照（登录后也会参与云同步）。与自动存档（槽 0）分开。</div>
+            <div class="actions">
+              <button class="btn btn--small" id="btnSaveSlot1" type="button">写入槽1</button>
+              <button class="btn btn--small" id="btnLoadSlot1" type="button">读取槽1</button>
+            </div>
 
             <div class="sidebar__divider"></div>
 
@@ -1023,20 +1032,20 @@
 
 
 
-    <script src="./data/pokemon_zh.js?v=0.41.0" defer></script>
+    <script src="./data/pokemon_zh.js?v=0.41.1" defer></script>
 
-    <script src="./data/pokemon_tier.js?v=0.41.0" defer></script>
+    <script src="./data/pokemon_tier.js?v=0.41.1" defer></script>
 
-    <script src="./data/pokemon_catch_rate.js?v=0.41.0" defer></script>
+    <script src="./data/pokemon_catch_rate.js?v=0.41.1" defer></script>
 
-    <script src="./data/pokemon_evo.js?v=0.41.0" defer></script>
+    <script src="./data/pokemon_evo.js?v=0.41.1" defer></script>
 
-    <script src="./data/pokemon_evo_req.js?v=0.41.0" defer></script>
+    <script src="./data/pokemon_evo_req.js?v=0.41.1" defer></script>
 
-    <script src="./data/pokemon_types.js?v=0.41.0" defer></script>
+    <script src="./data/pokemon_types.js?v=0.41.1" defer></script>
 
     <script type="module">
-      import { donateQrPath, getCatalog } from "./modules/iap_stub.js?v=0.41.0";
+      import { donateQrPath, getCatalog } from "./modules/iap_stub.js?v=0.41.1";
 
       const qr = document.getElementById("donateQrImg");
       if (qr) qr.src = donateQrPath();
@@ -1062,7 +1071,7 @@
       }
     </script>
 
-    <script type="module" src="./main.js?v=0.41.0"></script>
+    <script type="module" src="./main.js?v=0.41.1"></script>
 
     <script>
 
@@ -1072,7 +1081,7 @@
 
         window.addEventListener('load', function() {
 
-          navigator.serviceWorker.register('./sw.js?v=0.41.0', { updateViaCache: 'none' });
+          navigator.serviceWorker.register('./sw.js?v=0.41.1', { updateViaCache: 'none' });
 
         });
 

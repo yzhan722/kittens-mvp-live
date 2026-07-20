@@ -6,8 +6,12 @@
 
 - 静态页：直接开 `index.html`，或 Pages 部署本仓根目录
 - 自检：`node scripts/selfcheck.mjs` · `node scripts/e2e-smoke.mjs`
-- 线上巡检：`node scripts/live-health-smoke.mjs`
+- 线上巡检：
+  - `node scripts/live-health-smoke.mjs`
+  - `node scripts/pvp-live-e2e.mjs`（双号 invite→accept→result）
+  - `node scripts/iap-ledger-selfcheck.mjs`（台账诚实桩；真商户需配置 `IAP_WEBHOOK_SECRET`）
 - D1 迁移：`node scripts/apply-d1-migrations.mjs`（Prod 加 `--remote`，配置见 `scripts/wrangler.d1.toml`）
+- 部署：`.\deploy.ps1`（需 `.env.local` Cloudflare 凭证）
 
 ## 文档
 

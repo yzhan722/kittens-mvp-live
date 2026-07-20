@@ -30,8 +30,8 @@
 - [ ] `modules/iap_stub.js`：`purchase()` 无 `window.KITTENS_IAP_PROVIDER` 时返回 `{ ok:false, reason:'provider_unconfigured' }`，**不得**伪造支付成功
 - [ ] `GET /api/iap/catalog` 公开只读目录
 - [ ] `POST /api/iap/webhook`：未配置 `IAP_WEBHOOK_SECRET` 时拒绝；配置后验签并写 `pending` 台账
-- [ ] 设置页「支持开发者」展示赞助 QR + 目录「即将上线」列表
-- [ ] 真商户接入：配置 provider、履约 worker 与退款/幂等流程后再开 `iap_enabled`
+- [x] 设置页「支持开发者」展示赞助 QR + 目录「即将上线」列表
+- [ ] 真商户接入：在 Cloudflare Pages 配置 `IAP_WEBHOOK_SECRET`，接入 provider、履约 worker 与退款/幂等后再开 `iap_enabled`（本地/线上可用 `node scripts/iap-ledger-selfcheck.mjs` 验诚实桩）
 
 ## 写接口鉴权
 
