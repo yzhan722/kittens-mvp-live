@@ -26,14 +26,23 @@ export function createRenderBonfireActions({ elBonfireActions, elBtnGather, ui, 
       const cd0 = typeof state.gatherCdSec === "number" && Number.isFinite(state.gatherCdSec) ? state.gatherCdSec : 0;
       const cd = Math.max(0, Math.ceil(cd0));
       const combo = Math.max(0, Math.floor(state.fun?.gatherCombo || 0));
-      const comboSuffix = combo >= 2 ? ` · 连击 x${combo}` : "";
-      const text =
-        charges >= 1000
-          ? `采集 ${charges}/1000${comboSuffix}`
+      const narrow = typeof window !== "undefined" && window.innerWidth < 520;
+      const text = narrow
+        ? charges <= 0
+          ? `采集 0${cd > 0 ? ` · ${fmtRemain(cd)}` : ""}`
+          : `采集 ${charges}${combo >= 2 ? ` x${combo}` : ""}`
+        : charges >= 1000
+          ? `采集 ${charges}/1000${combo >= 2 ? ` · 连击 x${combo}` : ""}`
           : cd > 0
-            ? `采集 ${charges}/1000（+1 ${fmtRemain(cd)}）${comboSuffix}`
-            : `采集 ${charges}/1000${comboSuffix}`;
+            ? `采集 ${charges}/1000（+1 ${fmtRemain(cd)}）${combo >= 2 ? ` · 连击 x${combo}` : ""}`
+            : `采集 ${charges}/1000${combo >= 2 ? ` · 连击 x${combo}` : ""}`;
       elBtnGather.textContent = text;
+      elBtnGather.title =
+        charges <= 0
+          ? cd > 0
+            ? `次数用尽，${fmtRemain(cd)} 后 +1`
+            : "次数用尽"
+          : `采集 ${charges}/1000${cd > 0 ? ` · 回充 ${fmtRemain(cd)}` : ""}${combo >= 2 ? ` · 连击 x${combo}` : ""}`;
       elBtnGather.disabled = charges <= 0;
     }
     if (!elBonfireActions) return;

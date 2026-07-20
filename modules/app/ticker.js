@@ -188,9 +188,29 @@ export function createTickerSystem({
     if (!el) return;
     const ui = typeof getUi === "function" ? getUi() : null;
     const boss = bossHudLine(ui?.bossBully);
-    // Prefer last real event; ambient only as floor when quiet
-    const tip = TICKER_LAST_REAL_MSG || ambientWorldLine(nowMs(), 99);
-    el.textContent = ui?.bossBully ? `${boss} · ${tip}` : tip;
+    const tip = TICKER_LAST_REAL_MSG || "";
+    if (ui?.bossBully && boss) {
+      el.hidden = false;
+      el.textContent = tip ? `${boss} · ${tip}` : boss;
+      try {
+        document.documentElement.style.setProperty("--world-pulse-h", "22px");
+      } catch {}
+      return;
+    }
+    if (tip) {
+      el.hidden = false;
+      el.textContent = tip;
+      try {
+        document.documentElement.style.setProperty("--world-pulse-h", "22px");
+      } catch {}
+      return;
+    }
+    // No boss + no real event: collapse pulse (ambient stays in ticker)
+    el.hidden = true;
+    el.textContent = "";
+    try {
+      document.documentElement.style.setProperty("--world-pulse-h", "0px");
+    } catch {}
   }
 
   async function pollTickerOnce() {

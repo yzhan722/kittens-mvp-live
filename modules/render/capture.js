@@ -105,23 +105,19 @@ export function createRenderCapture({
       .join("");
     const luckyHtml =
       lucky?.type || week?.type || streak > 0 || streakBest > 0
-        ? `<div class="row" style="margin-bottom:8px">
-          <div class="row__left">
-            <div class="row__title">${
-              lucky?.type ? `今日幸运 · ${escapeHtml(typeZh(lucky.type))}` : "幸运日程"
-            }${week?.type ? ` · 本周主题 · ${escapeHtml(typeZh(week.type))}` : ""}</div>
+        ? `<details class="helpBlock" style="margin-bottom:8px">
+          <summary class="helpBlock__title">${
+            lucky?.type ? `今日幸运 · ${escapeHtml(typeZh(lucky.type))}` : "幸运日程"
+          }${week?.type ? ` · 本周 ${escapeHtml(typeZh(week.type))}` : ""}${
+            streak > 0 ? ` · 连捕 ×${streak}` : streakBest > 0 ? ` · 纪录 ${streakBest}` : ""
+          }</summary>
+          <div class="helpBlock__body">
             <div class="row__desc">${
               lucky?.type ? "今日属性捕获 ×1.1。" : ""
-            }${week?.type ? " 本周主题属性遭遇更常见（×1.35）。" : ""} 野外约 0.2% 神兽乱入。${
-              streak > 0
-                ? ` 连捕 ×${streak}${streakBest > streak ? `（纪录 ${streakBest}）` : ""}`
-                : streakBest > 0
-                  ? ` 连捕纪录 ${streakBest}`
-                  : ""
-            }</div>
+            }${week?.type ? " 本周主题属性遭遇更常见（×1.35）。" : ""} 野外约 0.2% 神兽乱入。</div>
             ${streakBadges ? `<div class="row__desc">${streakBadges}</div>` : ""}
           </div>
-        </div>`
+        </details>`
         : "";
 
     const session = captureSessionProgress(state);
@@ -138,14 +134,16 @@ export function createRenderCapture({
     `;
 
     const eraPanelHtml = `
-      <div class="era-panel">
-        <div class="era-panel__title">时代 · ${escapeHtml(eraDef.name)}${era.mode === "distortion" ? " · 时空歪曲" : ""}</div>
-        ${era.mode === "distortion" ? `<div class="row__desc era-panel__distortion">${escapeHtml(DISTORTION_OPENER_BLURB)}</div>` : ""}
-        ${eraDef.blurb ? `<div class="row__desc">${escapeHtml(eraDef.blurb)}</div>` : ""}
-        ${eraMutatorHtml ? `<div class="era-panel__mutators">${eraMutatorHtml}</div>` : ""}
-        <div class="era-panel__quests">${eraQuestHtml}</div>
-        <div class="era-panel__action">${eraActionHtml}</div>
-      </div>
+      <details class="era-panel helpBlock" ${eraCanAdvance || eraCanPrestige ? "open" : ""}>
+        <summary class="helpBlock__title">时代 · ${escapeHtml(eraDef.name)}${era.mode === "distortion" ? " · 时空歪曲" : ""}</summary>
+        <div class="helpBlock__body">
+          ${era.mode === "distortion" ? `<div class="row__desc era-panel__distortion">${escapeHtml(DISTORTION_OPENER_BLURB)}</div>` : ""}
+          ${eraDef.blurb ? `<div class="row__desc">${escapeHtml(eraDef.blurb)}</div>` : ""}
+          ${eraMutatorHtml ? `<div class="era-panel__mutators">${eraMutatorHtml}</div>` : ""}
+          <div class="era-panel__quests">${eraQuestHtml}</div>
+          <div class="era-panel__action">${eraActionHtml}</div>
+        </div>
+      </details>
     `;
 
     const freezeActions = Boolean(ui.captureQtyFocus);
@@ -249,9 +247,9 @@ export function createRenderCapture({
     const tierSummary = `常见 ${counts.common} · 少见 ${counts.uncommon} · 稀有 ${counts.rare} · 史诗 ${counts.epic}`;
 
     elCaptureInfo.innerHTML = `
+      ${sessionHtml}
       ${eraPanelHtml}
       ${luckyHtml}
-      ${sessionHtml}
       <div class="row">
         <div class="row__left">
           <div class="row__title">当前区域</div>

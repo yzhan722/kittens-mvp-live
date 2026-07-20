@@ -113,10 +113,15 @@ export function createSocialTab({
           <div class="row">
             <div class="row__left">
               <div class="row__title">无需登录</div>
-              <div class="row__desc">用「我的队伍」挑战 NPC，战绩写入本机赛季统计。云好友对战仍需登录。</div>
+              <div class="row__desc">先选「我的队伍」，再挑战下方 NPC。战绩写入本机赛季；云好友对战仍需登录。</div>
             </div>
           </div>
-          <div id="npcTrainers"></div>
+          <div class="pvp-team-selector" style="margin-top: 0.5rem;">
+            <h4>我的队伍</h4>
+            <div id="myTeamDisplay"></div>
+            <button class="btn btn--primary" id="btnSelectTeam" type="button">选择队伍</button>
+          </div>
+          <div id="npcTrainers" style="margin-top: 0.75rem;"></div>
         </div>
         ${
           needCloud
@@ -149,11 +154,6 @@ export function createSocialTab({
           }
           <div id="pvpRecent" ${needCloud ? "hidden" : ""}></div>
           <div id="pvpInvites" ${needCloud ? "hidden" : ""}></div>
-          <div class="pvp-team-selector" style="margin-top: 1rem;" ${needCloud ? "hidden" : ""}>
-            <h4>我的队伍</h4>
-            <div id="myTeamDisplay"></div>
-            <button class="btn btn--primary" id="btnSelectTeam">选择队伍</button>
-          </div>
         </div>
 
         <div class="social-section">
@@ -409,7 +409,14 @@ export function createSocialTab({
       const trainerId = npcBtn.getAttribute("data-npc-fight");
       if (!trainerId) return;
       if (!selectedTeam.length) {
-        addLog("请先在「我的队伍」选择精灵，再挑战训练家");
+        addLog("请先在「我的队伍」选择精灵，再挑战训练家", true);
+        try {
+          if (typeof window.showToast === "function") {
+            window.showToast("先选队伍，再挑战 NPC", "warn", 3200);
+          }
+          document.getElementById("btnSelectTeam")?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+          document.getElementById("btnSelectTeam")?.focus?.();
+        } catch {}
         return;
       }
       const npcTeam = buildNpcTeam(trainerId);

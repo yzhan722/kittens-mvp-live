@@ -1,15 +1,15 @@
 import { legacyIdMap, pokemon, getPokemonTier } from "./modules/pokemon_defs.js";
-import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.41.1";
-import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.41.1";
-import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.41.1";
-import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.41.1";
-import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.41.1";
+import { EXTRA_TECH_DEFS, EXTRA_TECH_FLAGS } from "./modules/tech_defs.js?v=0.41.2";
+import { RESOURCE_DEFS } from "./modules/defs_resources.js?v=0.41.2";
+import { BUILDING_DEFS } from "./modules/defs_buildings.js?v=0.41.2";
+import { renderPokemonIcon, installSpriteHandlers } from "./modules/sprites.js?v=0.41.2";
+import { BASE_TECH_FLAGS, defaultState, serializeState, loadFromRaw, safeJsonParse, BUILDING_MAX_LEVEL } from "./modules/state.js?v=0.41.2";
 import { createPokeApiClient } from "./modules/pokeapi_client.js";
-import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isSameEvoFamily, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.41.1";
+import { defaultReqLvlByStage, getEvoMap, getEvoReqLevel, isAffectionEvo, isSameEvoFamily, isTradeEvo, stageIndex } from "./modules/evo_utils.js?v=0.41.2";
 import { clamp, escapeHtml, fmt, nowMs, pad3, randFloat } from "./modules/utils.js";
 import { decodeSaveText, encodeSaveText } from "./modules/save_codec.js";
 import { createCloudSave } from "./modules/cloud_save.js?v=0.41.3";
-import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.41.1";
+import { clampStar, getStarBonusMul, getStarUpgradeNeed, getStarUpgradeGate, meetsStarUpgradeGate, renderStars } from "./modules/stars.js?v=0.41.2";
 import { addExpToMon as addExpToMon0, createMonInstance as createMonInstance0, evolveMon as evolveMon0, expNeedForLevel as expNeedForLevel0, getMonCurrentStats as getMonCurrentStats0, monPower as monPower0, getNatureInfo, NATURE_PASSIVE } from "./modules/mons.js";
 import {
   getMonCurrentStatsWith,
@@ -20,27 +20,27 @@ import {
 import { createLogUiSystem } from "./modules/app/log_ui.js";
 import { initGuideSystem, maybeNewbieHandoff } from "./modules/guide.js";
 import { createTabBadgeSystem } from "./modules/tab_badges.js";
-import { createTick } from "./modules/tick.js?v=0.41.1";
-import { createRenderResources } from "./modules/render/resources.js?v=0.41.1";
-import { createRenderLog } from "./modules/render/log.js?v=0.41.1";
-import { createRenderBuildings } from "./modules/render/buildings.js?v=0.41.1";
-import { createRenderTech } from "./modules/render/tech.js?v=0.41.1";
-import { createRenderCapture } from "./modules/render/capture.js?v=0.41.1";
-import { createRenderMons } from "./modules/render/mons.js?v=0.41.1";
-import { createRenderDex } from "./modules/render/dex.js?v=0.41.1";
-import { createRenderFutureShop } from "./modules/render/future.js?v=0.41.1";
-import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.41.1";
+import { createTick } from "./modules/tick.js?v=0.41.2";
+import { createRenderResources } from "./modules/render/resources.js?v=0.41.2";
+import { createRenderLog } from "./modules/render/log.js?v=0.41.2";
+import { createRenderBuildings } from "./modules/render/buildings.js?v=0.41.2";
+import { createRenderTech } from "./modules/render/tech.js?v=0.41.2";
+import { createRenderCapture } from "./modules/render/capture.js?v=0.41.2";
+import { createRenderMons } from "./modules/render/mons.js?v=0.41.2";
+import { createRenderDex } from "./modules/render/dex.js?v=0.41.2";
+import { createRenderFutureShop } from "./modules/render/future.js?v=0.41.2";
+import { TYPE_SKILLS } from "./modules/type_skills.js?v=0.41.2";
 import { createDailySignin } from "./modules/daily_signin.js";
 import { createMonthlyCard } from "./modules/monthly_card.js";
 import { createDailyTasks } from "./modules/daily_tasks.js";
-import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.41.1";
-import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.41.1";
-import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.41.1";
-import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.41.1";
-import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.41.1";
-import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.41.1";
-import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.41.1";
-import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.41.1";
+import { initDexTab } from "./modules/tabs/dex_tab.js?v=0.41.2";
+import { initBuildingsTab } from "./modules/tabs/buildings_tab.js?v=0.41.2";
+import { initTechTab } from "./modules/tabs/tech_tab.js?v=0.41.2";
+import { initFutureTab } from "./modules/tabs/future_tab.js?v=0.41.2";
+import { createRenderBonfireActions, initBonfireTab } from "./modules/tabs/bonfire_tab.js?v=0.41.2";
+import { initCaptureTab } from "./modules/tabs/capture_tab.js?v=0.41.2";
+import { initMonsTab } from "./modules/tabs/mons_tab.js?v=0.41.2";
+import { createRenderItems } from "./modules/tabs/items_tab.js?v=0.41.2";
 import { createItemUsage } from "./modules/item_usage.js";
 import { createTabController } from "./modules/tabs/tabs_controller.js?v=0.41.3";
 import { createRenderDailyTasks } from "./modules/render/daily_tasks.js";
@@ -78,8 +78,8 @@ import { createFriendsSystem, createRenderFriends } from "./modules/friends.js?v
 import { createSocialSystem } from "./modules/social.js?v=0.41.3";
 import { createRenderSocial } from "./modules/render/social.js?v=0.41.5";
 import { createRenderLeaderboard } from "./modules/render/leaderboard.js?v=0.41.5";
-import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.41.1";
-import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.41.1";
+import { initLeaderboardTab } from "./modules/tabs/leaderboard_tab.js?v=0.41.2";
+import { createBossBullySystem } from "./modules/app/boss_bully.js?v=0.41.2";
 import {
   SERVER_BUFF_KEYS,
   SERVER_BUFF_BUY_MAX_MINUTES,
@@ -89,7 +89,7 @@ import {
   serverBuffMul as serverBuffMul0,
   serverBuffResearchTimeMul as serverBuffResearchTimeMul0,
   serverBuffEffectText as serverBuffEffectText0,
-} from "./modules/systems/server_buffs.js?v=0.41.1";
+} from "./modules/systems/server_buffs.js?v=0.41.2";
 import { createSocialTab } from "./modules/tabs/social_tab.js?v=0.41.3";
 import { createRenderHelp } from "./modules/tabs/help_tab.js";
 import { createPvpBattle } from "./modules/pvp_battle.js";
@@ -101,7 +101,7 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
 
 (() => {
   setupGlobalErrorHandling();
-  const analytics = createAnalytics({ gameVersion: "0.41.1" });
+  const analytics = createAnalytics({ gameVersion: "0.41.2" });
 
   const STORAGE_KEY = "kittens_mvp_save_v1";
   // ===== SECTION:STORAGE_CONSTANTS — 存档键名常量/localStorage工具 =====
@@ -1316,7 +1316,13 @@ import { pityFailStep, luckyCatchMul, ensureLuckyDay, bumpCatchStreak, resetCatc
     state.log = state.log.slice(0, 30);
     ui.logDirty = true;
     if (important) {
-      hint(msg, 2000);
+      hint(msg, 2800);
+      try {
+        if (typeof window.showToast === "function") {
+          const ty = /闪光|✨/.test(msg) ? "shiny" : /失败|不够|不可|请先/.test(msg) ? "warn" : "ok";
+          window.showToast(msg, ty, 3200);
+        }
+      } catch {}
     }
   }
 

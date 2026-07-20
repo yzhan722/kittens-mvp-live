@@ -160,8 +160,8 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
       let html = `
         <div class="row">
           <div class="row__left">
-            <div class="row__title">NPC Feed</div>
-            <div class="row__desc">No friend shares yet — padded with NPC trainer IDs.</div>
+            <div class="row__title">训练家动态</div>
+            <div class="row__desc">还没有好友分享 — 先用 NPC 垫场；登录后可见真实好友动态。</div>
           </div>
         </div>
       `;

@@ -1,4 +1,4 @@
-const PRIMARY_TABS = new Set(["bonfire", "science", "capture", "mons", "future"]);
+const PRIMARY_TABS = new Set(["bonfire", "science", "capture", "mons", "functions", "future"]);
 
 export function createTabController({
   ui,

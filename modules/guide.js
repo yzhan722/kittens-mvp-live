@@ -201,6 +201,9 @@ export function maybeNewbieHandoff({ state, activateTab, addLog, pushTickerEvent
         localStorage.setItem(HANDOFF_CATCH_KEY, "1");
         if (typeof addLog === "function") addLog("新手提示：球已到手 → 打开「捕捉」抓第一只。", true);
         if (typeof hint === "function") hint("去「捕捉」抓第一只精灵！", 4000);
+        try {
+          if (typeof window.showToast === "function") window.showToast("球已到手 → 去捕捉", "ok", 4000);
+        } catch {}
         if (typeof pushTickerEvent === "function") pushTickerEvent("guide", "新手：球已到手，去捕捉");
         if (typeof activateTab === "function") {
           setTimeout(() => {
@@ -219,7 +222,17 @@ export function maybeNewbieHandoff({ state, activateTab, addLog, pushTickerEvent
         addLog("新手提示：第一只到手！去「排行榜」看 NPC，或「设置」注册云账号加好友。", true);
       }
       if (typeof hint === "function") hint("去排行榜看看世界，或设置里开云账号", 5000);
+      try {
+        if (typeof window.showToast === "function") window.showToast("第一只到手 → 去排行榜", "ok", 4500);
+      } catch {}
       if (typeof pushTickerEvent === "function") pushTickerEvent("guide", "新手：第一只到手，去看排行榜");
+      if (typeof activateTab === "function") {
+        setTimeout(() => {
+          try {
+            activateTab("leaderboard");
+          } catch {}
+        }, 900);
+      }
     }
   } catch {
     // ignore storage / UI failures
