@@ -54,6 +54,7 @@ const childChecks = [
   "migrations-selfcheck.mjs",
   "save-stress-selfcheck.mjs",
   "apply-d1-migrations.mjs",
+  "pvp-flow-selfcheck.mjs",
   "playwright-smoke.mjs",
 ];
 for (const script of childChecks) {

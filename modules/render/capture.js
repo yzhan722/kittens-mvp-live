@@ -88,14 +88,14 @@ export function createRenderCapture({
       .map((label) => `<span class="badge">${escapeHtml(label)}</span>`)
       .join("");
     const eraActionHtml =
-      era.index >= 8
-        ? eraAllDone
-          ? eraCanPrestige
-            ? `<button type="button" class="btn btn--ghost btn--small" data-era-prestige>时空歪曲挑战</button>
-               <div class="era-panel__done">已抵达悖论时空</div>`
-            : `<div class="era-panel__done">已抵达悖论时空</div>`
-          : ""
-        : `<button type="button" class="btn btn--primary btn--small" data-era-advance ${eraCanAdvance ? "" : "disabled"}>迈入下一时代</button>`;
+      eraCanPrestige
+        ? `<button type="button" class="btn btn--ghost btn--small" data-era-prestige>时空歪曲挑战</button>
+           <div class="muted" style="font-size:11px;margin-top:4px">终局软开：保留图鉴与永久加成，重置资源循环。</div>`
+        : era.index >= 8
+          ? eraAllDone
+            ? `<div class="era-panel__done">已抵达悖论时空${era.prestigeUnlocked ? "" : " · 完成主线可开扭曲"}</div>`
+            : ""
+          : `<button type="button" class="btn btn--primary btn--small" data-era-advance ${eraCanAdvance ? "" : "disabled"}>迈入下一时代</button>`;
     const lucky = ensureLuckyDay(state);
     const week = ensureLuckyWeek(state);
     const streak = Math.max(0, Math.floor(state.fun?.catchStreak || 0));

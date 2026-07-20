@@ -122,24 +122,34 @@ export function createSocialTab({
           needCloud
             ? `<div class="row social-cta">
           <div class="row__left">
-            <div class="row__title">云好友 / 真实 PvP</div>
-            <div class="row__desc">好友、消息与跨设备进度需要云账号。下方离线对战可先玩。</div>
+            <div class="row__title">登录云账号解锁好友</div>
+            <div class="row__desc">加好友、约战、跨设备存档都要云账号。点右侧去「设置」注册/登录；离线 NPC 对战可先玩。</div>
           </div>
           <div class="row__right">
-            <button type="button" class="btn btn--primary btn--small" data-social-goto-options>前往设置</button>
+            <button type="button" class="btn btn--primary btn--small" data-social-goto-options>去设置注册</button>
           </div>
         </div>`
             : ""
         }
         <div class="social-section">
           <h3>好友</h3>
-          <div id="friends"></div>
+          ${
+            needCloud
+              ? `<div class="row"><div class="row__left"><div class="row__desc muted">登录后显示好友列表。先去设置开云账号。</div></div></div>`
+              : ""
+          }
+          <div id="friends" ${needCloud ? "hidden" : ""}></div>
         </div>
         <div class="social-section">
           <h3>PVP 对战</h3>
-          <div id="pvpRecent"></div>
-          <div id="pvpInvites"></div>
-          <div class="pvp-team-selector" style="margin-top: 1rem;">
+          ${
+            needCloud
+              ? `<div class="row"><div class="row__left"><div class="row__desc muted">云 PvP 需登录。离线 NPC 对战见上方。</div></div></div>`
+              : ""
+          }
+          <div id="pvpRecent" ${needCloud ? "hidden" : ""}></div>
+          <div id="pvpInvites" ${needCloud ? "hidden" : ""}></div>
+          <div class="pvp-team-selector" style="margin-top: 1rem;" ${needCloud ? "hidden" : ""}>
             <h4>我的队伍</h4>
             <div id="myTeamDisplay"></div>
             <button class="btn btn--primary" id="btnSelectTeam">选择队伍</button>
@@ -148,13 +158,23 @@ export function createSocialTab({
 
         <div class="social-section">
           <h3>好友动态</h3>
+          ${
+            needCloud
+              ? `<div class="row"><div class="row__left"><div class="row__desc muted">登录后可看好友动态；未登录时仍有 NPC 垫场。</div></div></div>`
+              : ""
+          }
           <div id="friendFeed"></div>
         </div>
 
         <div class="social-section">
           <h3>好友消息</h3>
-          <div id="friendMessages"></div>
-          <div class="message-input-container">
+          ${
+            needCloud
+              ? `<div class="row"><div class="row__left"><div class="row__desc muted">消息需要云登录。</div></div></div>`
+              : ""
+          }
+          <div id="friendMessages" ${needCloud ? "hidden" : ""}></div>
+          <div class="message-input-container" ${needCloud ? "hidden" : ""}>
             <select id="messageRecipient" class="input">
               <option value="">选择好友...</option>
             </select>
@@ -165,7 +185,7 @@ export function createSocialTab({
 
         <div class="social-section">
           <h3>好友资料</h3>
-          <select id="friendProfileSelect" class="input">
+          <select id="friendProfileSelect" class="input" ${needCloud ? "hidden" : ""}>
             <option value="">选择好友查看资料...</option>
           </select>
           <div id="friendProfile"></div>

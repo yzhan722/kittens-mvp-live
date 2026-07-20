@@ -31,6 +31,8 @@ assert(tab.includes('id="friends"'), "friends mount in social tab");
 assert(tab.includes("refreshSocial"), "refreshSocial exported");
 assert(tab.includes("ingestOutgoingPvpResults"), "inviter result ingest");
 assert(tab.includes("pushTickerEvent"), "pvp ticker");
+assert(tab.includes("去设置注册") || tab.includes("data-social-goto-options"), "cloud CTA");
+assert(tab.includes("登录云账号解锁好友") || tab.includes("needCloud"), "empty-state CTA");
 
 const cloud = read("modules/cloud_save.js");
 assert(cloud.includes("getCloudUid"), "cloud uid persisted");

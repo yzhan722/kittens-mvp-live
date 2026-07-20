@@ -84,6 +84,13 @@ export function createRenderDex({
     }
 
     const gallery = shinyGalleryEntries(state, 16);
+    const shareNames = gallery
+      .slice(0, 6)
+      .map((e) => e.name)
+      .filter(Boolean);
+    const shareText = shareNames.length
+      ? `我的闪光馆（${shinyUnique}）：${shareNames.join("、")}${gallery.length > 6 ? "…" : ""} — 宝可梦放置冒险`
+      : "";
     const galleryHtml =
       gallery.length > 0
         ? `<div class="row__desc" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px">
@@ -94,6 +101,7 @@ export function createRenderDex({
                   `<span class="row__titleLine" title="${escapeHtml(e.name)}">${renderPokemonIcon(e.dex, e.name, true)}<span class="muted" style="font-size:11px">${escapeHtml(e.name)}</span></span>`
               )
               .join("")}
+            <button type="button" class="btn btn--small btn--ghost" data-dex-shiny-share data-share="${escapeHtml(shareText)}">复制分享</button>
           </div>`
         : `<div class="row__desc muted">闪光馆空空如也 — 捕捉或孵出闪光后会出现在这里。</div>`;
 

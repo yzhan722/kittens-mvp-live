@@ -309,6 +309,14 @@ export function syncEraQuests(state, getCaptureAreas) {
     quest.done = done;
   }
 
+  // Soft unlock: late chronicle (倒数第二时代主线清完) 或最终时代；ops 旗仍可强制开
+  if (!era.prestigeUnlocked) {
+    const nearEnd = era.index >= Math.max(0, ERA_DEFS.length - 2);
+    const mains = era.quests.filter((q) => q.kind === "main");
+    if (nearEnd && mains.length > 0 && mains.every((q) => q.done)) {
+      era.prestigeUnlocked = true;
+    }
+  }
   // Endgame spice: completing paradox chronicle unlocks prestige CTA
   if (era.index >= ERA_DEFS.length - 1) {
     const mains = era.quests.filter((q) => q.kind === "main");

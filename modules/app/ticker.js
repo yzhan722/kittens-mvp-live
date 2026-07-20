@@ -34,6 +34,7 @@ export function createTickerSystem({
   let TICKER_TIMER_ID = null;
   let TICKER_AMBIENT_TICK = 0;
   let TICKER_LAST_BOSS_LINE = "";
+  let TICKER_LAST_REAL_MSG = "";
 
   function elTicker() {
     return typeof getElTicker === "function" ? getElTicker() : null;
@@ -155,6 +156,8 @@ export function createTickerSystem({
     const text = String(msg || "").replace(/\s+/g, " ").trim();
     if (!text || shouldSuppressTickerMsg(text)) return;
     const ty = String(type || "event").slice(0, 32);
+    // ambient / fake padding never counts as "real" pulse
+    if (ty !== "ambient") TICKER_LAST_REAL_MSG = text;
     const repeat = ty === "mythic" || ty === "shiny" ? 2 : 1;
     for (let r = 0; r < repeat; r += 1) {
       TICKER_QUEUE.push({ qid: TICKER_QSEQ++, eventId: eventId || 0, msg: text, type: ty });
@@ -185,7 +188,8 @@ export function createTickerSystem({
     if (!el) return;
     const ui = typeof getUi === "function" ? getUi() : null;
     const boss = bossHudLine(ui?.bossBully);
-    const tip = ambientWorldLine(nowMs(), 99);
+    // Prefer last real event; ambient only as floor when quiet
+    const tip = TICKER_LAST_REAL_MSG || ambientWorldLine(nowMs(), 99);
     el.textContent = ui?.bossBully ? `${boss} · ${tip}` : tip;
   }
 
@@ -221,8 +225,9 @@ export function createTickerSystem({
       }
     } catch {
     }
+    // Real events first: ambient only when remote empty, or sparsely as floor
     if (!gotRemote) injectAmbientIfQuiet();
-    else if (TICKER_AMBIENT_TICK % 5 === 0) injectAmbientIfQuiet();
+    else if (TICKER_AMBIENT_TICK % 8 === 0) injectAmbientIfQuiet();
     else TICKER_AMBIENT_TICK += 1;
     syncWorldPulse();
   }

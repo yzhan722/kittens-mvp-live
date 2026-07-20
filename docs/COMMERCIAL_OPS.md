@@ -51,7 +51,7 @@
 ## 鉴权面
 
 - [ ] `/api/social/*` 与 `/api/friends/*` 均需 Bearer（`requireUser`）
-- [ ] 未登录社交 Tab 有明确空态/引导登录
+- [x] 未登录社交 Tab 有明确空态/引导登录
 
 ## 部署
 

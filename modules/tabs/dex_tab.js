@@ -29,6 +29,29 @@ export function initDexTab({
     }
   }
 
+  if (elDexSummary) {
+    elDexSummary.addEventListener("click", async (e) => {
+      const btn = e.target?.closest?.("[data-dex-shiny-share]");
+      if (!btn || !elDexSummary.contains(btn)) return;
+      const text = btn.getAttribute("data-share") || "";
+      if (!text) return;
+      try {
+        if (navigator?.clipboard?.writeText) await navigator.clipboard.writeText(text);
+        else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+        if (typeof addLog === "function") addLog("已复制闪光馆分享文案", true);
+      } catch {
+        if (typeof addLog === "function") addLog("复制失败，请手动选中分享");
+      }
+    });
+  }
+
   const claimHost = elDexSummary || elDexList;
   if (claimHost) {
     claimHost.addEventListener("click", (e) => {

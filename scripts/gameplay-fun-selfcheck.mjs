@@ -209,9 +209,15 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 }
 
 {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const day = (d.getDay() + 6) % 7;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - day);
+  const weekKey = `${monday.getFullYear()}-W${String(monday.getMonth() + 1).padStart(2, "0")}${String(monday.getDate()).padStart(2, "0")}`;
   const state = {
-    luckyDay: { type: "grass", date: "x" },
-    luckyWeek: { type: "flying", week: "x" },
+    luckyDay: { type: "grass", date: today },
+    luckyWeek: { type: "flying", week: weekKey },
     fun: { catchStreakBest: 5, pveWinStreakBest: 3 },
     era: { id: "hamlet" },
     catchCount: 12,
@@ -226,10 +232,16 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 }
 
 {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const day = (d.getDay() + 6) % 7;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - day);
+  const weekKey = `${monday.getFullYear()}-W${String(monday.getMonth() + 1).padStart(2, "0")}${String(monday.getDate()).padStart(2, "0")}`;
   const summary = formatWelcomeBackSummary(
     {
-      luckyDay: { type: "grass", date: "x" },
-      luckyWeek: { type: "flying", week: "x" },
+      luckyDay: { type: "grass", date: today },
+      luckyWeek: { type: "flying", week: weekKey },
       fun: { catchStreakBest: 5, pveWinStreakBest: 3 },
       era: { id: "hamlet" },
       catchCount: 12,

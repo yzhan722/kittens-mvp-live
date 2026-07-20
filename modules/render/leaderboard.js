@@ -105,7 +105,7 @@ export function createRenderLeaderboard({
       <div class="row">
         <div class="row__left">
           <div class="row__title">排行榜</div>
-          <div class="row__desc">Real scores first; thin boards padded with NPC trainer IDs (ASCII), drifting daily.</div>
+          <div class="row__desc">真人成绩优先。人数少时用 <span class="badge badge--muted">NPC</span> 垫场（氛围用，非真人热度）。</div>
         </div>
       </div>
     `);
