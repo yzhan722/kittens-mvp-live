@@ -1,12 +1,13 @@
-# Dev Backlog — v0.41.6
+# Dev Backlog — v0.41.6 代码 / v0.41.2 生产
 
-> 2026-09-10 · 诚实空服 + 运营门禁，不是再刷乐趣分
+> 2026-09-11 · 待做项以 GitHub Issue 为准，本文件只是索引。不要勾「队列空」。
 
-## 待做（发布后）
+## 待做（GitHub）
 
-- 部署 0.41.6 后重跑 live-health-smoke / retention-baseline
-- D1 `analytics_events` 分事件计数（需 wrangler）
-- 生产双号 PvP 若本轮脚本失败则记 P0
+- [#2](https://github.com/yzhan722/kittens-mvp-live/issues/2) 部署 0.41.6 到 pokeauto.online，再重跑 live-health-smoke / retention-baseline
+- [#3](https://github.com/yzhan722/kittens-mvp-live/issues/3) D1 `analytics_events` 分事件计数（需 wrangler）
+- [#6](https://github.com/yzhan722/kittens-mvp-live/issues/6) 生产仍是 0.41.2 氛围假人；诚实空服要等 #2
+- [#8](https://github.com/yzhan722/kittens-mvp-live/issues/8) 闪光馆全屏秀（分享卡已在 0.41.6，全屏秀非 blocker）
 
 ## 已完成（本轮代码）
 

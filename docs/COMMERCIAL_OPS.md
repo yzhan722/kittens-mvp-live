@@ -1,7 +1,8 @@
 # Commercial Ops — 上线清单（三态）
 
-> v0.41.6 · 2026-09-10  
-> 状态：`已验证` = 本轮有证据 · `未做` = 仍缺 · `延期` = 明确不做直到条件满足
+> 生产：v0.41.2 · 本分支代码：v0.41.6 · 2026-09-11  
+> 状态：`已验证` = 本轮有证据 · `未做` = 仍缺 · `延期` = 明确不做直到条件满足  
+> 进度：[milestone v0.41.2](https://github.com/yzhan722/kittens-mvp-live/milestone/1) · [release](https://github.com/yzhan722/kittens-mvp-live/releases/tag/v0.41.2) · 不要只在本表勾完当队列空
 
 ## CI / 质量门
 
@@ -11,7 +12,7 @@
 | `api-contract` / `items` / `analytics` / `daily_tasks` / `era` / `gameplay-fun` / `migrations` | 已验证 | 本轮均 OK |
 | Playwright smoke | 已验证 | `playwright-smoke: OK` |
 | Player sim 6h | 已验证 | `player-sim: 0 FAIL` seed=1 720 steps |
-| GitHub Actions 全绿 | 未做 | 需推分支后看 run |
+| GitHub Actions 全绿 | 已验证 | [#4](https://github.com/yzhan722/kittens-mvp-live/issues/4) closed；PR #5 run 34499396136 |
 
 ## D1 迁移
 

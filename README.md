@@ -20,7 +20,17 @@
 - 上线清单：`docs/COMMERCIAL_OPS.md`
 - IAP 决策：`docs/IAP_DECISION.md`
 - 乐趣记分：`PLAYER_FUN_SCORECARD.md`
+- v0.41.2 发版说明：`docs/ops/RELEASE_v0.41.2.md`
+
+## 进度跟踪（不要只写 markdown）
+
+下一轮冲刺以 GitHub 为准，不要把未完成项只勾在 backlog 里当「队列空」。
+
+- 生产标签：[v0.41.2](https://github.com/yzhan722/kittens-mvp-live/releases/tag/v0.41.2)（`master` `7ce8d4d`，live `game.pokeauto.online` health 0.41.2）
+- Milestone：[v0.41.2](https://github.com/yzhan722/kittens-mvp-live/milestone/1)
+- 本分支代码：v0.41.6（[PR #5](https://github.com/yzhan722/kittens-mvp-live/pull/5)），待部署见 [#2](https://github.com/yzhan722/kittens-mvp-live/issues/2)
+- `feat/era-chronicle` 已删：[#9](https://github.com/yzhan722/kittens-mvp-live/issues/9)
 
 ## 版本
 
-以 `index.html` / `main.js` / `sw.js` / `modules/config.js` 的 `v0.x.y` 为准，四处保持一致。
+以 `index.html` / `main.js` / `sw.js` / `modules/config.js` 的 `v0.x.y` 为准，四处保持一致。生产标签是 0.41.2；本仓 `restart/p1-p13` 代码是 0.41.6。

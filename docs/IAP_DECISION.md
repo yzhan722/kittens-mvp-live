@@ -1,6 +1,6 @@
 # IAP 决策 — v0.41.6
 
-**决定：v0.42 之前不做真支付。**
+**决定：v0.42 之前不做真支付。** GitHub：[#7](https://github.com/yzhan722/kittens-mvp-live/issues/7)（v0.41.2 milestone，已关 / not planned）。
 
 理由：
 

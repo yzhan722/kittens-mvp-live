@@ -44,9 +44,11 @@
 
 ## stillOpen
 
-- 真·10 仍 0：无真人热度、无真 IAP  
-- 社交仍是本地 NPC；本批未做 live heat  
-- 闪光馆无独立全屏秀 / 分享卡  
+跟踪在 GitHub，不要只改这段文字：
+
+- 真·10 仍 0：无真人热度 → [#6](https://github.com/yzhan722/kittens-mvp-live/issues/6)（生产 0.41.2 社交仍是 NPC padding；0.41.6 关假人待 [#2](https://github.com/yzhan722/kittens-mvp-live/issues/2)）
+- 无真 IAP → [#7](https://github.com/yzhan722/kittens-mvp-live/issues/7)（已关：延期到 v0.42）
+- 闪光馆无独立全屏秀 → [#8](https://github.com/yzhan722/kittens-mvp-live/issues/8)（分享卡已在 0.41.6 PR #5）  
 
 ## Verify
 
