@@ -26,11 +26,11 @@
 
 下一轮冲刺以 GitHub 为准，不要把未完成项只勾在 backlog 里当「队列空」。
 
-- 生产：[v0.41.7](https://game.pokeauto.online/) live health 0.41.7（氛围假人关；乱码名不再映射 NPC 花名）
+- 生产：[v0.41.8](https://game.pokeauto.online/) live health 0.41.8（氛围假人关；乱码名不再映射 NPC 花名）
 - 历史标签：[v0.41.2](https://github.com/yzhan722/kittens-mvp-live/releases/tag/v0.41.2)
 - Milestone：[v0.41.2](https://github.com/yzhan722/kittens-mvp-live/milestone/1)
 - `feat/era-chronicle` 已删：[#9](https://github.com/yzhan722/kittens-mvp-live/issues/9)
 
 ## 版本
 
-以 `index.html` / `main.js` / `sw.js` / `modules/config.js` 的 `v0.x.y` 为准，四处保持一致。当前生产是 0.41.7。
+以 `index.html` / `main.js` / `sw.js` / `modules/config.js` 的 `v0.x.y` 为准，四处保持一致。当前生产是 0.41.8。

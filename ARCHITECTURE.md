@@ -1,6 +1,6 @@
 # 宝可梦挂机 — 代码架构说明
 
-> 生产：v0.41.7（`master` / live health 0.41.7）  
+> 生产：v0.41.8（`master` / live health 0.41.8）  
 > 最后更新：2026-09-11  
 > 未完成项：[milestone v0.41.2](https://github.com/yzhan722/kittens-mvp-live/milestone/1)，不要把进度只写在 markdown。
 
@@ -93,7 +93,7 @@ node scripts/items-selfcheck.mjs
 
 CI：`.github/workflows/selfcheck.yml`（push/PR 跑 selfcheck；0.41.6 已绿见 [#4](https://github.com/yzhan722/kittens-mvp-live/issues/4)）。
 
-进度：生产是 v0.41.7。`feat/era-chronicle` 已删（[#9](https://github.com/yzhan722/kittens-mvp-live/issues/9)）。
+进度：生产是 v0.41.8。`feat/era-chronicle` 已删（[#9](https://github.com/yzhan722/kittens-mvp-live/issues/9)）。
 
 ## 前端要点
 

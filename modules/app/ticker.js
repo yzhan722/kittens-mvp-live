@@ -2,7 +2,7 @@
 // 维护者窗口：B
 // 注：含 DOM/网络，放 modules/app/（非 systems 纯函数）
 
-import { ambientWorldBatch, ambientWorldLine, bossHudLine } from "../systems/world_presence.js";
+import { ambientWorldBatch, ambientWorldLine, bossHudLine } from "../systems/world_presence.js?v=0.41.8";
 
 export function createTickerSystem({
   getElTicker,

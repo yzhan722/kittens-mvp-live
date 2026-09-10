@@ -1,6 +1,6 @@
 # Commercial Ops — 上线清单（三态）
 
-> 生产：v0.41.7 · 2026-09-11  
+> 生产：v0.41.8 · 2026-09-11  
 > 状态：`已验证` = 本轮有证据 · `未做` = 仍缺 · `延期` = 明确不做直到条件满足  
 > 进度：[milestone v0.41.2](https://github.com/yzhan722/kittens-mvp-live/milestone/1) · [release](https://github.com/yzhan722/kittens-mvp-live/releases/tag/v0.41.2) · 不要只在本表勾完当队列空
 
@@ -40,14 +40,14 @@
 
 | 项 | 状态 | 证据 |
 |----|------|------|
-| 四处版本一致 | 已验证 | `0.41.7`：index/main/sw/config + health |
-| 发版后清缓存 | 已验证 | `CACHE_VERSION` `kittens-v0.41.7`；部署后 health 0.41.7 |
+| 四处版本一致 | 已验证 | `0.41.8`：index/main/sw/config + health |
+| 发版后清缓存 | 已验证 | `CACHE_VERSION` `kittens-v0.41.8`；SW JS `cache: no-store` |
 
 ## 部署
 
 | 项 | 状态 | 证据 |
 |----|------|------|
-| 生产 `GET /api/health` | 已验证 | 2026-09-11 version 0.41.7（氛围假人关） |
+| 生产 `GET /api/health` | 已验证 | 2026-09-11 version 0.41.8（氛围假人关） |
 | live-health-smoke | 已验证 | health / ingest / events / dex / friends 全绿 |
 | 双号 PvP e2e 生产 | 已验证 | `pvp-live-e2e: OK` inviteId=4 resultsSeen |
 | 留存公开榜 | 已验证 | dex 真人 1 行、score 3；见 `docs/ops/RETENTION_BASELINE.md` |

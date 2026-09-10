@@ -1,7 +1,7 @@
-// Service Worker v0.41.7
+// Service Worker v0.41.8
 // 策略：HTML/JS/CSS Network First（确保F5刷新时强制获取最新版本），数据文件 Cache First
 
-const CACHE_VERSION = 'kittens-v0.41.7';
+const CACHE_VERSION = 'kittens-v0.41.8';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
@@ -85,7 +85,7 @@ self.addEventListener('fetch', (event) => {
   // HTML / JS / CSS：Network First，网络失败时回退缓存
   // 这样普通 F5 刷新时总是尝试获取最新版本，只有离线时才用缓存
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache: "no-store" })
       .then((res) => {
         if (res.ok && request.method === 'GET') {
           const resClone = res.clone();

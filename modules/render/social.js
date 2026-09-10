@@ -2,7 +2,7 @@
 
 import { getExpeditionSeasonBlurb, pickExpeditionEventCard, resolveSeasonId } from "../systems/expedition.js";
 import { formatPvpSeasonStats, formatPvpSeasonHeadline } from "../systems/pvp_narrative.js";
-import { fakeSocialFeed, localDateStr } from "../systems/world_presence.js";
+import { fakeSocialFeed, localDateStr } from "../systems/world_presence.js?v=0.41.8";
 
 export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, getState }) {
   function socialUnavailableRow(title) {
