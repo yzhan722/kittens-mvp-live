@@ -333,8 +333,9 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 }
 
 {
-  assert.ok(liveNextGoalLine({}, { eraQuest: "抓一只" }).includes("时代任务"), "live goal era");
-  assert.ok(liveNextGoalLine({}, { pveNext: "1-1" }).includes("挑战"), "live goal pve");
+  assert.ok(liveNextGoalLine({ catchCount: 1 }, { eraQuest: "抓一只" }).includes("时代任务"), "live goal era");
+  assert.ok(liveNextGoalLine({ catchCount: 1 }, { pveNext: "1-1" }).includes("挑战"), "live goal pve");
+  assert.ok(liveNextGoalLine({ catchCount: 0 }, { dexPct: 0 }).includes("捕捉"), "live goal first catch");
 }
 
 {
@@ -402,7 +403,10 @@ import { ensureTowerState, getTowerFloor, isTowerCleared, PVE_TOWER_FLOORS, isoW
 
 {
   assert.equal(seasonLocalScore(5, 2), 52, "season score");
-  const bar = seasonBarVsGhosts(50);
+  const bar = seasonBarVsGhosts(50, [
+    { name: "短裤小子", score: 80 },
+    { name: "迷你裙", score: 220 },
+  ]);
   assert.ok(bar.tip.includes("再登记") || bar.tip.includes("超过"), "season tip");
   assert.ok(bar.topPct >= 0 && bar.topPct <= 100, "season pct");
 }

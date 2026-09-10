@@ -1,22 +1,23 @@
 # Player Fun Loop Backlog
 
-> 计划：`docs/superpowers/plans/2026-07-13-player-fun-loop.md`  
-> 评分：`PLAYER_FUN_SCORECARD.md` · **队列空 · Gate 全过**
+> 评分：`PLAYER_FUN_SCORECARD.md` · Gate 仍算通过  
+> 2026-09-10：乐趣分不再加码；外部阻塞改为诚实空服与运营
 
 ## 待做
 
-（空）
+- 部署后确认真人榜不再被客户端假人盖住
+- 闪光馆全屏秀（分享卡已做，全屏秀仍非目标）
 
 ## 已完成
 
 | ID | 摘要 |
 |----|------|
-| S1 | 功能摘要 + 训练经验 meta + welcome-back |
-| S2 | PvE 练习模式 + 丰缘第 3 章 5 关 |
-| S3 | 离线 NPC 训练家对战 |
-| S4 | 图鉴去捕捉 / 道具 log / 篝火采集摘要 |
-| S5 | 评分验收 + canvas |
+| S1–S5 | 原乐趣环 |
+| OPS-empty | 氛围假人默认关 |
+| OPS-share | 闪光分享卡 |
 
 ## 外部阻塞
 
-- Prod D1 remote · 真商户 IAP · PR → master
+- 真商户 IAP → **延期到 v0.42**（`docs/IAP_DECISION.md`）
+- Prod D1 remote analytics 查询 → 需凭证
+- PR → master → 本轮在 `restart/p1-p13` 分支

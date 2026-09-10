@@ -8,6 +8,8 @@ import {
   shinyGalleryEntries,
   shinyUniqueCount,
   syncShinyGalleryFromMons,
+  buildShinyShareText,
+  shinyShareCardPayload,
 } from "../modules/systems/collection_fun.js";
 
 {
@@ -45,6 +47,20 @@ import {
   assert.equal(n, 1, "sync added");
   assert.equal(shinyUniqueCount(state), 1, "synced unique");
   assert.equal(state.meta?.shinyMilestones?.s1, undefined, "silent sync no mile");
+}
+
+{
+  const state = {
+    dex: {
+      shiny: {
+        pika: { dex: 25, name: "皮卡丘", at: 3 },
+        bulba: { dex: 1, name: "妙蛙种子", at: 2 },
+      },
+    },
+  };
+  const text = buildShinyShareText(state);
+  assert.ok(text.includes("皮卡丘") && text.includes("闪光馆"), "share text");
+  assert.equal(shinyShareCardPayload(state).unique, 2, "share card unique");
 }
 
 console.log("collection-fun-selfcheck: ok");

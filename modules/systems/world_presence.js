@@ -1,8 +1,15 @@
 /**
- * World presence helpers — fake + soft liveliness without requiring live peers.
- * ponytail: ambient / board padding is seeded theater; upgrade = real events + scores heat.
+ * World presence helpers — optional atmosphere fakes + real-event pulse.
+ * Atmosphere defaults OFF (honest empty boards). Pass { atmosphereFakes: true } to opt in.
  * Trainer handles stay ASCII so CDN/encoding never turns them into mojibake.
  */
+
+import { REMOTE_CONFIG_DEFAULTS } from "../remote_config.js";
+
+export function atmosphereFakesEnabled(opts = null) {
+  if (opts && typeof opts.atmosphereFakes === "boolean") return opts.atmosphereFakes;
+  return REMOTE_CONFIG_DEFAULTS.featureFlags?.atmosphereFakes === true;
+}
 
 export const FAKE_TRAINERS = Object.freeze([
   "LeafGrove",
@@ -153,7 +160,8 @@ export function ambientWorldLine(nowMs = Date.now(), salt = 0) {
 }
 
 /** Several ambient lines for padding an empty feed. */
-export function ambientWorldBatch(nowMs = Date.now(), count = 3) {
+export function ambientWorldBatch(nowMs = Date.now(), count = 3, opts = null) {
+  if (!atmosphereFakesEnabled(opts)) return [];
   const n = Math.max(1, Math.min(8, Math.floor(count) || 3));
   const out = [];
   for (let i = 0; i < n; i += 1) {
@@ -163,7 +171,8 @@ export function ambientWorldBatch(nowMs = Date.now(), count = 3) {
 }
 
 /** Soft social feed cards when real achievements are empty. */
-export function fakeSocialFeed(dateStr = localDateStr(), count = 5) {
+export function fakeSocialFeed(dateStr = localDateStr(), count = 5, opts = null) {
+  if (!atmosphereFakesEnabled(opts)) return [];
   const rnd = mulberry32(hashStr(`social-feed:${dateStr}`));
   const n = Math.max(1, Math.min(8, Math.floor(count) || 5));
   const out = [];
@@ -187,7 +196,8 @@ export function fakeSocialFeed(dateStr = localDateStr(), count = 5) {
 }
 
 /** Daily-drifting leaderboard ghost rivals. */
-export function ghostRivalsForDay(dateStr = localDateStr()) {
+export function ghostRivalsForDay(dateStr = localDateStr(), opts = null) {
+  if (!atmosphereFakesEnabled(opts)) return [];
   const rnd = mulberry32(hashStr(`lb-ghost:${dateStr}`));
   return BASE_LB_GHOSTS.map((g, i) => {
     const dexJitter = Math.floor((rnd() - 0.35) * (8 + i * 4));
@@ -201,7 +211,8 @@ export function ghostRivalsForDay(dateStr = localDateStr()) {
 }
 
 /** Daily-drifting season score ghosts. */
-export function seasonGhostsForDay(dateStr = localDateStr()) {
+export function seasonGhostsForDay(dateStr = localDateStr(), opts = null) {
+  if (!atmosphereFakesEnabled(opts)) return [];
   const rnd = mulberry32(hashStr(`season-ghost:${dateStr}`));
   return BASE_SEASON_GHOSTS.map((g, i) => {
     const jitter = Math.floor((rnd() - 0.4) * (40 + i * 80));
@@ -253,7 +264,7 @@ export function padLeaderboard(items, board, dateStr = localDateStr(), opts = nu
   const minRows = typeof opts?.minRows === "number" ? opts.minRows : 14;
   const alwaysFake = typeof opts?.alwaysFake === "number" ? opts.alwaysFake : 6;
   const need = Math.max(alwaysFake, minRows - real.length);
-  const fakes = fakeBoardRows(board, dateStr, need);
+  const fakes = atmosphereFakesEnabled(opts) ? fakeBoardRows(board, dateStr, need) : [];
 
   const realNames = new Set();
   const cleanedReal = real.map((it) => {

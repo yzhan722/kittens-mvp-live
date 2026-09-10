@@ -15,6 +15,7 @@ export const REMOTE_CONFIG_DEFAULTS = {
   featureFlags: {
     analytics: true,
     dailyTasksApi: true,
+    atmosphereFakes: false,
   },
 };
 

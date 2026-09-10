@@ -125,3 +125,26 @@ export function syncShinyGalleryFromMons(state) {
   }
   return added;
 }
+
+/** Plain-text shiny gallery share. Empty gallery → "". */
+export function buildShinyShareText(state, limit = 6) {
+  const unique = shinyUniqueCount(state);
+  const gallery = shinyGalleryEntries(state, 16);
+  const names = gallery
+    .slice(0, Math.max(0, Math.floor(limit)))
+    .map((e) => e.name)
+    .filter(Boolean);
+  if (!names.length || unique <= 0) return "";
+  return `我的闪光馆（${unique}）：${names.join("、")}${gallery.length > 6 ? "…" : ""} — 宝可梦放置冒险`;
+}
+
+/** Structured payload for a share card / canvas. */
+export function shinyShareCardPayload(state) {
+  const unique = shinyUniqueCount(state);
+  const entries = shinyGalleryEntries(state, 8).map((e) => ({
+    pid: e.pid,
+    dex: e.dex,
+    name: e.name,
+  }));
+  return { unique, entries, title: "闪光馆", game: "宝可梦放置冒险" };
+}

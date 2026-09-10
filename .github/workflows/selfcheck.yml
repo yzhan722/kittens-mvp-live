@@ -27,6 +27,12 @@ jobs:
         run: node scripts/era-selfcheck.mjs
       - name: Gameplay fun selfcheck
         run: node scripts/gameplay-fun-selfcheck.mjs
+      - name: Cloud save selfcheck
+        run: node scripts/cloud-save-selfcheck.mjs
+      - name: Newbie path selfcheck
+        run: node scripts/newbie-path-selfcheck.mjs
+      - name: Restart P1-P13 selfcheck
+        run: node scripts/restart-p1-p13-selfcheck.mjs
       - name: Migrations selfcheck
         run: node scripts/migrations-selfcheck.mjs
       - name: Install deps

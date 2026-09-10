@@ -24,7 +24,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml, getState, getCaptureA
       <div class="row">
         <div class="row__left">
           <div class="row__title">帮助文档</div>
-          <div class="row__desc muted">版本 v0.41.2 · 时代纪元 / PvE / 道具 / 社交鉴权 · 点击各节标题展开详情</div>
+          <div class="row__desc muted">版本 v0.41.6 · 时代纪元 / PvE / 道具 / 社交鉴权 · 点击各节标题展开详情</div>
         </div>
       </div>
     `);
@@ -81,7 +81,7 @@ export function createRenderHelp({ elHelp, ui, escapeHtml, getState, getCaptureA
         <b>1. 采集</b>：顶栏【采集】换树果${br}
         <b>2. 研究</b>：研究页点${h('精灵球基础')}（完成后送球×5）${br}
         <b>3. 捕捉</b>：打开「捕捉」抓第一只${br}
-        <b>4. 看世界</b>：「更多」→「排行榜」看 NPC 训练家${br}
+        <b>4. 看世界</b>：「更多」→「排行榜」看真实分数（空榜也正常）${br}
         <b>5. 可选云账号</b>：「设置」注册 → 换机不丢档，还能加好友约战
       </div>
       ${tip('球到手后游戏会轻推你去捕捉；第一只到手后再提醒看榜/开云。')}

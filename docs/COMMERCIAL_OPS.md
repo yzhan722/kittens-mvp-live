@@ -1,60 +1,60 @@
-# Commercial Ops — 上线前短清单
+# Commercial Ops — 上线清单（三态）
 
-> v0.40.1 · 非代码；与 `ARCHITECTURE.md` 互补
+> v0.41.6 · 2026-09-10  
+> 状态：`已验证` = 本轮有证据 · `未做` = 仍缺 · `延期` = 明确不做直到条件满足
 
 ## CI / 质量门
 
-- [ ] `node scripts/selfcheck.mjs` 绿
-- [ ] `node scripts/api-contract-selfcheck.mjs` 绿
-- [ ] `node scripts/items-selfcheck.mjs` 绿（幸运蛋 / 王冠 / 药剂契约）
-- [ ] `node scripts/analytics-selfcheck.mjs` 绿
-- [ ] `node scripts/daily_tasks-selfcheck.mjs` 绿
-- [ ] `node scripts/e2e-smoke.mjs` 绿（关键文件 + analytics/daily_tasks/era 子自检）
-- [ ] `node scripts/migrations-selfcheck.mjs` 绿（D1 SQL 文件契约）
-- [ ] `npm ci` + `node scripts/playwright-smoke.mjs`（CI 已配置；本地需先 `npm ci`）
-- [ ] GitHub Actions `selfcheck` workflow 全步骤过
+| 项 | 状态 | 证据 |
+|----|------|------|
+| `node scripts/selfcheck.mjs` | 已验证 | 本地 2026-09-10 `selfcheck: OK`（含 cloud/newbie/restart） |
+| `api-contract` / `items` / `analytics` / `daily_tasks` / `era` / `gameplay-fun` / `migrations` | 已验证 | 本轮均 OK |
+| Playwright smoke | 已验证 | `playwright-smoke: OK` |
+| Player sim 6h | 已验证 | `player-sim: 0 FAIL` seed=1 720 steps |
+| GitHub Actions 全绿 | 未做 | 需推分支后看 run |
 
 ## D1 迁移
 
-- [ ] 增量 migration（`migrations/*.sql`、`scripts/migrations/*.sql`），**禁止**未授权全量 `d1_schema.sql`
-- [ ] `node scripts/apply-d1-migrations.mjs`（本地 `--local`；上线前改 `--remote`）
-  - `npx wrangler d1 execute kittens-mvp --local --config scripts/wrangler.d1.toml --file scripts/migrations/2026-07-12-rate-limits.sql`
-  - `npx wrangler d1 execute kittens-mvp --local --config scripts/wrangler.d1.toml --file scripts/migrations/2026-07-13-iap-orders.sql`
-  - `npx wrangler d1 execute kittens-mvp --local --config scripts/wrangler.d1.toml --file scripts/migrations/2026-07-12-analytics.sql`
-- [ ] 本地验证通过后，先备份/确认 D1 环境，再将同一命令改为 `--remote` 执行
-- [x] Prod 执行后查询 `rate_limits`、`iap_orders`、`analytics_events` 表存在；记录执行时间与操作者
-- [x] 当前状态：三份 SQL 已于 2026-07-15（UTC）经 `node scripts/apply-d1-migrations.mjs --remote` apply（D1 `kittens-mvp`，tables 21）
+| 项 | 状态 | 证据 |
+|----|------|------|
+| analytics / rate_limits / iap_orders remote apply | 已验证 | COMMERCIAL_OPS 原文：2026-07-15 `--remote`，tables 21 |
+| 全量 `d1_schema.sql` wipe | 延期 | 禁止未授权清库 |
 
-## IAP / 赞助（诚实桩）
+## IAP / 赞助
 
-- [ ] `modules/iap_stub.js`：`purchase()` 无 `window.KITTENS_IAP_PROVIDER` 时返回 `{ ok:false, reason:'provider_unconfigured' }`，**不得**伪造支付成功
-- [ ] `GET /api/iap/catalog` 公开只读目录
-- [ ] `POST /api/iap/webhook`：未配置 `IAP_WEBHOOK_SECRET` 时拒绝；配置后验签并写 `pending` 台账
-- [x] 设置页「支持开发者」展示赞助 QR + 目录「即将上线」列表
-- [ ] 真商户接入：在 Cloudflare Pages 配置 `IAP_WEBHOOK_SECRET`，接入 provider、履约 worker 与退款/幂等后再开 `iap_enabled`（本地/线上可用 `node scripts/iap-ledger-selfcheck.mjs` 验诚实桩）
+| 项 | 状态 | 证据 |
+|----|------|------|
+| 诚实桩（未配置不得伪造成功） | 已验证 | `iap_stub.purchase` → `provider_unconfigured`；e2e-smoke |
+| 真商户 + `IAP_WEBHOOK_SECRET` + 履约 | 延期 | 见 `docs/IAP_DECISION.md`：v0.42 前不做真支付 |
+| 设置页赞助 QR | 已验证 | index 支持开发者区块 |
 
 ## 写接口鉴权
 
-- [ ] `/api/social/*`、`/api/friends/*`、`/api/daily_tasks*` 等写路径需 `requireUser`（见 `api-contract-selfcheck.mjs`）
-- [ ] 限流写端点（buff 购买、boss、score、events）需 `checkRateLimit`
+| 项 | 状态 | 证据 |
+|----|------|------|
+| social/friends requireUser | 已验证 | api-contract-selfcheck |
+| 氛围假人默认关 | 已验证 | `featureFlags.atmosphereFakes: false` |
 
 ## 版本与缓存
 
-- [ ] `index.html` / `main.js` / `sw.js` / `modules/config.js` 四处版本一致
-- [ ] 发版后 spot-check：`lastKnownVersion` 触发清缓存
-
-## API 退役确认
-
-- [ ] 前端无 `/api/daily_tasks` 调用（任务在 `modules/daily_tasks.js` 本地）
-- [ ] `/api/daily_tasks*` 仍返回 410（勿误删路由）
-
-## 鉴权面
-
-- [ ] `/api/social/*` 与 `/api/friends/*` 均需 Bearer（`requireUser`）
-- [x] 未登录社交 Tab 有明确空态/引导登录
+| 项 | 状态 | 证据 |
+|----|------|------|
+| 四处版本一致 | 已验证 | `0.41.6`：index/main/sw/config + health |
+| 发版后清缓存 | 未做 | 需部署后 spot-check `lastKnownVersion` |
 
 ## 部署
 
-- [ ] `wrangler pages deploy` 含 `functions/`
-- [ ] `GET /api/health` 返回当前版本
-- [ ] D1 变更走增量 migration，**禁止**未授权全量 `d1_schema.sql`
+| 项 | 状态 | 证据 |
+|----|------|------|
+| 生产 `GET /api/health` | 已验证 | 2026-09-10 live-health-smoke OK，version 0.41.2（0.41.6 待发布） |
+| live-health-smoke | 已验证 | health / ingest / events / dex / friends 全绿 |
+| 双号 PvP e2e 生产 | 已验证 | `pvp-live-e2e: OK` inviteId=4 resultsSeen |
+| 留存公开榜 | 已验证 | dex 真人 1 行、score 3；见 `docs/ops/RETENTION_BASELINE.md` |
+| IAP 诚实桩（线上 catalog/webhook） | 已验证 | iap-ledger-selfcheck OK |
+
+## 留存
+
+| 项 | 状态 | 证据 |
+|----|------|------|
+| 公开榜真人基线 | 已验证 | dex 真人 1 行、score 3；`docs/ops/RETENTION_BASELINE.md` |
+| D1 `analytics_events` 分事件计数 | 未做 | 需 wrangler 凭证 |

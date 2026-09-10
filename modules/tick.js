@@ -2,7 +2,6 @@ import { clamp, randFloat } from "./utils.js";
 import { runAutomation } from "./automation.js?v=0.31.4";
 import { eraEncounterRechargeMul } from "./systems/era.js";
 import {
-  pickBreedEventCard,
   pickExpeditionEventCard,
   resolveSeasonId,
   tickExpeditionMilestones,
@@ -18,7 +17,8 @@ import {
   natureTrainExpMul,
   noteExpeditionDailyDone,
 } from "./systems/gameplay_fun.js";
-import { noteSeasonRelic, noteShinySpecies, rollSeasonRelic } from "./systems/collection_fun.js";
+import { noteSeasonRelic, rollSeasonRelic } from "./systems/collection_fun.js";
+import { hatchEgg as hatchEggCore } from "./systems/breeding.js";
 
 export function createTick(ctx) {
   const ui = ctx.ui;
@@ -231,59 +231,19 @@ export function createTick(ctx) {
   }
 
   function hatchEgg(state, mons, monById) {
-    ensureBreedingState(state);
-    const aId = typeof state.breeding.aId === "number" && Number.isFinite(state.breeding.aId) ? state.breeding.aId : null;
-    const bId = typeof state.breeding.bId === "number" && Number.isFinite(state.breeding.bId) ? state.breeding.bId : null;
-    if (!aId || !bId || aId === bId) return false;
-    const a = getMonById(mons, monById, aId);
-    const b = getMonById(mons, monById, bId);
-    if (!a || !b) return false;
-
-    const dittoPid = "p132";
-    let basePid = null;
-    if (a.pid === dittoPid && b.pid !== dittoPid) basePid = getBasePid(b.pid);
-    else if (b.pid === dittoPid && a.pid !== dittoPid) basePid = getBasePid(a.pid);
-    else if (sameFamily(a.pid, b.pid)) basePid = getBasePid(a.pid);
-    if (!basePid) return false;
-
-    const sp = typeof getSpeciesByPid === "function" ? getSpeciesByPid(basePid) : null;
-    if (!sp) return false;
-    if (typeof createMonInstance !== "function") return false;
-
-    const mon = createMonInstance(sp);
-    const shiny = randFloat() < 1 / 4096;
-    if (shiny) {
-      mon.isShiny = true;
-      addLog(`！！！闪光孵化：${sp.name}！！！`, true);
-    }
-    const prevHatch = typeof state.hatchCount === "number" && Number.isFinite(state.hatchCount) ? state.hatchCount : 0;
-    state.hatchCount = Math.max(0, Math.floor(prevHatch)) + 1;
-    if (shiny) {
-      const prevShiny = typeof state.shinyCount === "number" && Number.isFinite(state.shinyCount) ? state.shinyCount : 0;
-      state.shinyCount = Math.max(0, Math.floor(prevShiny)) + 1;
-      const mile = noteShinySpecies(state, sp);
-      if (mile?.item) {
-        addRes(mile.item, 1);
-        addLog(mile.label, true);
-      }
-    }
-    if (!state.mons) state.mons = { nextId: 1, list: [] };
-    if (!Array.isArray(state.mons.list)) state.mons.list = [];
-    state.mons.list.push(mon);
-    state.mons.nextId = Math.max(state.mons.nextId ?? 1, (mon?.id ?? 0) + 1);
-    addLog(`生蛋成功：${sp.name} +1`, true);
-    const breedCard = pickBreedEventCard(randFloat);
-    if (breedCard?.title) {
-      addLog(`孵化奇遇：${breedCard.title} — ${breedCard.blurb}`, true);
-      const fc = Math.max(0, Math.floor(breedCard.bonusFuturecoin || 0));
-      if (fc > 0) addRes("futurecoin", fc);
-    }
-    if (ui) {
-      ui.monsDirty = true;
-      ui.functionsDirty = true;
-      ui.dexDirty = true;
-    }
-    return true;
+    return hatchEggCore(state, {
+      mons,
+      monById,
+      getMonById,
+      getBasePid,
+      sameFamily,
+      getSpeciesByPid,
+      createMonInstance,
+      randFloat,
+      addLog,
+      addRes,
+      ui,
+    });
   }
 
   const decArr = (arr, dtSec) => {

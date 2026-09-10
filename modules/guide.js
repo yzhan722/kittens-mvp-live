@@ -29,7 +29,7 @@ const GUIDE_STEPS = [
   {
     id: "world",
     title: "第4步：看一眼排行榜",
-    desc: "「更多」→「排行榜」：有 NPC 训练家垫榜，感受世界在动。",
+    desc: "「更多」→「排行榜」：看真实分数。空榜也没关系，先抓几只再回来。",
     targetSelector: ".tab[data-tab='leaderboard'], .tab--more",
     position: "bottom",
   },
@@ -206,11 +206,13 @@ export function maybeNewbieHandoff({ state, activateTab, addLog, pushTickerEvent
         } catch {}
         if (typeof pushTickerEvent === "function") pushTickerEvent("guide", "新手：球已到手，去捕捉");
         if (typeof activateTab === "function") {
-          setTimeout(() => {
+          const fire = () => {
             try {
               activateTab("capture");
             } catch {}
-          }, 600);
+          };
+          if (typeof globalThis.window === "object" && globalThis.window) setTimeout(fire, 600);
+          else fire();
         }
       }
     }
@@ -219,20 +221,22 @@ export function maybeNewbieHandoff({ state, activateTab, addLog, pushTickerEvent
     if ((state.catchCount || 0) >= 1 && localStorage.getItem(HANDOFF_WORLD_KEY) !== "1") {
       localStorage.setItem(HANDOFF_WORLD_KEY, "1");
       if (typeof addLog === "function") {
-        addLog("新手提示：第一只到手！去「排行榜」看 NPC，或「设置」注册云账号加好友。", true);
+        addLog("新手提示：第一只到手！去「排行榜」看真实分数，或「设置」注册云账号加好友。", true);
       }
       if (typeof hint === "function") hint("去排行榜看看世界，或设置里开云账号", 5000);
       try {
         if (typeof window.showToast === "function") window.showToast("第一只到手 → 去排行榜", "ok", 4500);
       } catch {}
       if (typeof pushTickerEvent === "function") pushTickerEvent("guide", "新手：第一只到手，去看排行榜");
-      if (typeof activateTab === "function") {
-        setTimeout(() => {
-          try {
-            activateTab("leaderboard");
-          } catch {}
-        }, 900);
-      }
+        if (typeof activateTab === "function") {
+          const fire = () => {
+            try {
+              activateTab("leaderboard");
+            } catch {}
+          };
+          if (typeof globalThis.window === "object" && globalThis.window) setTimeout(fire, 900);
+          else fire();
+        }
     }
   } catch {
     // ignore storage / UI failures

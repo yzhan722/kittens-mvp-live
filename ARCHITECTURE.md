@@ -1,6 +1,6 @@
 # 宝可梦挂机 — 代码架构说明
 
-> 版本：v0.40.1 · 最后更新：2026-07-12
+> 版本：v0.41.6 · 最后更新：2026-09-10
 
 ## 整体架构
 
@@ -97,6 +97,8 @@ CI：`.github/workflows/selfcheck.yml`（push/PR 跑三个 selfcheck：frontend 
 - 道具使用：`modules/item_usage.js`（幸运蛋/王冠/糖果等）；药剂强化在 `modules/tabs/mons_tab.js`（`statBonus` 单项上限 +50）
 - 版本四处同步：`index.html` / `main.js` / `sw.js` / `modules/config.js`
 - 协作：`.cursor/rules/kittens-collab.mdc`
+- 氛围假人：`REMOTE_CONFIG_DEFAULTS.featureFlags.atmosphereFakes` 默认 `false`；排行榜仍 remap 乱码名，但不垫 NPC。
+- 孵化：`modules/systems/breeding.js` 的 `hatchEgg`，`tick.js` 只接线。
 
 ## 密钥
 

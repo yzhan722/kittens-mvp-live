@@ -6,6 +6,7 @@
 
 - 静态页：直接开 `index.html`，或 Pages 部署本仓根目录
 - 自检：`node scripts/selfcheck.mjs` · `node scripts/e2e-smoke.mjs`
+- 留存快照：`node scripts/retention-baseline.mjs`
 - 线上巡检：
   - `node scripts/live-health-smoke.mjs`
   - `node scripts/pvp-live-e2e.mjs`（双号 invite→accept→result）
@@ -17,6 +18,7 @@
 
 - 架构：`ARCHITECTURE.md`
 - 上线清单：`docs/COMMERCIAL_OPS.md`
+- IAP 决策：`docs/IAP_DECISION.md`
 - 乐趣记分：`PLAYER_FUN_SCORECARD.md`
 
 ## 版本

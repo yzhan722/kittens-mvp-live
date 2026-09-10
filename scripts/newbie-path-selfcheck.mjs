@@ -3,6 +3,7 @@
  * Run: node scripts/newbie-path-selfcheck.mjs
  */
 import { looksBrokenName, displayTrainerId } from "../modules/systems/world_presence.js";
+import { maybeNewbieHandoff } from "../modules/guide.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -35,5 +36,20 @@ assert(html.includes("换设备不丢档"), "options cloud CTA");
 
 const app = readFileSync(join(root, "app.js"), "utf8");
 assert(app.includes("maybeNewbieHandoff"), "app wires handoff");
+
+const mem = {};
+globalThis.localStorage = {
+  getItem: (k) => (Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null),
+  setItem: (k, v) => {
+    mem[k] = String(v);
+  },
+};
+const tabs = [];
+maybeNewbieHandoff({
+  state: { meta: { starterBallsGranted: true }, res: { pokeball: { value: 5 } }, catchCount: 0 },
+  activateTab: (t) => tabs.push(t),
+  addLog: () => {},
+});
+assert(tabs.includes("capture"), "first-catch handoff fires");
 
 console.log("newbie-path-selfcheck: ok");

@@ -55,6 +55,9 @@ const childChecks = [
   "save-stress-selfcheck.mjs",
   "apply-d1-migrations.mjs",
   "pvp-flow-selfcheck.mjs",
+  "cloud-save-selfcheck.mjs",
+  "newbie-path-selfcheck.mjs",
+  "restart-p1-p13-selfcheck.mjs",
   "playwright-smoke.mjs",
 ];
 for (const script of childChecks) {
