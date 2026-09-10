@@ -160,7 +160,7 @@ export function createSocialTab({
           <h3>好友动态</h3>
           ${
             needCloud
-              ? `<div class="row"><div class="row__left"><div class="row__desc muted">登录后可看好友动态；未登录时仍有 NPC 垫场。</div></div></div>`
+              ? `<div class="row"><div class="row__left"><div class="row__desc muted">登录后可看好友动态。未登录时这里保持空，不会用 NPC 垫场。</div></div></div>`
               : ""
           }
           <div id="friendFeed"></div>

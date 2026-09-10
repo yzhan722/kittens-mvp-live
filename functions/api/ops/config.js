@@ -16,6 +16,7 @@ const DEFAULT_CONFIG = {
   featureFlags: {
     analytics: true,
     dailyTasksApi: true,
+    atmosphereFakes: false,
   },
 };
 

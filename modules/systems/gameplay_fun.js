@@ -361,6 +361,8 @@ export function dailyGoalsChecklist(state) {
 
 /** One-line live next goal for help coach. */
 export function liveNextGoalLine(state, { dexPct = 0, eraQuest = "", pveNext = "" } = {}) {
+  const catches = Math.max(0, Math.floor(state?.catchCount || 0));
+  if (catches <= 0) return "下一目标：打开「捕捉」，用手里的球抓第一只精灵。";
   if (eraQuest) return `下一目标：时代任务 — ${eraQuest}`;
   if (pveNext) return `下一目标：挑战 — ${pveNext}`;
   if (typeof dexPct === "number" && dexPct < 100) return `下一目标：图鉴完成度 ${Math.max(0, Math.floor(dexPct))}%`;
@@ -524,7 +526,19 @@ export const SEASON_GHOST_RIVALS = [
 export function seasonBarVsGhosts(myScore, ghosts) {
   const score = Math.max(0, Math.floor(myScore || 0));
   const list = (Array.isArray(ghosts) ? ghosts : seasonGhostsForDay()).slice().sort((a, b) => a.score - b.score);
-  const top = list.length ? list[list.length - 1] : { name: "顶端", score: score };
+  if (!list.length) {
+    return {
+      score,
+      topScore: 0,
+      topPct: 0,
+      beaten: 0,
+      total: 0,
+      needDex: 0,
+      tip: "榜上还没有其他训练家 — 去捕捉提升图鉴",
+      nextName: null,
+    };
+  }
+  const top = list[list.length - 1];
   const next = list.find((g) => g.score > score) || null;
   const beaten = list.filter((g) => score >= g.score).length;
   let needDex = 0;

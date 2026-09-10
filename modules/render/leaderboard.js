@@ -105,7 +105,7 @@ export function createRenderLeaderboard({
       <div class="row">
         <div class="row__left">
           <div class="row__title">排行榜</div>
-          <div class="row__desc">真人成绩优先。人数少时用 <span class="badge badge--muted">NPC</span> 垫场（氛围用，非真人热度）。</div>
+          <div class="row__desc">只显示提交过成绩的真人。人少时榜单会空，不会用 NPC 垫场。</div>
         </div>
       </div>
     `);
@@ -154,7 +154,7 @@ export function createRenderLeaderboard({
             <div class="row__title">赛季进度（本地）</div>
             <div class="row__desc">积分 ${bar.score}（图鉴×10 + PvE胜场）· 对顶端 ${bar.topPct}%</div>
             <div class="dex-progress" aria-label="赛季进度 ${bar.topPct}%"><div class="dex-progress__fill" style="width:${bar.topPct}%"></div></div>
-            <div class="row__desc">${escapeHtml(bar.tip)} · 已超 ${bar.beaten}/${bar.total} 幽灵</div>
+            <div class="row__desc">${escapeHtml(bar.tip)}${bar.total > 0 ? ` · 已超 ${bar.beaten}/${bar.total} 幽灵` : ""}</div>
           </div>
           <div class="row__right">
             <button class="btn btn--primary btn--small" data-lb-act="claimRival" ${canRival ? "" : "disabled"}>${rivalClaimed ? "对决赏已领" : "幽灵对决赏 +8"}</button>
@@ -163,10 +163,10 @@ export function createRenderLeaderboard({
       `);
     }
 
-    // 本地幽灵对手（按日漂移，无人也有追赶感）
     {
       const ghosts = ghostRivalsForDay(localDateStr());
-      rows.push(`
+      if (ghosts.length) {
+        rows.push(`
         <div class="row">
           <div class="row__left">
             <div class="row__title">幽灵对手（今日）</div>
@@ -174,12 +174,12 @@ export function createRenderLeaderboard({
           </div>
         </div>
       `);
-      for (const g of ghosts) {
-        const dexCmp = dexNow >= g.dex ? "领先" : `差 ${g.dex - dexNow}`;
-        const powCmp = teamNow >= g.power ? "领先" : `差 ${g.power - teamNow}`;
-        const chaseTab = dexNow < g.dex ? "capture" : "pve";
-        const chaseLabel = dexNow < g.dex ? "去捕捉追赶" : "去挑战追赶";
-        rows.push(`
+        for (const g of ghosts) {
+          const dexCmp = dexNow >= g.dex ? "领先" : `差 ${g.dex - dexNow}`;
+          const powCmp = teamNow >= g.power ? "领先" : `差 ${g.power - teamNow}`;
+          const chaseTab = dexNow < g.dex ? "capture" : "pve";
+          const chaseLabel = dexNow < g.dex ? "去捕捉追赶" : "去挑战追赶";
+          rows.push(`
           <div class="row">
             <div class="row__left">
               <div class="row__title">${escapeHtml(g.name)}</div>
@@ -190,6 +190,7 @@ export function createRenderLeaderboard({
             </div>
           </div>
         `);
+        }
       }
     }
 

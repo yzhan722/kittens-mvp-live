@@ -1,6 +1,8 @@
 # 宝可梦挂机 — 代码架构说明
 
-> 版本：v0.40.1 · 最后更新：2026-07-12
+> 生产标签：v0.41.2（`master` / [release](https://github.com/yzhan722/kittens-mvp-live/releases/tag/v0.41.2) / live health 0.41.2）  
+> 本分支代码：v0.41.6（[PR #5](https://github.com/yzhan722/kittens-mvp-live/pull/5)）· 最后更新：2026-09-11  
+> 未完成项：[milestone v0.41.2](https://github.com/yzhan722/kittens-mvp-live/milestone/1)，不要把进度只写在 markdown。
 
 ## 整体架构
 
@@ -89,7 +91,9 @@ node scripts/items-selfcheck.mjs
 
 前端仓：https://github.com/yzhan722/kittens-mvp-live
 
-CI：`.github/workflows/selfcheck.yml`（push/PR 跑三个 selfcheck：frontend · api-contract · items）。
+CI：`.github/workflows/selfcheck.yml`（push/PR 跑 selfcheck；0.41.6 已绿见 [#4](https://github.com/yzhan722/kittens-mvp-live/issues/4)）。
+
+进度：生产是 v0.41.2；本树若在 `restart/p1-p13` 则是 v0.41.6 待 [#2](https://github.com/yzhan722/kittens-mvp-live/issues/2) 部署。`feat/era-chronicle` 已删（[#9](https://github.com/yzhan722/kittens-mvp-live/issues/9)）。
 
 ## 前端要点
 
@@ -97,6 +101,8 @@ CI：`.github/workflows/selfcheck.yml`（push/PR 跑三个 selfcheck：frontend 
 - 道具使用：`modules/item_usage.js`（幸运蛋/王冠/糖果等）；药剂强化在 `modules/tabs/mons_tab.js`（`statBonus` 单项上限 +50）
 - 版本四处同步：`index.html` / `main.js` / `sw.js` / `modules/config.js`
 - 协作：`.cursor/rules/kittens-collab.mdc`
+- 氛围假人：`REMOTE_CONFIG_DEFAULTS.featureFlags.atmosphereFakes` 默认 `false`；排行榜仍 remap 乱码名，但不垫 NPC。
+- 孵化：`modules/systems/breeding.js` 的 `hatchEgg`，`tick.js` 只接线。
 
 ## 密钥
 

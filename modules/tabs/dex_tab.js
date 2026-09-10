@@ -1,4 +1,6 @@
 import { canClaimDexRegion, markDexRegionClaimed } from "../systems/gameplay_fun.js";
+import { buildShinyShareText, shinyShareCardPayload } from "../systems/collection_fun.js";
+import { downloadDataUrl, drawShinyShareCard } from "../render/shiny_share.js";
 
 export function initDexTab({
   ui,
@@ -31,6 +33,24 @@ export function initDexTab({
 
   if (elDexSummary) {
     elDexSummary.addEventListener("click", async (e) => {
+      const cardBtn = e.target?.closest?.("[data-dex-shiny-card]");
+      if (cardBtn && elDexSummary.contains(cardBtn)) {
+        const state = typeof getState === "function" ? getState() : null;
+        const payload = shinyShareCardPayload(state);
+        const dataUrl = drawShinyShareCard(payload);
+        if (dataUrl && downloadDataUrl(dataUrl)) {
+          if (typeof addLog === "function") addLog("已保存闪光馆分享卡", true);
+        } else {
+          const text = buildShinyShareText(state);
+          try {
+            if (text && navigator?.clipboard?.writeText) await navigator.clipboard.writeText(text);
+            if (typeof addLog === "function") addLog(text ? "画布不可用，已复制分享文案" : "闪光馆还是空的");
+          } catch {
+            if (typeof addLog === "function") addLog("分享卡生成失败");
+          }
+        }
+        return;
+      }
       const btn = e.target?.closest?.("[data-dex-shiny-share]");
       if (!btn || !elDexSummary.contains(btn)) return;
       const text = btn.getAttribute("data-share") || "";

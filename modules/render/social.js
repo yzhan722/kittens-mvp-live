@@ -157,6 +157,17 @@ export function createRenderSocial({ ui, escapeHtml, socialSystem, formatTime, g
 
     if (!achievements || achievements.length === 0) {
       const fakes = fakeSocialFeed(localDateStr(), 5);
+      if (!fakes.length) {
+        elFeed.innerHTML = `
+        <div class="row">
+          <div class="row__left">
+            <div class="row__title">还没有好友动态</div>
+            <div class="row__desc">邀请好友或去「设置」登录云账号后，这里会显示真实分享。空服不再填充 NPC。</div>
+          </div>
+        </div>
+      `;
+        return;
+      }
       let html = `
         <div class="row">
           <div class="row__left">
