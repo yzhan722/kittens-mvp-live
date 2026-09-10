@@ -139,12 +139,13 @@ export function looksBrokenName(name) {
   return false;
 }
 
-/** Prefer a readable trainer handle for UI. */
+/** Prefer a readable trainer handle for UI — never map onto the NPC roster. */
 export function displayTrainerId(name, uid = "") {
   const n = String(name || "").trim();
   if (!looksBrokenName(n)) return n.slice(0, 32);
-  const seed = hashStr(`${uid || n || "anon"}:display`);
-  return FAKE_TRAINERS[seed % FAKE_TRAINERS.length];
+  const raw = String(uid || n || "anon");
+  const compact = raw.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10) || "anon";
+  return `T_${compact}`;
 }
 
 /** Deterministic ambient ticker line for a time bucket (10 min). */

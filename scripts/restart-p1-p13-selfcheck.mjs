@@ -9,6 +9,8 @@ import { dirname, join } from "node:path";
 import { REMOTE_CONFIG_DEFAULTS } from "../modules/remote_config.js";
 import {
   atmosphereFakesEnabled,
+  displayTrainerId,
+  FAKE_TRAINERS,
   fakeSocialFeed,
   ghostRivalsForDay,
   padLeaderboard,
@@ -38,6 +40,20 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const padded = padLeaderboard([], "dex", "2026-07-13", { atmosphereFakes: true });
   assert.ok(padded.length >= 12, "opt-in still pads");
   assert.ok(padded.every((x) => x.fake), "opt-in rows fake");
+}
+
+{
+  const remapped = displayTrainerId("allf5fec93a50", "176e158a-5df8-460a-815d-30a69106cb49");
+  assert.ok(!FAKE_TRAINERS.includes(remapped), `broken names must not use NPC roster, got ${remapped}`);
+  assert.match(remapped, /^T_[A-Za-z0-9]+$/, "stable T_ handle");
+  assert.equal(displayTrainerId("RealPlayer", "uid"), "RealPlayer", "keep real nicknames");
+  const hashed = padLeaderboard(
+    [{ score: 3, attrs: { ownerName: "allf5fec93a50", uid: "176e158a-5df8-460a-815d-30a69106cb49" } }],
+    "dex",
+    "2026-09-11"
+  );
+  assert.equal(hashed.length, 1, "one real row");
+  assert.ok(!FAKE_TRAINERS.includes(hashed[0].name), "padded display must not look like NPC");
 }
 
 {

@@ -1,8 +1,8 @@
 # Retention baseline
 
-- Captured: 2026-09-10T15:57:11.044Z
+- Captured: 2026-09-10T16:21:28.484Z
 - Base: https://game.pokeauto.online
-- Health: status 200, version 0.41.2
+- Health: status 200, version 0.41.6
 - Dex board rows (API, no client padding): 1
 - Dex rows that look real: 1
 - Top real score: 3
