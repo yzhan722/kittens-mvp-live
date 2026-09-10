@@ -257,7 +257,7 @@ export function fakeBoardRows(board, dateStr = localDateStr(), count = 12) {
 
 /**
  * Merge real leaderboard items with daily fake trainers, re-rank.
- * Fakes always pad thin boards; even busy boards get a few for atmosphere.
+ * Fakes are off unless { atmosphereFakes: true }.
  */
 export function padLeaderboard(items, board, dateStr = localDateStr(), opts = null) {
   const real = Array.isArray(items) ? items.slice() : [];
